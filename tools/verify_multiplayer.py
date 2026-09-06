@@ -45,8 +45,14 @@ def serve(name, pipe, stop):
                 host.publish()
                 last_tick = time.monotonic()
             if pipe.poll():
-                assert pipe.recv() == 'snapshot'
-                pipe.send(match.snapshot(1))
+                request = pipe.recv()
+                if request == 'snapshot':
+                    pipe.send(match.snapshot(1))
+                else:
+                    assert request == 'finish' and name == 'tribes'
+                    while match.world.winner is None:
+                        match.apply(match.world.current, {'action': 'end_turn'})
+                    host.publish()
             time.sleep(.005)
     finally:
         host.close()
@@ -155,7 +161,13 @@ def verify(name, output):
             snapshot = parent.recv()
             if name == 'tribes':
                 from tribes.model import World
+                from tribes.scene import GameOverScene
+                from tribes.scores import HighScores
                 assert World.from_dict(snapshot['world']).to_dict() == scene.world.to_dict()
+                parent.send('finish')
+                wait(lambda: isinstance(game.scene, GameOverScene))
+                assert HighScores(game.data_dir).load() == []
+                shot('result')
             elif name == 'eador':
                 assert snapshot['campaign'] == game.scene.root.state.to_json()
             else:
