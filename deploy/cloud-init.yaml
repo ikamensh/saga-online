@@ -1,0 +1,29 @@
+#cloud-config
+package_update: true
+packages: [python3-venv, python3-pip, caddy, curl, ca-certificates]
+ssh_pwauth: false
+disable_root: true
+users:
+  - name: deploy
+    groups: [sudo]
+    shell: /bin/bash
+    lock_passwd: true
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    ssh_authorized_keys:
+      - __SSH_PUBLIC_KEY__
+  - name: saga2d-online
+    system: true
+    shell: /usr/sbin/nologin
+    lock_passwd: true
+write_files:
+  - path: /etc/saga2d-online/managed-instance
+    permissions: '0644'
+    content: __INSTANCE_NAME__
+  - path: /etc/systemd/journald.conf.d/saga2d.conf
+    permissions: '0644'
+    content: |
+      [Journal]
+      SystemMaxUse=200M
+      RuntimeMaxUse=50M
+runcmd:
+  - [systemctl, restart, systemd-journald]

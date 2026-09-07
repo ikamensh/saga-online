@@ -1,0 +1,41 @@
+[Unit]
+Description=Saga2D online multiplayer rooms
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=saga2d-online
+Group=saga2d-online
+WorkingDirectory=/opt/saga2d-online/current
+ExecStart=/opt/saga2d-online/current/.venv/bin/python -m online_server --host 127.0.0.1 --port 8765 --state-dir /var/lib/saga2d-online --trusted-proxy --max-rooms 16 --max-connections 64
+StateDirectory=saga2d-online
+StateDirectoryMode=0700
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=20
+KillSignal=SIGTERM
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+CapabilityBoundingSet=
+MemoryMax=1200M
+CPUQuota=150%
+TasksMax=128
+LimitNOFILE=4096
+UMask=0077
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
