@@ -112,6 +112,10 @@ def verify(name, output):
             shot('title')
             press(key.M)
             assert isinstance(game.scene, MatchMenu)
+            lan = next(button for button in game.scene.ui.walk() if getattr(button, 'text', None) == 'LAN')
+            x, y, w, h = lan.bounds
+            click(x + w / 2, y + h / 2)
+            assert game.scene.mode == 'lan'
             press(key.TAB)
             for digit in str(port):
                 press(getattr(key, '_' + digit))
