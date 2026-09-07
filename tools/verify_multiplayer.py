@@ -76,10 +76,10 @@ def verify(name, output):
             if name == 'eador':
                 from eador.app import create_game
                 from eador.scene import TitleScene, BattleScene
-                game = create_game(visible=False, save_dir=Path(profile), resolution=(1280, 800))
+                game = create_game(visible=False, save_dir=Path(profile) / 'saves', resolution=(1280, 800))
             else:
                 TitleScene = importlib.import_module(name + '.title').TitleScene
-                game = Game(name, visible=False, resolution=(1280, 800), theme=style.build_theme(), save_dir=profile)
+                game = Game(name, visible=False, resolution=(1280, 800), theme=style.build_theme(), save_dir=Path(profile) / 'saves')
                 fonts.load(game)
             from pyglet.window import key, mouse
             def frame(n=1):

@@ -62,9 +62,9 @@ def verify(name, output, endpoint):
         def new_game():
             if name == 'eador':
                 from eador.app import create_game
-                return create_game(visible=False, save_dir=Path(profile), resolution=(1280, 800))
+                return create_game(visible=False, save_dir=Path(profile) / 'saves', resolution=(1280, 800))
             style = importlib.import_module(name + '.style')
-            window = Game(name, visible=False, resolution=(1280, 800), theme=style.build_theme(), save_dir=profile)
+            window = Game(name, visible=False, resolution=(1280, 800), theme=style.build_theme(), save_dir=Path(profile) / 'saves')
             fonts.load(window)
             return window
 
@@ -126,6 +126,7 @@ def verify(name, output, endpoint):
             game = new_game()
             title(about=name == 'eador')
             assert game.scene.mode == 'online'
+            assert not game.scene.last_room['resume_token'], 'New test profile contains a saved seat'
             shot('online')
             click_text('LAN')
             assert game.scene.mode == 'lan'
