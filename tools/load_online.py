@@ -13,12 +13,15 @@ from __future__ import annotations
 
 import argparse
 import json
+from pathlib import Path
 import statistics
+import sys
 import time
 import urllib.request
 from urllib.parse import urlsplit, urlunsplit
 
-from saga2d.online import OnlineClient
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from saga2d.online import OnlineClient  # noqa: E402
 
 OPTIONS = {"warband": {"width": 40, "height": 32}, "tribes": {"size": 11}, "shardbound": {"campaign": True}}
 GAME_IDS = {"warband": "warband-v1", "tribes": "tribes-v1", "shardbound": "shardbound-v1"}
