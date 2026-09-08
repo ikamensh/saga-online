@@ -104,12 +104,46 @@
         "shardbound-v1",
         "shardbound-pvp-v1"
       ],
-      "channel": null,
-      "version": null,
-      "source_commit": null,
-      "released": null,
-      "notes": null,
-      "packages": []
+      "channel": "preview",
+      "version": "0.1.0-preview.1",
+      "source_commit": "184584007ac3071dcb901e323a16bcd727877c14",
+      "released": "2026-09-08",
+      "notes": "https://github.com/ikamensh/saga2d/releases/tag/shardbound-v0.1.0-preview.1",
+      "packages": [
+        {
+          "os": "windows",
+          "arch": "x64",
+          "kind": "portable-zip",
+          "file": "Shardbound-0.1.0-preview.1-windows-x64-portable.zip",
+          "url": "https://github.com/ikamensh/saga2d/releases/download/shardbound-v0.1.0-preview.1/Shardbound-0.1.0-preview.1-windows-x64-portable.zip",
+          "bytes": 64333408,
+          "sha256": "ad9e87ca2fe2591a080380f76050ecca7ab2dd365537cfea11db0eddecaed6a4",
+          "min_os": "Windows 10",
+          "signed": false
+        },
+        {
+          "os": "windows",
+          "arch": "x64",
+          "kind": "installer",
+          "file": "Shardbound-0.1.0-preview.1-windows-x64-setup.exe",
+          "url": "https://github.com/ikamensh/saga2d/releases/download/shardbound-v0.1.0-preview.1/Shardbound-0.1.0-preview.1-windows-x64-setup.exe",
+          "bytes": 50961934,
+          "sha256": "34bf23da4d5be088d6b35a20e93d38320b01dc87cc43dc509574fd36ba8d4fdc",
+          "min_os": "Windows 10",
+          "signed": false
+        },
+        {
+          "os": "macos",
+          "arch": "arm64",
+          "kind": "app-zip",
+          "file": "Shardbound-0.1.0-preview.1-darwin-arm64-app.zip",
+          "url": "https://github.com/ikamensh/saga2d/releases/download/shardbound-v0.1.0-preview.1/Shardbound-0.1.0-preview.1-darwin-arm64-app.zip",
+          "bytes": 49304080,
+          "sha256": "0fcff24640abba882b8ee32b87345809246bf23d51d80c853dab345cd56a6376",
+          "min_os": "macOS 14 on Apple Silicon",
+          "signed": false
+        }
+      ]
     }
   }
 }
