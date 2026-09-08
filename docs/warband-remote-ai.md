@@ -58,7 +58,9 @@ memory limit and a read-only system filesystem. It stops on errors or when
 its duration ends; errors remain in the journal. The VM stays running after
 the client stops, so its compute, disk and public IPv4 continue to be billed.
 Provisioning uses the same DEV1-S and 20 GB disk configuration documented in
-[online operations](../deploy/README.md).
+[online operations](../deploy/README.md), estimated at about €11.37/month
+before tax in addition to the room server. The instance API checked on
+2026-09-08 reports €0.008976/hour for its compute; storage and IPv4 are extra.
 
 ## Verify a human client against it
 
