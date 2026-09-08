@@ -62,8 +62,14 @@ class Seat:
                 self.client.submit({"action": "end_turn"})
         elif player == 0:
             from eador.model import State
-            in_battle = State.from_json(state["campaign"]).battle is not None
-            self.client.submit({"action": "resolve_battle" if in_battle else "end_turn", "target": "state", "args": []})
+            battle = State.from_json(state["campaign"]).battle
+            if battle is None:
+                order = {"action": "end_turn", "target": "state"}
+            elif battle.outcome is None:
+                order = {"action": "auto_turn", "target": "battle"}
+            else:
+                order = {"action": "resolve_battle", "target": "state"}
+            self.client.submit({**order, "args": []})
         self.orders += 1
 
 
