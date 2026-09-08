@@ -125,9 +125,10 @@ GAMES = {
             'Capture Duskspire before the rival takes Westwatch.',
         ],
         'screenshots': [
-            (f'{EVIDENCE}/shardbound-package-7b5562d/smoke/packaged-smoke-shard.png', 'The Frontier shard with the province map and stronghold'),
-            (f'{EVIDENCE}/shardbound-package-7b5562d/smoke/packaged-smoke-battle.png', 'A hex battle for Silverford'),
-            (f'{EVIDENCE}/shardbound-package-7b5562d/smoke/packaged-smoke-codex.png', 'The Codex rules reference'),
+            (f'{EVIDENCE}/shardbound-distribution-2026-09-08/mac-package/portable-smoke-shard.png', 'The Frontier shard with the province map and stronghold'),
+            (f'{EVIDENCE}/shardbound-distribution-2026-09-08/mac-package/portable-smoke-battle.png', 'A hex battle for Silverford'),
+            (f'{EVIDENCE}/shardbound-distribution-2026-09-08/mac-package/portable-smoke-codex.png', 'The Codex rules reference'),
+            (f'{EVIDENCE}/shardbound-distribution-2026-09-08/mac-package/portable-smoke-rival.png', 'The rival expedition plan'),
         ],
         'requirements': {
             'windows': 'Windows 10 or 11, 64-bit, with OpenGL 3.3 graphics drivers.',
