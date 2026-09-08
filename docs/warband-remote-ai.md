@@ -11,10 +11,18 @@ Amsterdam AI ─ public TLS WebSocket ──> Paris room server
 ```
 
 The game server remains `wss://games.tachyon-ai.eu/play` on `saga2d-online`
-(`51.159.207.49`, `fr-par-1`). The separate client VM is `saga2d-warband-ai`
-(`51.158.175.125`, `nl-ams-1`) in the same dedicated Saga2D cloud project.
-The client VM has no game-server process and makes an outbound connection
-through the public endpoint.
+(`51.159.207.49`, `fr-par-1`). The temporary Amsterdam client successfully
+played against the native human client through that public endpoint; see the
+[Internet-play evidence](evidence/warband-internet-2026-09-08/README.md).
+
+On 2026-09-08, after that verification, `saga2d-warband-ai` was retired at the
+user's request. Its VM, 20 GB disk and reserved IPv4 were deleted and each
+returned HTTP 404 on verification. The old `51.158.175.125` address is released
+and must not be reused. Paris remained running and its public health endpoint
+returned HTTP 200 before and after retirement. The
+[retirement receipts and retained AI journal](evidence/warband-internet-2026-09-08/ai-retirement/README.md)
+record the exact resources. There is no running Amsterdam AI client or retained
+AI compute, disk or IPv4 to bill.
 
 ## Run a client anywhere
 
@@ -30,13 +38,17 @@ time, including the lobby; `--wait-timeout` limits time waiting for a partner.
 Closing either seat pauses the match. A room without both players expires
 after the server's retention interval, currently 15 minutes.
 
-## Operate the Amsterdam client
+## Recreate and operate a temporary Amsterdam client
 
-Run these commands from the repository on the laptop with its existing SSH
-key. No Scaleway or DNS credentials are copied onto either VM.
+These commands provision a new billable VM when another remote-client run is
+needed. Run them from the repository on the laptop with its existing SSH key.
+No Scaleway or DNS credentials are copied onto either VM. Retirement removed
+`dist/online-ai/target.json`; its historical record is now
+`dist/online-ai/target.retired.json` and cannot be used as an active target.
+Provisioning creates a fresh target with the new instance identity and address.
 
 ```sh
-# First provisioning only; records dist/online-ai/target.json.
+# Provision a new client; records dist/online-ai/target.json.
 uv run python tools/deploy_online.py provision --name saga2d-warband-ai --zone nl-ams-1 --output dist/online-ai
 
 # Install a content-addressed source archive and locked dependencies.
