@@ -78,3 +78,38 @@ def test_provider_smtp_blocks_survive_game_firewall_setup():
     game_rule = dict(editable=True, action="accept", direction="inbound", protocol="TCP",
                      ip_range="0.0.0.0/0", dest_port_from=443, dest_port_to=None)
     assert firewall_ports(provider_rules + [game_rule]) == {443}
+
+
+def test_site_release_bundles_built_pages_with_its_installer(tmp_path):
+    """Publishing needs a finished build; the archive is content-addressed and self-contained."""
+    from tools.deploy_online import package_site
+
+    site = tmp_path / "site"
+    (site / "warband").mkdir(parents=True)
+    with __import__("pytest").raises(FileNotFoundError, match="index.html"):
+        package_site(site, tmp_path / "out")
+    (site / "index.html").write_text("<h1>Games</h1>")
+    (site / "releases.json").write_text("{}")
+    (site / "warband" / "index.html").write_text("<h1>Warband</h1>")
+    first = package_site(site, tmp_path / "out")
+    assert first["files"] == 3 and first["release"] in first["archive"]
+    assert package_site(site, tmp_path / "out")["release"] == first["release"]
+    unpacked = tmp_path / "unpacked"
+    with tarfile.open(first["archive"]) as archive:
+        archive.extractall(unpacked, filter="data")
+    assert (unpacked / "site/warband/index.html").read_text() == "<h1>Warband</h1>"
+    subprocess.run(["bash", "-n", str(unpacked / "deploy/install_site.sh")], check=True)
+    (site / "index.html").write_text("<h1>Changed</h1>")
+    assert package_site(site, tmp_path / "out")["release"] != first["release"]
+
+
+def test_proxy_configuration_keeps_play_and_health_on_the_room_server():
+    """The static site never shadows the WebSocket endpoint or liveness probe."""
+    import shutil
+    caddyfile = (ROOT / "deploy/Caddyfile").read_text().replace("__DOMAIN__", "games.example.test")
+    assert "@server path /play /healthz" in caddyfile and "reverse_proxy @server 127.0.0.1:8765" in caddyfile
+    assert "root * /srv/saga2d-site/current" in caddyfile and "rewrite @invite /join/index.html" in caddyfile
+    caddy = shutil.which("caddy")
+    if caddy:
+        subprocess.run([caddy, "validate", "--adapter", "caddyfile", "--config", "/dev/stdin"],
+                       input=caddyfile, text=True, check=True, capture_output=True)

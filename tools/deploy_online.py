@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Prepare and deploy the dedicated online server; cloud credentials stay local.
 
-``plan`` and ``package`` are offline. The other subcommands change the explicitly
-named Saga2D infrastructure. See deploy/README.md for the first deployment.
+``plan``, ``package`` and ``package-site`` are offline. The other subcommands
+change the explicitly named Saga2D infrastructure. See deploy/README.md for the
+first deployment; ``site`` publishes a built website without touching the server.
 """
 from __future__ import annotations
 
@@ -161,7 +162,8 @@ def bootstrap_project(args):
 
 def arguments(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=["plan", "package", "bootstrap-project", "provision", "deploy", "status"])
+    parser.add_argument("command", choices=["plan", "package", "bootstrap-project", "provision", "deploy", "status",
+                                            "package-site", "site"])
     parser.add_argument("--name", required=True, help="Dedicated resource name, starting saga2d-")
     parser.add_argument("--project-name", default="saga2d")
     parser.add_argument("--project-id")
@@ -172,6 +174,7 @@ def arguments(argv=None):
     parser.add_argument("--dns-secrets-file", type=Path, default=Path.home() / "secrets/infrastructure.md")
     parser.add_argument("--ssh-key", type=Path, default=Path.home() / ".ssh/id_ed25519.pub")
     parser.add_argument("--output", type=Path, default=ROOT / "dist/online")
+    parser.add_argument("--site-dir", type=Path, default=ROOT / "dist/site", help="Built website to publish")
     args = parser.parse_args(argv)
     if not re.fullmatch(r"saga2d-[a-z0-9-]{1,40}", args.name):
         parser.error("--name must start with saga2d- and contain only lowercase letters, digits or hyphens")
@@ -212,6 +215,15 @@ def package_release(output: Path):
         ["uv", "export", "--frozen", "--no-dev", "--no-emit-project", "--no-header"],
         cwd=ROOT, check=True, capture_output=True,
     ).stdout
+    payload = _stable_tar(files)
+    digest = hashlib.sha256(payload).hexdigest()
+    output.mkdir(parents=True, exist_ok=True)
+    path = output / f"{digest}.tar.gz"
+    path.write_bytes(payload)
+    return {"release": digest, "archive": str(path.resolve()), "files": len(files)}
+
+
+def _stable_tar(files: dict) -> bytes:
     buffer = io.BytesIO()
     with tarfile.open(fileobj=buffer, mode="w") as archive:
         for name, content in sorted(files.items()):
@@ -219,12 +231,26 @@ def package_release(output: Path):
             entry.size = len(content)
             entry.mode = 0o644
             archive.addfile(entry, io.BytesIO(content))
-    payload = gzip.compress(buffer.getvalue(), mtime=0)
+    return gzip.compress(buffer.getvalue(), mtime=0)
+
+
+def package_site(site_dir: Path, output: Path):
+    """Bundle a built website with its installer; the archive digest names the release."""
+    site_dir = site_dir.resolve()
+    if not (site_dir / "index.html").is_file() or not (site_dir / "releases.json").is_file():
+        raise FileNotFoundError(f"Build the website first; {site_dir} lacks index.html or releases.json")
+    files = {"deploy/install_site.sh": (ROOT / "deploy/install_site.sh").read_bytes()}
+    for path in sorted(site_dir.rglob("*")):
+        if path.is_symlink():
+            raise ValueError(f"Refusing symlink in site release: {path}")
+        if path.is_file():
+            files["site/" + path.relative_to(site_dir).as_posix()] = path.read_bytes()
+    payload = _stable_tar(files)
     digest = hashlib.sha256(payload).hexdigest()
     output.mkdir(parents=True, exist_ok=True)
-    path = output / f"{digest}.tar.gz"
+    path = output / f"site-{digest}.tar.gz"
     path.write_bytes(payload)
-    return {"release": digest, "archive": str(path.resolve()), "files": len(files)}
+    return {"release": digest, "archive": str(path.resolve()), "files": len(files) - 1}
 
 
 def deployment_api(args):
@@ -355,13 +381,16 @@ def publish_dns(args, ipv4):
             response.read()
 
 
-def deploy(args):
+def running_target(args):
     api, project_id = deployment_api(args)
     server = find_server(api, args, project_id)
     if server is None or server["state"] != "running":
         raise RuntimeError("Provision the dedicated server before deploying")
-    target = target_details(args, project_id, server)
-    package = package_release(args.output)
+    return target_details(args, project_id, server)
+
+
+def upload(args, target, package):
+    """Verify the instance marker, then stage the archive and return its remote directory."""
     deadline = time.monotonic() + 300
     while True:
         result = subprocess.run(["ssh", *ssh_options(args), f"deploy@{target['ip']}", "true"],
@@ -384,6 +413,13 @@ def deploy(args):
     if actual_digest != package["release"]:
         raise RuntimeError("Uploaded release checksum does not match the local artifact")
     ssh(args, target, ["tar", "-xzf", staging + "/release.tar.gz", "-C", staging])
+    return staging
+
+
+def deploy(args):
+    target = running_target(args)
+    package = package_release(args.output)
+    staging = upload(args, target, package)
     publish_dns(args, target["ip"])
     ssh(args, target, ["sudo", "bash", staging + "/deploy/install.sh", staging,
                        package["release"], args.name, args.domain])
@@ -405,6 +441,28 @@ def check_health(url):
         if response.status != 200 or response.read() != b"ok\n":
             raise RuntimeError(f"Unexpected health response from {url}")
     return "ok"
+
+
+def fetch(url):
+    with urllib.request.urlopen(url, timeout=15) as response:
+        return response.read()
+
+
+def publish_site(args):
+    """Install a built website release beside the running server and verify it publicly."""
+    target = running_target(args)
+    package = package_site(args.site_dir, args.output)
+    staging = upload(args, target, package)
+    ssh(args, target, ["sudo", "bash", staging + "/deploy/install_site.sh", staging, package["release"], args.name])
+    ssh(args, target, ["rm", "-rf", "--", staging])
+    served = {}
+    for name in ("index.html", "releases.json"):
+        expected = (args.site_dir / name).read_bytes()
+        public = f"https://{args.domain}/" + ("" if name == "index.html" else name)
+        if fetch(public) != expected:
+            raise RuntimeError(f"{public} does not serve the published bytes; inspect Caddy's site root")
+        served[name] = public
+    return {**target, **package, "served": served, "health": check_health(f"https://{args.domain}/healthz")}
 
 
 def status(args):
@@ -431,6 +489,10 @@ def main(argv=None):
         result = provision(args)
     elif args.command == "deploy":
         result = deploy(args)
+    elif args.command == "package-site":
+        result = package_site(args.site_dir, args.output)
+    elif args.command == "site":
+        result = publish_site(args)
     else:
         result = status(args)
     print(json.dumps(result, indent=2))

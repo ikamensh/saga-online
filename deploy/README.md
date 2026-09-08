@@ -2,7 +2,10 @@
 
 Tribes, Warband and Shardbound share one authoritative Python room server at
 `wss://games.tachyon-ai.eu/play`. Caddy terminates TLS on port 443 and forwards
-WebSockets to `127.0.0.1:8765`; `/healthz` returns HTTP 200 and `ok\n`.
+`/play` and `/healthz` to `127.0.0.1:8765`; `/healthz` returns HTTP 200 and
+`ok\n`. Every other path is the static games website, served from
+`/srv/saga2d-site/current`, including the release catalog at `/releases.json`
+and invitation links under `/join/`.
 
 ## First deployment
 
@@ -78,6 +81,43 @@ uv run python tools/deploy_online.py status --name saga2d-online
 uv run python tools/deploy_online.py deploy --name saga2d-online
 uv run python deploy/smoke.py wss://games.tachyon-ai.eu/play
 ```
+
+## Website and release catalog
+
+`releases/catalog.json` is the single source of release facts: per game, the
+online ids, current version, source commit and each package's URL, size and
+SHA-256. `tools/release_catalog.py` validates it; the website and the installed
+games read the same document. Update the catalog only after a release has
+passed acceptance, and never overwrite a versioned binary.
+
+```sh
+uv run python tools/release_catalog.py                     # validate
+uv run python tools/build_site.py                          # render dist/site
+uv run python tools/deploy_online.py site --name saga2d-online
+```
+
+`site` bundles `dist/site` with `deploy/install_site.sh`, uploads it, installs
+it as an immutable release under `/srv/saga2d-site/releases/<sha256>`, swaps the
+`current` symlink and verifies that the public home page and `/releases.json`
+serve the exact local bytes. It does not touch the room server; `deploy`
+does not touch the site. The Caddy routes ship with the server release, so the
+first site publication requires a server deployment that carries the current
+`deploy/Caddyfile`. The three most recent site releases are retained for manual
+rollback by re-pointing the symlink.
+
+Installed games fetch `/releases.json` when the player opens Multiplayer and
+offer the download page when the catalog version differs from their build.
+Clients whose protocol or game id the server no longer accepts receive a
+structured `incompatible` rejection and show the same download page.
+
+## Room retention
+
+Match rooms (Tribes, Warband) expire after `--room-ttl` (15 minutes) without
+both players. Shardbound campaign rooms are retained for `--campaign-ttl`
+(seven days): after `--room-ttl` with no seat connected they are suspended to
+SQLite and leave memory, freeing the room limit, and return when either seat
+resumes or joins. The `suspended` table is additive, so an earlier server
+release can still read the database after a code rollback.
 
 `dist/online/target.json` records the server ID and IP after provisioning. SSH
 to `deploy@<IP>` for service status, logs, or disk inspection:
