@@ -135,8 +135,9 @@ GAMES = {
             'macos': 'macOS 14 or later on Apple Silicon (M1 or newer).',
         },
         'known_issues': [
-            'A development build: balance, onboarding and presentation are still being evaluated.',
-            'No standalone package has been published yet; a Mac development build exists locally.',
+            'A development preview: balance, onboarding and presentation are still being evaluated, and the app uses a development icon.',
+            'The installer is unsigned and the Mac app is not notarized; see the first-launch notes above.',
+            'Co-op shares one realm; there is no competitive online mode yet.',
             'English only.',
         ],
         'guide': 'https://github.com/ikamensh/saga2d/blob/main/eador/README.md',
