@@ -19,11 +19,19 @@ def test_site_pages_reflect_the_catalog_and_content(tmp_path):
     assert 'Copy invite link' in warband and 'games.tachyon-ai.eu/join/warband-v1/' in warband
     assert 'Unsigned preview' in warband and 'Not yet notarized' in warband
     tribes = (output / 'tribes/index.html').read_text()
-    assert 'No download yet' in tribes and 'python -m tribes' in tribes
+    for package in catalog['games']['tribes']['packages']:
+        assert package['url'] in tribes
+    released = [slug for slug, game in catalog['games'].items() if game['packages']]
+    unreleased = [slug for slug, game in catalog['games'].items() if not game['packages']]
+    for slug in unreleased:
+        page = (output / slug / 'index.html').read_text()
+        assert 'No download yet' in page and 'python -m ' in page
     shardbound = (output / 'shardbound/index.html').read_text()
-    assert 'python -m eador' in shardbound and 'kept for seven days' in shardbound
+    assert 'kept for seven days' in shardbound
     index = (output / 'index.html').read_text()
-    assert 'Download 0.1.0-preview.3' in index and index.count('Coming soon') == 2
+    for slug in released:
+        assert f"Download {catalog['games'][slug]['version']}" in index
+    assert index.count('Coming soon') == len(unreleased)
     for slug, images in manifest['images'].items():
         assert images, slug
         for image in images:

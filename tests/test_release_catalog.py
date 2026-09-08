@@ -11,9 +11,10 @@ def test_committed_catalog_lists_every_game_with_immutable_package_facts():
     catalog = load()
     assert set(catalog['games']) == {'warband', 'tribes', 'shardbound'}
     assert catalog['server']['endpoint'] == 'wss://games.tachyon-ai.eu/play'
-    warband = catalog['games']['warband']
-    assert warband['version'] and warband['packages']
-    assert {(p['os'], p['arch']) for p in warband['packages']} >= {('windows', 'x64'), ('macos', 'arm64')}
+    for slug in ('warband', 'tribes'):
+        game = catalog['games'][slug]
+        assert game['version'] and game['packages']
+        assert {(p['os'], p['arch']) for p in game['packages']} >= {('windows', 'x64'), ('macos', 'arm64')}
 
 
 @pytest.mark.parametrize('change, fragment', [
@@ -22,7 +23,7 @@ def test_committed_catalog_lists_every_game_with_immutable_package_facts():
     (lambda c: c['games']['warband']['packages'][0].update(file='other.exe'), 'end with its file name'),
     (lambda c: c['games']['warband'].update(version=None), 'version'),
     (lambda c: c['games']['warband'].update(source_commit='85becd0'), 'source commit'),
-    (lambda c: c['games']['tribes'].update(version='0.1.0'), 'unreleased'),
+    (lambda c: c['games']['shardbound'].update(version='0.1.0'), 'unreleased'),
     (lambda c: c['games']['tribes'].update(game_ids=['warband-v1']), 'unique'),
     (lambda c: c['games'].update({'Bad Slug': c['games']['tribes']}), 'slug'),
     (lambda c: c['games']['warband']['packages'].append(dict(c['games']['warband']['packages'][0])), 'duplicate'),

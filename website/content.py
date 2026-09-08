@@ -90,7 +90,8 @@ GAMES = {
             'macos': 'macOS 14 or later on Apple Silicon (M1 or newer).',
         },
         'known_issues': [
-            'No standalone package has been published yet; the online mode is playable from source today.',
+            'The installer is unsigned and the Mac app is not notarized; see the first-launch notes above.',
+            'Online matches are two human tribes only; offline games add AI tribes.',
             'English only.',
         ],
         'guide': 'https://github.com/ikamensh/saga2d/blob/main/docs/online-multiplayer.md',

@@ -57,12 +57,46 @@
       "game_ids": [
         "tribes-v1"
       ],
-      "channel": null,
-      "version": null,
-      "source_commit": null,
-      "released": null,
-      "notes": null,
-      "packages": []
+      "channel": "preview",
+      "version": "0.1.0-preview.1",
+      "source_commit": "ea5a2a2ece444885edb29034ce34f029cce664d9",
+      "released": "2026-09-08",
+      "notes": "https://github.com/ikamensh/saga2d/releases/tag/tribes-v0.1.0-preview.1",
+      "packages": [
+        {
+          "os": "windows",
+          "arch": "x64",
+          "kind": "portable-zip",
+          "file": "Tribes-0.1.0-preview.1-windows-x64-portable.zip",
+          "url": "https://github.com/ikamensh/saga2d/releases/download/tribes-v0.1.0-preview.1/Tribes-0.1.0-preview.1-windows-x64-portable.zip",
+          "bytes": 37192314,
+          "sha256": "61916911c7de4de7620ca13255c367d4afcd638108e63fd17dc9a1acc86befb0",
+          "min_os": "Windows 10",
+          "signed": false
+        },
+        {
+          "os": "windows",
+          "arch": "x64",
+          "kind": "installer",
+          "file": "Tribes-0.1.0-preview.1-windows-x64-setup.exe",
+          "url": "https://github.com/ikamensh/saga2d/releases/download/tribes-v0.1.0-preview.1/Tribes-0.1.0-preview.1-windows-x64-setup.exe",
+          "bytes": 26908559,
+          "sha256": "0c9a62f91945386082e403724ed8c62efd0f79b37949ae7cd62976f70eef741c",
+          "min_os": "Windows 10",
+          "signed": false
+        },
+        {
+          "os": "macos",
+          "arch": "arm64",
+          "kind": "app-zip",
+          "file": "Tribes-0.1.0-preview.1-darwin-arm64-app.zip",
+          "url": "https://github.com/ikamensh/saga2d/releases/download/tribes-v0.1.0-preview.1/Tribes-0.1.0-preview.1-darwin-arm64-app.zip",
+          "bytes": 22206936,
+          "sha256": "ef17781416632574b0f87668dd9057eeca62005394e0cd1a2a6a53b2bd0f8daf",
+          "min_os": "macOS 14 on Apple Silicon",
+          "signed": false
+        }
+      ]
     },
     "shardbound": {
       "name": "Shardbound",
