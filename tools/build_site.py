@@ -43,18 +43,15 @@ def render(template: str, **fields) -> str:
     return Template((SITE / 'templates' / template).read_text(encoding='utf-8')).substitute(fields)
 
 
-def page(output: Path, path: str, *, title, description, content, site, active=None, built):
-    nav = ''.join(f'<a href="/{slug}/"{" aria-current=page" if slug == active else ""}>{esc(GAMES_ORDER[slug])}</a>'
-                  for slug in GAMES_ORDER) + f'<a href="/status/"{" aria-current=page" if active == "status" else ""}>Status</a>'
+def page(output: Path, path: str, *, title, description, content, site, names, active=None, built):
+    nav = ''.join(f'<a href="/{slug}/"{" aria-current=page" if slug == active else ""}>{esc(name)}</a>'
+                  for slug, name in names.items()) + f'<a href="/status/"{" aria-current=page" if active == "status" else ""}>Status</a>'
     document = render('base.html', title=esc(title), description=esc(description), canonical=esc(site + path),
                       nav=nav, content=content, source_url=SOURCE_URL, support_url=SUPPORT_URL, built=built)
     target = output / path.strip('/') / 'index.html' if path.endswith('/') else output / path.strip('/')
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(document, encoding='utf-8')
     return target
-
-
-GAMES_ORDER = {}
 
 
 def convert_images(slug: str, screenshots, output: Path):
@@ -76,8 +73,9 @@ def convert_images(slug: str, screenshots, output: Path):
 
 
 def package_buttons(game, packages):
+    """Installers and apps first, one button per package, in catalog order otherwise."""
     buttons = []
-    for pkg in packages:
+    for pkg in sorted(packages, key=lambda item: item['kind'] not in ('installer', 'app-zip')):
         primary = pkg['kind'] in ('installer', 'app-zip')
         detail = ' · '.join(part for part in (KIND_NAMES[pkg['kind']], megabytes(pkg['bytes']), game['version']) if part)
         buttons.append(f'<a class="button{" primary" if primary else ""}" href="{esc(pkg["url"])}" data-os="{pkg["os"]}">'
@@ -230,8 +228,7 @@ def build(output: Path, catalog_path: Path = CATALOG) -> dict:
     catalog = load(catalog_path)
     if set(catalog['games']) != set(GAMES):
         raise ValueError(f'Website content covers {sorted(GAMES)} but the catalog lists {sorted(catalog["games"])}')
-    GAMES_ORDER.clear()
-    GAMES_ORDER.update({slug: entry['name'] for slug, entry in catalog['games'].items()})
+    names = {slug: entry['name'] for slug, entry in catalog['games'].items()}
     site = catalog['site']
     if output.exists():
         shutil.rmtree(output)
@@ -244,17 +241,17 @@ def build(output: Path, catalog_path: Path = CATALOG) -> dict:
     built = datetime.now(timezone.utc).strftime('%Y-%m-%d')
     images = {slug: convert_images(slug, GAMES[slug]['screenshots'], output) for slug in catalog['games']}
     pages = [page(output, '/', title='Saga2D Games', description='Free strategy games for Windows and Mac with online play by invitation.',
-                  content=index_page(catalog, images), site=site, built=built)]
+                  content=index_page(catalog, images), site=site, names=names, built=built)]
     for slug, entry in catalog['games'].items():
         pages.append(page(output, f'/{slug}/', title=f'{entry["name"]} — download and play online',
                           description=GAMES[slug]['tagline'], content=game_page(slug, entry, GAMES[slug], images[slug], site),
-                          site=site, active=slug, built=built))
+                          site=site, names=names, active=slug, built=built))
     pages.append(page(output, '/join/', title='Join a room', description='Join a friend\'s online room.',
-                      content=join_page(), site=site, built=built))
+                      content=join_page(), site=site, names=names, built=built))
     pages.append(page(output, '/status/', title='Service status', description='Online service status, current releases and troubleshooting.',
-                      content=status_page(catalog), site=site, active='status', built=built))
+                      content=status_page(catalog), site=site, names=names, active='status', built=built))
     pages.append(page(output, '/404.html', title='Page not found', description='Page not found.',
-                      content='<h1>Page not found</h1><p>That address does not exist. <a href="/">See the games</a>.</p>', site=site, built=built))
+                      content='<h1>Page not found</h1><p>That address does not exist. <a href="/">See the games</a>.</p>', site=site, names=names, built=built))
     return {'output': str(output), 'pages': [str(p.relative_to(output)) for p in pages],
             'images': {slug: [img['full'] for img in items] for slug, items in images.items()}}
 
