@@ -110,6 +110,15 @@ offer the download page when the catalog version differs from their build.
 Clients whose protocol or game id the server no longer accepts receive a
 structured `incompatible` rejection and show the same download page.
 
+## Load checks
+
+`uv run python tools/load_online.py --game warband --rooms 4 --seconds 90`
+drives several rooms with two real clients each issuing valid orders, and
+reports time to ready, state cadence, Warband's simulation rate against wall
+time and `/healthz` latency. The server admits four new rooms per minute per
+address, so larger runs pace themselves; rooms expire afterwards under normal
+retention. Results are kept under `docs/evidence/online-load-<date>/`.
+
 ## Backups
 
 `saga2d-backup.timer` runs `deploy/backup.py` hourly as the service user: a
