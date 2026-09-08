@@ -1,0 +1,17 @@
+[Unit]
+Description=Back up Saga2D online room checkpoints
+After=saga2d-online.service
+
+[Service]
+Type=oneshot
+User=saga2d-online
+Group=saga2d-online
+WorkingDirectory=/opt/saga2d-online/current
+ExecStart=/opt/saga2d-online/current/.venv/bin/python /opt/saga2d-online/current/deploy/backup.py /var/lib/saga2d-online/rooms.sqlite3 /var/backups/saga2d-online
+Environment=PYTHONDONTWRITEBYTECODE=1
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/backups/saga2d-online
+UMask=0077

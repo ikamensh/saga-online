@@ -113,3 +113,31 @@ def test_proxy_configuration_keeps_play_and_health_on_the_room_server():
     if caddy:
         subprocess.run([caddy, "validate", "--adapter", "caddyfile", "--config", "/dev/stdin"],
                        input=caddyfile, text=True, check=True, capture_output=True)
+
+
+def test_backup_is_a_consistent_copy_with_rotation(tmp_path):
+    """The timer's script uses SQLite's backup API on a live WAL database and prunes old files."""
+    import sqlite3
+    from datetime import datetime, timedelta, timezone
+    import runpy
+
+    backup = runpy.run_path(str(ROOT / "deploy/backup.py"))["backup"]
+    database = tmp_path / "rooms.sqlite3"
+    live = sqlite3.connect(database)
+    live.execute("PRAGMA journal_mode=WAL")
+    live.execute("CREATE TABLE rooms (code TEXT PRIMARY KEY, game TEXT, tokens TEXT, state TEXT, revision INTEGER, expires_at REAL)")
+    live.execute("INSERT INTO rooms VALUES ('abc', 'tribes-v1', '[]', '{}', 1, 9e12)")
+    live.commit()
+    folder = tmp_path / "backups"
+    stale = folder / ("rooms-" + (datetime.now(timezone.utc) - timedelta(days=20)).strftime("%Y%m%dT%H%M%SZ") + ".sqlite3")
+    folder.mkdir()
+    stale.write_bytes(b"old")
+    target = backup(database, folder)
+    assert target.stat().st_mode & 0o777 == 0o600 and not stale.exists()
+    copy = sqlite3.connect(f"file:{target}?mode=ro", uri=True)
+    assert copy.execute("SELECT code FROM rooms").fetchall() == [("abc",)]
+    live.execute("INSERT INTO rooms VALUES ('def', 'tribes-v1', '[]', '{}', 1, 9e12)")
+    live.commit()
+    assert copy.execute("SELECT count(*) FROM rooms").fetchone() == (1,)  # A snapshot, not a live view.
+    copy.close()
+    live.close()

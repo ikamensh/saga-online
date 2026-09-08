@@ -163,7 +163,7 @@ def bootstrap_project(args):
 def arguments(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=["plan", "package", "bootstrap-project", "provision", "deploy", "status",
-                                            "package-site", "site"])
+                                            "package-site", "site", "backup"])
     parser.add_argument("--name", required=True, help="Dedicated resource name, starting saga2d-")
     parser.add_argument("--project-name", default="saga2d")
     parser.add_argument("--project-id")
@@ -209,7 +209,8 @@ def package_release(output: Path):
             if path.is_symlink():
                 raise ValueError(f"Refusing symlink in release: {path}")
             files[path.relative_to(ROOT).as_posix()] = path.read_bytes()
-    for name in ("install.sh", "check_release.py", "smoke.py", "saga2d-online.service", "Caddyfile"):
+    for name in ("install.sh", "check_release.py", "smoke.py", "backup.py", "saga2d-online.service",
+                 "saga2d-backup.service", "saga2d-backup.timer", "Caddyfile"):
         files[f"deploy/{name}"] = (ROOT / "deploy" / name).read_bytes()
     files["deploy/requirements.txt"] = subprocess.run(
         ["uv", "export", "--frozen", "--no-dev", "--no-emit-project", "--no-header"],
@@ -465,6 +466,32 @@ def publish_site(args):
     return {**target, **package, "served": served, "health": check_health(f"https://{args.domain}/healthz")}
 
 
+def pull_backup(args):
+    """Take a fresh consistent backup on the server and keep a verified copy on this laptop."""
+    import sqlite3
+    target = running_target(args)
+    ssh(args, target, ["sudo", "systemctl", "start", "saga2d-backup.service"])
+    listing = ssh(args, target, ["sudo", "ls", "-1", "/var/backups/saga2d-online"], capture=True).stdout.split()
+    names = sorted(name for name in listing if re.fullmatch(r"rooms-\d{8}T\d{6}Z\.sqlite3", name))
+    if not names:
+        raise RuntimeError("The server holds no room backup")
+    folder = args.output / "backups"
+    folder.mkdir(parents=True, exist_ok=True)
+    local = folder / names[-1]
+    ssh(args, target, ["sudo", "install", "-m", "644", "-o", "deploy", f"/var/backups/saga2d-online/{names[-1]}", f"/tmp/{names[-1]}"])
+    subprocess.run(["scp", *ssh_options(args), f"deploy@{target['ip']}:/tmp/{names[-1]}", str(local)], check=True)
+    ssh(args, target, ["rm", "-f", f"/tmp/{names[-1]}"])
+    local.chmod(0o600)
+    db = sqlite3.connect(f"file:{local}?mode=ro", uri=True)
+    try:
+        if db.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
+            raise RuntimeError(f"Downloaded backup failed its integrity check: {local}")
+        rooms = db.execute("SELECT count(*) FROM rooms").fetchone()[0]
+    finally:
+        db.close()
+    return {"backup": str(local), "rooms": rooms, "server_backups": names, "sha256": hashlib.sha256(local.read_bytes()).hexdigest()}
+
+
 def status(args):
     api, project_id = deployment_api(args)
     server = find_server(api, args, project_id)
@@ -493,6 +520,8 @@ def main(argv=None):
         result = package_site(args.site_dir, args.output)
     elif args.command == "site":
         result = publish_site(args)
+    elif args.command == "backup":
+        result = pull_backup(args)
     else:
         result = status(args)
     print(json.dumps(result, indent=2))

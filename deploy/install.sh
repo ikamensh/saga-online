@@ -50,11 +50,15 @@ rollback() {
 }
 trap rollback ERR
 install -m 644 "$release/deploy/saga2d-online.service" /etc/systemd/system/saga2d-online.service
+install -m 644 "$release/deploy/saga2d-backup.service" /etc/systemd/system/saga2d-backup.service
+install -m 644 "$release/deploy/saga2d-backup.timer" /etc/systemd/system/saga2d-backup.timer
+install -d -m 700 -o saga2d-online -g saga2d-online /var/backups/saga2d-online
 ln -sfn "$release" "$base/current.next"
 mv -Tf "$base/current.next" "$base/current"
 systemctl daemon-reload
 systemctl enable saga2d-online
 systemctl restart saga2d-online
+systemctl enable --now saga2d-backup.timer
 
 healthy=false
 for attempt in {1..30}; do
