@@ -57,9 +57,10 @@ class Seat:
         elif self.game == "tribes":
             if state["world"]["current"] == player:
                 self.client.submit({"action": "end_turn"})
-        else:
-            if player == 0:
-                self.client.submit({"action": "explore", "target": "state", "args": []})
+        elif player == 0:
+            from eador.model import State
+            in_battle = State.from_json(state["campaign"]).battle is not None
+            self.client.submit({"action": "resolve_battle" if in_battle else "end_turn", "target": "state", "args": []})
         self.orders += 1
 
 
