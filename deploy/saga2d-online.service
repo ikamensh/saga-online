@@ -10,7 +10,7 @@ Type=simple
 User=saga2d-online
 Group=saga2d-online
 WorkingDirectory=/opt/saga2d-online/current
-ExecStart=/opt/saga2d-online/current/.venv/bin/python -m online_server --host 127.0.0.1 --port 8765 --state-dir /var/lib/saga2d-online --trusted-proxy --max-rooms 16 --max-connections 64
+ExecStart=/opt/saga2d-online/current/.venv/bin/python -m online_server --host 127.0.0.1 --port 8765 --state-dir /var/lib/saga2d-online --trusted-proxy --max-rooms 32 --max-connections 96
 StateDirectory=saga2d-online
 StateDirectoryMode=0700
 Environment=PYTHONUNBUFFERED=1

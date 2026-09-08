@@ -215,8 +215,13 @@ def status_page(catalog):
             '<tr><td>Update your game client</td><td>Your version is no longer compatible. Install the current release from the game page; saves are kept.</td></tr>'
             '<tr><td>Room not found for this game</td><td>The code was mistyped or the room expired. Ask for a fresh invite link.</td></tr>'
             '<tr><td>Both seats are claimed</td><td>Use <b>Rejoin last room</b> on the computer that originally joined instead of entering the code again.</td></tr>'
-            '<tr><td>The server is full</td><td>Capacity is limited while the service is small. Wait a few minutes and create the room again.</td></tr>'
+            '<tr><td>The server is full</td><td>Capacity is limited while the service is small (32 rooms). Wait a few minutes and create the room again.</td></tr>'
             '</tbody></table></div>'
+            '<h2>Capacity</h2><p>The service holds up to 32 rooms and admits four new rooms per minute from one address. '
+            'A bounded check on 2026-09-08 ran four simultaneous Warband matches for 90 seconds with orders from all eight seats: '
+            'the simulation held 19.4 to 19.6 ticks per second against its 20 Hz target, state updates arrived every 98 ms at the median '
+            'and 124 ms at the 95th percentile, and the health endpoint answered within 91 to 170 ms from Western Europe. '
+            'Two Tribes rooms and Shardbound co-op rooms were checked the same way. This describes a small friendly load, not a capacity guarantee.</p>'
             '<h2>Data and retention</h2><p>The service stores each room\'s game state and two private seat tokens until the room expires, then deletes them. '
             'Logs keep connection errors for a short time. No accounts, names or chat exist. Downloads are served from GitHub releases and this site.</p>')
 

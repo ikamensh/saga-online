@@ -63,7 +63,9 @@ restores the previous release's service and proxy configuration. First-time
 activation failure stops the failed service and reports the error.
 
 The systemd service has `MemoryMax=1200M`, `CPUQuota=150%`, `TasksMax=128`,
-`LimitNOFILE=4096`, 16 rooms and 64 connections. It runs without root privileges,
+`LimitNOFILE=4096`, 32 rooms and 96 connections. Rooms expire 15 minutes after
+both seats leave, so automated checks and abandoned rooms occupy slots for that
+long; suspended campaigns do not count. It runs without root privileges,
 with a read-only filesystem except its private state directory. Runtime logs
 go to journald, capped at 200 MB for the instance. Releases are retained for
 manual rollback; monitor disk usage and remove obsolete releases after review.
