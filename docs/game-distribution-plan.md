@@ -1,6 +1,35 @@
 # Self-service game downloads and online play
 
-Planning baseline: 2026-09-08. This is an implementation plan, not a release or deployment record.
+Planning baseline: 2026-09-08. The implementation status below records what
+has shipped since; the plan sections that follow are kept as the original
+reasoning.
+
+## Status (2026-09-08, later the same day)
+
+Live: **https://games.tachyon-ai.eu/** — home page, per-game download/install
+pages, invitation links (`/join/<game id>/<code>`), service status and the
+release catalog at `/releases.json`, served by Caddy beside the room server.
+Published through `tools/build_site.py` and `tools/deploy_online.py site`.
+
+| Area | Delivered | Evidence |
+| --- | --- | --- |
+| Release contract | `releases/catalog.json` validated by `tools/release_catalog.py`; games fetch it when Multiplayer opens and offer **Open download page** for a newer build; the server rejects incompatible clients with a structured reason and the lobby shows **Update required**. | `tests/test_release.py`, `tests/test_online_menu.py`, `tests/tools/test_release_catalog.py` |
+| Invitations | **Copy invite link** on the waiting screen; the link page shows the code, joining steps and the download for the visitor's OS. | `tests/test_online_menu.py`, live page |
+| Warband | 0.1.0-preview.4 published (Windows installer, portable ZIP, Apple Silicon app) with invite links and update notices. | [warband-release.md](warband-release.md), `evidence/warband-distribution-2026-09-08/` |
+| Tribes | 0.1.0-preview.1 published through the shared recipe `tools/build_game.py` and `.github/workflows/game-windows.yml`. | [tribes-release.md](tribes-release.md), `evidence/tribes-distribution-2026-09-08/` |
+| Shardbound | Versioned build, installer, online co-op diagnostic and verifying/publishing workflow; campaign rooms retained seven days and suspended to storage between visits. | `tools/verify_shardbound_package.py`, `.github/workflows/shardbound-windows.yml`, `tests/test_online_server.py` |
+| Operations | Hourly consistent SQLite backups with laptop pull (`deploy_online.py backup`); site publication separate from server activation. | [deploy/README.md](../deploy/README.md) |
+
+Deliberate deviations from the plan below: installers are hosted on GitHub
+Releases rather than Scaleway Object Storage (free, already verified, no extra
+credentials in CI; the catalog can point elsewhere later), and Shardbound's
+suspend/resume is the existing **Rejoin last room** with seven-day retention
+rather than a separate campaign list. Still open and needing the owner:
+Developer ID / Authenticode signing enrollment (packages remain unsigned and
+un-notarized, with first-launch guidance on every page), external uptime
+monitoring, a bounded load test before any capacity claim, native `warband://`
+style handlers, a ready screen before RTS play, and a first-time-player trial
+with a complete human-versus-human match.
 
 ## Recommendation
 

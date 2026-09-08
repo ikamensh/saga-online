@@ -110,6 +110,23 @@ offer the download page when the catalog version differs from their build.
 Clients whose protocol or game id the server no longer accepts receive a
 structured `incompatible` rejection and show the same download page.
 
+## Backups
+
+`saga2d-backup.timer` runs `deploy/backup.py` hourly as the service user: a
+consistent SQLite online backup of `/var/lib/saga2d-online/rooms.sqlite3` into
+`/var/backups/saga2d-online/rooms-<UTC>.sqlite3` (mode 600, integrity-checked,
+14 days retained). The backups live on the same disk as the database, so they
+protect against a corrupted or mistakenly emptied database, not against losing
+the volume. `deploy_online.py backup --name saga2d-online` takes a fresh backup,
+copies the newest file to `dist/online/backups/` on the laptop and verifies its
+integrity; run it before every server deployment and keep the copies off-host.
+
+To restore: stop `saga2d-online`, copy the chosen backup to
+`/var/lib/saga2d-online/rooms.sqlite3` (owned by `saga2d-online`, mode 600,
+removing any `-wal`/`-shm` files), start the service and check `/healthz`.
+Players reconnect with their saved seats; rooms that expired in the meantime
+are purged at startup.
+
 ## Room retention
 
 Match rooms (Tribes, Warband) expire after `--room-ttl` (15 minutes) without
