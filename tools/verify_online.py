@@ -27,7 +27,7 @@ def dedicated_server(endpoint=None):
     if endpoint:
         yield endpoint
         return
-    process = subprocess.Popen([sys.executable, '-m', 'online_server', '--port', '0'],
+    process = subprocess.Popen([sys.executable, '-m', 'saga2d.server', '--port', '0', '--games', *'tribes.multiplayer:ONLINE warband.multiplayer:ONLINE eador.multiplayer:ONLINE'.split()],
                                cwd=Path(__file__).resolve().parent.parent,
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     try:
@@ -50,7 +50,7 @@ def verify(name, output, endpoint):
     from saga2d import Game, MatchMenu, fonts
     from saga2d.multiplayer_ui import MatchLobby
     from saga2d.online import OnlineClient
-    from tools.native_frames import tick
+    from saga2d.testing.native_frames import tick
     from tools.verify_multiplayer import definitions
     from pyglet.window import key, mouse
 

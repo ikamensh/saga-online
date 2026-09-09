@@ -26,7 +26,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 def verify(output: Path, server: str, room: str, timeout: float, visible: bool) -> None:
     from pyglet.window import key, mouse
     from saga2d import Game, MatchMenu, fonts
-    from tools.native_frames import tick
+    from saga2d.testing.native_frames import tick
     from warband.model import Harvest, Move, tile_center
     from warband.multiplayer import NetworkGameScene
     from warband.rules import BuildingType, Resource, Terrain, UnitType

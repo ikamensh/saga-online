@@ -195,7 +195,7 @@ def deployment_plan(args):
         "instance": {"name": args.name, "type": "DEV1-S", "zone": args.zone,
                      "root_volume": "sbs:20GB:5000", "ipv4": "reserved"},
         "inbound_tcp_ports": [22, 80, 443],
-        "server": "python -m online_server --host 127.0.0.1 --port 8765",
+        "server": "python -m saga2d.server --games tribes.multiplayer:ONLINE warband.multiplayer:ONLINE eador.multiplayer:ONLINE --host 127.0.0.1 --port 8765",
         "monthly_eur_before_tax_at_730_hours": 11.37,
         "secrets_on_server": False,
     }
@@ -204,7 +204,7 @@ def deployment_plan(args):
 def package_release(output: Path):
     """Allowlist source files and hashed, frozen dependencies into a stable tar."""
     files = {}
-    for package in ("saga2d", "tribes", "warband", "eador", "online_server"):
+    for package in ("saga2d", "sagaforge", "tribes", "warband", "eador"):
         for path in sorted((ROOT / package).rglob("*.py")):
             if path.is_symlink():
                 raise ValueError(f"Refusing symlink in release: {path}")

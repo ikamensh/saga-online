@@ -16,8 +16,8 @@ Published through `tools/build_site.py` and `tools/deploy_online.py site`.
 | Release contract | `releases/catalog.json` validated by `tools/release_catalog.py`; games fetch it when Multiplayer opens and offer **Open download page** for a newer build; the server rejects incompatible clients with a structured reason and the lobby shows **Update required**. | `tests/test_release.py`, `tests/test_online_menu.py`, `tests/tools/test_release_catalog.py` |
 | Invitations | **Copy invite link** on the waiting screen; the link page shows the code, joining steps and the download for the visitor's OS. | `tests/test_online_menu.py`, live page |
 | Warband | 0.1.0-preview.4 published (Windows installer, portable ZIP, Apple Silicon app) with invite links and update notices. | [warband-release.md](warband-release.md), `evidence/warband-distribution-2026-09-08/` |
-| Tribes | 0.1.0-preview.1 published through the shared recipe `tools/build_game.py` and `.github/workflows/game-windows.yml`. | [tribes-release.md](tribes-release.md), `evidence/tribes-distribution-2026-09-08/` |
-| Shardbound | Versioned build, installer, online co-op diagnostic and verifying/publishing workflow; campaign rooms retained seven days and suspended to storage between visits. | `tools/verify_shardbound_package.py`, `.github/workflows/shardbound-windows.yml`, `tests/test_online_server.py` |
+| Tribes | 0.1.0-preview.1 published through the shared recipe `saga2d.packaging` (`tools/package.py`) and the Windows workflow. | [tribes-release.md](tribes-release.md), `evidence/tribes-distribution-2026-09-08/` |
+| Shardbound | Versioned build, installer, online co-op diagnostic and verifying/publishing workflow; campaign rooms retained seven days and suspended to storage between visits. | `tools/verify_shardbound_package.py`, `.github/workflows/shardbound-windows.yml`, `tests/eador/test_online.py` |
 | Operations | Hourly consistent SQLite backups with laptop pull (`deploy_online.py backup`); site publication separate from server activation. | [deploy/README.md](../deploy/README.md) |
 
 Deliberate deviations from the plan below: installers are hosted on GitHub
@@ -49,7 +49,7 @@ Success: a new player can choose a game, install it without Python or a terminal
 | Shardbound | PyInstaller recipes and a Windows build workflow exist. That workflow explicitly marks Windows runtime unverified and retains temporary CI artifacts rather than publishing a player release. Selectable multiplayer is shared-realm co-op. The [concurrent PvP work](simultaneous-campaign-pvp.md) is changing and needs its own packaged acceptance before advertisement. |
 | Tribes | Online competitive two-player play exists. No dedicated standalone installer/build workflow was found in the current packaging inventory. |
 | Online UX | Create/join codes, automatic reconnect and saved private seats already exist. [Rooms currently expire after 15 minutes without both players](online-multiplayer.md); this does not provide overnight campaign continuation. |
-| Compatibility | `saga2d/online.py` and `online_server/` check protocol and game IDs. They do not negotiate a per-release client compatibility range. |
+| Compatibility | `saga2d/online.py` and `saga2d/server/` check protocol and game IDs. They do not negotiate a per-release client compatibility range. |
 | Public competition | Current competitive snapshots contain the full world. A modified client can inspect fog-hidden information. Public competition needs player-specific state filtering. |
 
 ## Player experience and website resources

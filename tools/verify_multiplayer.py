@@ -61,7 +61,7 @@ def serve(name, pipe, stop):
 
 def verify(name, output):
     from saga2d import Game, MatchMenu, fonts
-    from tools.native_frames import tick
+    from saga2d.testing.native_frames import tick
     context = multiprocessing.get_context('spawn')
     parent, child = context.Pipe()
     stop = context.Event()

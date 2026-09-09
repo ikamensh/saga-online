@@ -10,7 +10,7 @@ release = Path(sys.argv[1]).resolve()
 python = str(release / ".venv/bin/python")
 with subprocess.Popen(
     ["runuser", "-u", "saga2d-online", "--", python,
-     "-m", "online_server", "--host", "127.0.0.1", "--port", "0"],
+     "-m", "saga2d.server", "--host", "127.0.0.1", "--port", "0", "--games", *"tribes.multiplayer:ONLINE warband.multiplayer:ONLINE eador.multiplayer:ONLINE".split()],
     cwd=release, env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
     stdout=subprocess.PIPE, text=True,
 ) as process:

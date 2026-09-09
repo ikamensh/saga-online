@@ -1,11 +1,11 @@
 """Website copy and curated media for each game; release facts come from the catalog.
 
-Screenshots reference inspected frames under docs/evidence so the pages show
-the shipping builds rather than mock-ups. Keep claims aligned with the release
-notes in docs/ and the About text in each game.
+Screenshots under website/media are inspected frames of the shipping builds
+(copied from the games' verification evidence), not mock-ups. Keep claims
+aligned with each game's release notes and its About text.
 """
 
-EVIDENCE = 'docs/evidence'
+MEDIA = 'website/media'
 
 GAMES = {
     'warband': {
@@ -37,10 +37,10 @@ GAMES = {
             'Eliminate every enemy unit and building to win.',
         ],
         'screenshots': [
-            (f'{EVIDENCE}/warband-art-2026-09-08/10_battle.png', 'A pitched battle between two armies outside a farm row'),
-            (f'{EVIDENCE}/warband-art-2026-09-08/06_settlement_normal.png', 'A settlement with every building type and unit role'),
-            (f'{EVIDENCE}/warband-map-workers-2026-09-08/settlement/09-active-production.png', 'The Plans panel listing construction and training'),
-            (f'{EVIDENCE}/warband-art-2026-09-08/08_lumber_camp.png', 'Peasants chopping wood beside a lumber mill'),
+            (f'{MEDIA}/warband/01-10_battle.png', 'A pitched battle between two armies outside a farm row'),
+            (f'{MEDIA}/warband/02-06_settlement_normal.png', 'A settlement with every building type and unit role'),
+            (f'{MEDIA}/warband/03-09-active-production.png', 'The Plans panel listing construction and training'),
+            (f'{MEDIA}/warband/04-08_lumber_camp.png', 'Peasants chopping wood beside a lumber mill'),
         ],
         'requirements': {
             'windows': 'Windows 10 or 11, 64-bit, with OpenGL 3.3 graphics drivers. About 120 MB on disk.',
@@ -81,9 +81,9 @@ GAMES = {
             'Hold the most cities and the largest empire when round 30 ends.',
         ],
         'screenshots': [
-            (f'{EVIDENCE}/online-multiplayer-public-2026-09-07/tribes-match.png', 'An online match seen from the Ember tribe'),
-            (f'{EVIDENCE}/multiplayer-2026-09-06/tribes-title.png', 'The Tribes title screen'),
-            (f'{EVIDENCE}/multiplayer-2026-09-06/tribes-result.png', 'A results screen with the final standings'),
+            (f'{MEDIA}/tribes/01-tribes-match.png', 'An online match seen from the Ember tribe'),
+            (f'{MEDIA}/tribes/02-tribes-title.png', 'The Tribes title screen'),
+            (f'{MEDIA}/tribes/03-tribes-result.png', 'A results screen with the final standings'),
         ],
         'requirements': {
             'windows': 'Windows 10 or 11, 64-bit, with OpenGL 3.3 graphics drivers.',
@@ -125,10 +125,10 @@ GAMES = {
             'Capture Duskspire before the rival takes Westwatch.',
         ],
         'screenshots': [
-            (f'{EVIDENCE}/shardbound-distribution-2026-09-08/mac-package/portable-smoke-shard.png', 'The Frontier shard with the province map and stronghold'),
-            (f'{EVIDENCE}/shardbound-distribution-2026-09-08/mac-package/portable-smoke-battle.png', 'A hex battle for Silverford'),
-            (f'{EVIDENCE}/shardbound-distribution-2026-09-08/mac-package/portable-smoke-codex.png', 'The Codex rules reference'),
-            (f'{EVIDENCE}/shardbound-distribution-2026-09-08/mac-package/portable-smoke-rival.png', 'The rival expedition plan'),
+            (f'{MEDIA}/shardbound/01-portable-smoke-shard.png', 'The Frontier shard with the province map and stronghold'),
+            (f'{MEDIA}/shardbound/02-portable-smoke-battle.png', 'A hex battle for Silverford'),
+            (f'{MEDIA}/shardbound/03-portable-smoke-codex.png', 'The Codex rules reference'),
+            (f'{MEDIA}/shardbound/04-portable-smoke-rival.png', 'The rival expedition plan'),
         ],
         'requirements': {
             'windows': 'Windows 10 or 11, 64-bit, with OpenGL 3.3 graphics drivers.',

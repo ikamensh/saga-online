@@ -13,6 +13,8 @@ from datetime import datetime, timezone
 import html
 import json
 from pathlib import Path
+
+import saga2d
 import shutil
 from string import Template
 import sys
@@ -25,7 +27,7 @@ from tools.release_catalog import CATALOG, load  # noqa: E402
 from website.content import GAMES, SOURCE_URL, SUPPORT_URL  # noqa: E402
 
 SITE = ROOT / 'website'
-FONTS = ROOT / 'saga2d' / 'assets' / 'fonts'
+FONTS = Path(saga2d.__file__).resolve().parent / 'assets' / 'fonts'
 OS_NAMES = {'windows': 'Windows', 'macos': 'Mac', 'linux': 'Linux'}
 ARCH_NAMES = {'x64': '64-bit', 'arm64': 'Apple Silicon'}
 KIND_NAMES = {'installer': 'installer', 'portable-zip': 'portable ZIP', 'app-zip': 'app', 'dmg': 'disk image'}

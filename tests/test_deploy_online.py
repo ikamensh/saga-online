@@ -26,6 +26,8 @@ def test_plan_is_reviewable_without_credentials(tmp_path):
     assert plan["secrets_on_server"] is False
     assert not list(tmp_path.iterdir())
 
+GAMES = ('tribes.multiplayer:ONLINE', 'warband.multiplayer:ONLINE', 'eador.multiplayer:ONLINE')
+
 
 def test_packaged_release_runs_server_entrypoint(tmp_path):
     """The artifact contains all game modules and runs away from the checkout."""
@@ -38,14 +40,14 @@ def test_packaged_release_runs_server_entrypoint(tmp_path):
     unpacked = tmp_path / "unpacked"
     with tarfile.open(package["archive"]) as archive:
         archive.extractall(unpacked, filter="data")
-    subprocess.run([sys.executable, "-m", "online_server", "--help"],
+    subprocess.run([sys.executable, "-m", "saga2d.server", "--help"],
                    cwd=unpacked, check=True, capture_output=True)
     subprocess.run(["bash", "-n", str(unpacked / "deploy/install.sh")], check=True)
     assert all((unpacked / game / "multiplayer.py").exists()
                for game in ["tribes", "warband", "eador"])
     assert not list(unpacked.rglob("*.md"))  # No local secret stores in artifacts.
     assert (unpacked / "deploy/requirements.txt").read_text().find("websockets==") >= 0
-    with subprocess.Popen([sys.executable, "-m", "online_server", "--port", "0"],
+    with subprocess.Popen([sys.executable, "-m", "saga2d.server", "--port", "0", "--games", *GAMES],
                           cwd=unpacked, stdout=subprocess.PIPE, text=True) as process:
         try:
             readable, _, _ = select.select([process.stdout], [], [], 15)
