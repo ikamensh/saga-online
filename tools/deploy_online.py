@@ -11,6 +11,7 @@ import argparse
 from dataclasses import dataclass, field
 import gzip
 import hashlib
+import importlib
 import io
 import json
 import os
@@ -27,6 +28,10 @@ import urllib.request
 
 
 ROOT = Path(__file__).resolve().parents[1]
+# The sibling checkouts whose sources ship in the release tar; their third-party
+# dependencies come from uv.lock with hashes, the packages themselves as source.
+PACKAGES = ("saga2d", "sagaforge", "tribes", "warband", "eador")
+DISTRIBUTIONS = ("saga2d", "sagaforge", "tribes", "warband", "shardbound")
 ORGANIZATION = "17efcf03-4911-41f9-a059-4bd6fe2f3ffe"
 MARKER = "Managed by Saga2D online deployment"
 RESOURCE_TAG = "saga2d-online-managed"
@@ -204,16 +209,18 @@ def deployment_plan(args):
 def package_release(output: Path):
     """Allowlist source files and hashed, frozen dependencies into a stable tar."""
     files = {}
-    for package in ("saga2d", "sagaforge", "tribes", "warband", "eador"):
-        for path in sorted((ROOT / package).rglob("*.py")):
+    for package in PACKAGES:
+        root = Path(importlib.import_module(package).__file__).resolve().parent
+        for path in sorted(root.rglob("*.py")):
             if path.is_symlink():
                 raise ValueError(f"Refusing symlink in release: {path}")
-            files[path.relative_to(ROOT).as_posix()] = path.read_bytes()
+            files[f"{package}/{path.relative_to(root).as_posix()}"] = path.read_bytes()
     for name in ("install.sh", "check_release.py", "smoke.py", "backup.py", "saga2d-online.service",
                  "saga2d-backup.service", "saga2d-backup.timer", "Caddyfile"):
         files[f"deploy/{name}"] = (ROOT / "deploy" / name).read_bytes()
     files["deploy/requirements.txt"] = subprocess.run(
-        ["uv", "export", "--frozen", "--no-dev", "--no-emit-project", "--no-header"],
+        ["uv", "export", "--frozen", "--no-dev", "--no-emit-project", "--no-header",
+         *(f"--no-emit-package={name}" for name in DISTRIBUTIONS)],
         cwd=ROOT, check=True, capture_output=True,
     ).stdout
     payload = _stable_tar(files)

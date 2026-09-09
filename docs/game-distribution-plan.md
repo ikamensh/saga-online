@@ -17,7 +17,7 @@ Published through `tools/build_site.py` and `tools/deploy_online.py site`.
 | Invitations | **Copy invite link** on the waiting screen; the link page shows the code, joining steps and the download for the visitor's OS. | `tests/test_online_menu.py`, live page |
 | Warband | 0.1.0-preview.4 published (Windows installer, portable ZIP, Apple Silicon app) with invite links and update notices. | [warband-release.md](warband-release.md), `evidence/warband-distribution-2026-09-08/` |
 | Tribes | 0.1.0-preview.1 published through the shared recipe `saga2d.packaging` (`tools/package.py`) and the Windows workflow. | [tribes-release.md](tribes-release.md), `evidence/tribes-distribution-2026-09-08/` |
-| Shardbound | Versioned build, installer, online co-op diagnostic and verifying/publishing workflow; campaign rooms retained seven days and suspended to storage between visits. | `tools/verify_shardbound_package.py`, `.github/workflows/shardbound-windows.yml`, `tests/eador/test_online.py` |
+| Shardbound | Versioned build, installer, online co-op diagnostic and verifying/publishing workflow; campaign rooms retained seven days and suspended to storage between visits. | `tools/verify_package.py`, `.github/workflows/windows.yml`, `tests/eador/test_online.py` |
 | Operations | Hourly consistent SQLite backups with laptop pull (`deploy_online.py backup`); site publication separate from server activation. | [deploy/README.md](../deploy/README.md) |
 
 Deliberate deviations from the plan below: installers are hosted on GitHub

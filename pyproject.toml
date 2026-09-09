@@ -1,0 +1,24 @@
+[project]
+name = "saga-online"
+version = "0.1.0"
+description = "The hosted side of the Saga games: authoritative room server deployment, release catalog and the games website"
+readme = "README.md"
+requires-python = ">=3.12"
+license = "MIT"
+dependencies = ["saga2d", "sagaforge", "tribes", "warband", "shardbound"]
+
+[project.optional-dependencies]
+dev = ["pytest>=9.0.2"]
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+saga2d = { path = "../saga2d", editable = true }
+sagaforge = { path = "../sagaforge", editable = true }
+tribes = { path = "../tribes", editable = true }
+warband = { path = "../warband", editable = true }
+shardbound = { path = "../shardbound", editable = true }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

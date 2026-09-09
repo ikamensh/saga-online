@@ -9,7 +9,7 @@ import select
 from tools.deploy_online import load_scaleway_key, firewall_ports
 
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_plan_is_reviewable_without_credentials(tmp_path):
