@@ -230,3 +230,41 @@ then passed on `21f31c48e1e879c9b01ee3494b46d5c84c11243e`: all 83 isolated
 publication checks passed on Linux in 48.13 seconds, followed by the site build
 and preview artifact upload. This is branch CI evidence, not production
 publication or a verified server compatibility baseline.
+
+## Running-server attestation acceptance, before implementation
+
+The deployment launcher must verify the package's recorded source inventory,
+actual Python and dependency versions before importing game registries or
+accepting connections. It must reject changed/missing/extra source files,
+unsupported manifests, a different Python or package version, and a Warband
+contract that does not describe those actual inputs. The package builder must
+record clean exact game source commits, the engine release and locked runtime;
+the installer must bind the deployment identifier to the uploaded archive hash.
+
+The same process that owns the game sockets must serve
+`/server-compatibility.json` with no caching. It reports the deployment identifier,
+public endpoint, actual protocol and verified Warband source/runtime contract.
+A static file written by the website is insufficient. Health, normal game
+traffic, SIGTERM shutdown and final checkpoint flushing must keep working.
+Game registries are Tribes, Warband's new authority and Shardbound; no game rules
+move into the launcher or change as part of attestation.
+
+First verify the deployment interface with real subprocess/HTTP/WebSocket and
+checkpoint tests using tiny game fixtures. Then build the actual package from
+the explicitly aligned candidate stack, launch away from its checkouts, verify
+the attestation against the accepted Warband native identity and complete every
+game's socket journey, including restart/rejoin. Fixtures alone cannot establish
+the three-game release's compatibility. Shared locking, room draining,
+backup/restore, approved activation and public packaged-client checks remain
+required after this startup gate; a local attestation is not a live baseline.
+
+The startup gate is implemented in `deploy/runtime.py` and `deploy/server.py`.
+Eleven subprocess checks pass: all three registered fixture games accept real
+orders alongside an uncached JSON attestation; changed/missing/extra source,
+Python/dependency mismatch and a broken contract refuse startup before opening
+the room store; all three fixture games retain their last accepted order and
+private seats through SIGTERM and restart. The launcher checks the full packaged
+source inventory, resolves Saga2D from that package and uses the engine's public
+RoomServer interface for traffic, maintenance and final checkpoint flushing.
+These fixtures are not actual-game package acceptance. Package construction,
+installation and reverse-proxy wiring still need to adopt this launcher.
