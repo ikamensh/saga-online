@@ -11,3 +11,16 @@ Local test servers and temporary site roots establish the failure/retry behavior
 the real GitHub and hosted journey is still required before WB-002 can be done.
 
 No production activation or credential change has happened as part of this item.
+
+## Isolated site checks
+
+`publishing/pyproject.toml`, `.python-version` and `uv.lock` define the website
+environment independently of the server and game checkouts. Python 3.13.2,
+Saga2D 0.3.2 (for its bundled font) and Pillow 12.3.0 are pinned; the lock records
+transitive dependencies and hashes. The read-only Website checks workflow uses
+uv 0.12.10, runs catalog/site integration checks, renders the complete site and
+retains it as a CI preview artifact. It does not publish the artifact.
+
+Local verification: 15 existing catalog/site tests passed in this environment.
+The separate server environment still needs deliberate engine/game alignment
+before a server rollout; these checks make no claim about that environment.

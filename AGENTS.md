@@ -15,8 +15,9 @@ warband.multiplayer:ONLINE eador.multiplayer:ONLINE`.
 uv sync --extra dev
 uv run pytest -q                                            # packaging, catalog, site and load checks (spawns real servers)
 uv run python -m saga2d.server --games tribes.multiplayer:ONLINE warband.multiplayer:ONLINE eador.multiplayer:ONLINE
-uv run python tools/release_catalog.py releases/catalog.json # validate the catalog
-uv run python tools/build_site.py dist/site                 # render the website from the catalog and website/content.py
+uv run --project publishing --locked python tools/release_catalog.py releases/catalog.json # validate the catalog
+uv run --project publishing --locked python tools/build_site.py --output dist/site # render the website from the catalog and website/content.py
+uv run --project publishing --locked python -m pytest -q tests/test_release_catalog.py tests/test_build_site.py # static-site checks without the hosted games
 uv run python tools/deploy_online.py plan --name saga2d-online       # offline; deploy / site / backup perform the named operation
 SAGA2D_SILENT=1 uv run python tools/verify_online.py /tmp/online     # native create/join/rejoin journeys for every game
 uv run python tools/load_online.py wss://games.tachyon-ai.eu/play warband --rooms 4
@@ -24,6 +25,9 @@ uv run python tools/load_online.py wss://games.tachyon-ai.eu/play warband --room
 
 ## Layout
 
+- `publishing/` — a separate locked environment for catalog/site checks and
+  static-site publication; it installs no sibling game sources. Use it for
+  website work independently of the room server's exact engine/game pins.
 - `deploy/` — `install.sh` (release activation with rollback), the systemd
   units, `Caddyfile` (TLS; `/play` and `/healthz` proxied, everything else is
   the static site), `cloud-init.yaml`, `check_release.py`/`smoke.py` (every

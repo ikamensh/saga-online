@@ -1,0 +1,44 @@
+name: Website checks
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: website-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  website:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: saga-online
+    env:
+      UV_PYTHON_PREFERENCE: only-managed
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          path: saga-online
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: '0.12.10'
+          python-version: '3.13.2'
+          enable-cache: false
+      - name: Check catalog and website in the isolated publishing environment
+        run: uv run --project publishing --locked python -m pytest -q tests/test_release_catalog.py tests/test_build_site.py
+      - name: Build the static website
+        run: uv run --project publishing --locked python tools/build_site.py --output dist/site
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: website-preview-${{ github.sha }}-${{ github.run_attempt }}
+          path: saga-online/dist/site
+          if-no-files-found: error
+          retention-days: 14

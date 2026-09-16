@@ -1,0 +1,12 @@
+[project]
+name = "saga-site-publishing"
+version = "0.1.0"
+description = "Static catalog and website publication without hosted game dependencies"
+requires-python = ">=3.13"
+dependencies = ["saga2d==0.3.2", "pillow==12.3.0"]
+
+[dependency-groups]
+dev = ["pytest==9.1.1"]
+
+[tool.uv]
+package = false
