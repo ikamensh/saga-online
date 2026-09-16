@@ -3,8 +3,10 @@
 The hosted side of the Saga games (`~/saga/`, see `../AGENTS.md`): the
 authoritative room server deployment on Scaleway, the release catalog, the
 self-service website at https://games.tachyon-ai.eu/ and the operator tools.
-This repo depends on all three games and the framework as path dependencies;
-the server process is `python -m saga2d.server --games tribes.multiplayer:ONLINE
+This repo uses the published `saga2d==0.2.0` release; all three games and
+Sagaforge remain editable path dependencies. Changes to the sibling engine
+checkout do not affect this environment. The server process is
+`python -m saga2d.server --games tribes.multiplayer:ONLINE
 warband.multiplayer:ONLINE eador.multiplayer:ONLINE`.
 
 ## Commands

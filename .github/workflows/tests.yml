@@ -15,10 +15,6 @@ jobs:
           path: saga-online
       - uses: actions/checkout@v4
         with:
-          repository: ikamensh/saga2d-framework
-          path: saga2d
-      - uses: actions/checkout@v4
-        with:
           repository: ikamensh/sagaforge
           path: sagaforge
       - uses: actions/checkout@v4
@@ -36,8 +32,8 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v5
       - name: Install dependencies
-        run: uv sync --extra dev
+        run: uv sync --locked --extra dev
         working-directory: saga-online
       - name: Run tests
-        run: uv run pytest -q
+        run: uv run --locked pytest -q
         working-directory: saga-online

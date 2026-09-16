@@ -6,6 +6,15 @@ and [Shardbound](../shardbound) share one authoritative room server
 a release catalog, and the self-service website at https://games.tachyon-ai.eu/
 with downloads, install steps, invite links and a status page.
 
+The server uses the published `saga2d==0.2.0` release. Sagaforge and the games
+remain editable dependencies from their sibling checkouts; engine changes
+take effect only when the pinned release is deliberately upgraded.
+
+For an existing environment that used the editable engine, run
+`uv sync --locked --extra dev --reinstall-package saga2d` once. A plain sync
+can retain an editable install of the same version. This also restores the
+release after local engine testing.
+
 ```bash
 uv sync --extra dev
 uv run pytest -q
