@@ -23,7 +23,7 @@ def definitions(name):
     if name == 'tribes':
         return module.TribesMatch, module.NetworkMapScene, 'tribes-v1'
     if name == 'warband':
-        return module.WarbandMatch, module.NetworkGameScene, 'warband-v1'
+        return module.WarbandMatch, module.NetworkGameScene, 'warband-v2'
     return module.ShardboundMatch, module.NetworkShardScene, 'shardbound-v1'
 
 

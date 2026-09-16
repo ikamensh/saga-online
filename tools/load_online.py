@@ -24,7 +24,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from saga2d.online import OnlineClient  # noqa: E402
 
 OPTIONS = {"warband": {"width": 40, "height": 32}, "tribes": {"size": 11}, "shardbound": {"campaign": True}}
-GAME_IDS = {"warband": "warband-v1", "tribes": "tribes-v1", "shardbound": "shardbound-v1"}
+GAME_IDS = {"warband": "warband-v2", "tribes": "tribes-v1", "shardbound": "shardbound-v1"}
 
 
 class Seat:

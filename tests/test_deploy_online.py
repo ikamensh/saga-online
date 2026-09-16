@@ -45,6 +45,9 @@ def test_packaged_release_runs_server_entrypoint(tmp_path):
     subprocess.run(["bash", "-n", str(unpacked / "deploy/install.sh")], check=True)
     assert all((unpacked / game / "multiplayer.py").exists()
                for game in ["tribes", "warband", "eador"])
+    # Warband counts its committed death and wreckage pieces when imported.
+    assert list((unpacked / "warband/assets/deaths").glob("*.wav")) and list((unpacked / "warband/assets/wreckage").glob("*.wav"))
+    assert not list(unpacked.rglob("*.png"))  # Art stays out of the server release.
     assert not list(unpacked.rglob("*.md"))  # No local secret stores in artifacts.
     assert (unpacked / "deploy/requirements.txt").read_text().find("websockets==") >= 0
     with subprocess.Popen([sys.executable, "-m", "saga2d.server", "--port", "0", "--games", *GAMES],

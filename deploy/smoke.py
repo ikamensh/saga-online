@@ -23,7 +23,7 @@ def smoke(endpoint):
     with urllib.request.urlopen(health, timeout=10) as response:
         if response.status != 200 or response.read() != b"ok\n":
             raise RuntimeError("Server health response was unexpected")
-    for game in ("tribes-v1", "warband-v1", "shardbound-v1"):
+    for game in ("tribes-v1", "warband-v2", "shardbound-v1"):
         with connect(endpoint, proxy=None) as host, connect(endpoint, proxy=None) as guest:
             host.send(json.dumps({"type": "create", "protocol": 1, "game": game, "options": {"seed": 7}}))
             room = receive(host, "welcome")

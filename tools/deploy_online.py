@@ -28,9 +28,13 @@ import urllib.request
 
 
 ROOT = Path(__file__).resolve().parents[1]
-# The sibling checkouts whose sources ship in the release tar; their third-party
-# dependencies come from uv.lock with hashes, the packages themselves as source.
-PACKAGES = ("saga2d", "sagaforge", "tribes", "warband", "eador")
+# The sibling checkouts whose sources ship in the release tar, each with the file
+# patterns the server needs from it; their third-party dependencies come from
+# uv.lock with hashes, the packages themselves as source. Warband's death and
+# wreckage cues count their committed audio pieces when the module is imported,
+# so the server carries those pieces (a few megabytes) even though it never plays them.
+PACKAGES = {"saga2d": ("*.py",), "sagaforge": ("*.py",), "tribes": ("*.py",),
+            "warband": ("*.py", "*.wav"), "eador": ("*.py",)}
 DISTRIBUTIONS = ("saga2d", "sagaforge", "tribes", "warband", "shardbound")
 ORGANIZATION = "17efcf03-4911-41f9-a059-4bd6fe2f3ffe"
 MARKER = "Managed by Saga2D online deployment"
@@ -209,9 +213,9 @@ def deployment_plan(args):
 def package_release(output: Path):
     """Allowlist source files and hashed, frozen dependencies into a stable tar."""
     files = {}
-    for package in PACKAGES:
+    for package, patterns in PACKAGES.items():
         root = Path(importlib.import_module(package).__file__).resolve().parent
-        for path in sorted(root.rglob("*.py")):
+        for path in sorted(path for pattern in patterns for path in root.rglob(pattern)):
             if path.is_symlink():
                 raise ValueError(f"Refusing symlink in release: {path}")
             files[f"{package}/{path.relative_to(root).as_posix()}"] = path.read_bytes()

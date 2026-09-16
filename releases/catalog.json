@@ -9,6 +9,7 @@
     "warband": {
       "name": "Warband",
       "game_ids": [
+        "warband-v2",
         "warband-v1"
       ],
       "channel": "preview",

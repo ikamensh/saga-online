@@ -123,7 +123,7 @@ def install_steps(name, packages):
     return f'<div class="two-col"><div>{windows}</div><div>{mac}</div></div>'
 
 
-def online_steps(name, slug, online, site):
+def online_steps(name, slug, game_id, online, site):
     menu = 'Co-op' if slug == 'shardbound' else 'Multiplayer'
     return (f'<p>{esc(online["text"])}</p><div class="two-col"><div><h3>Create a room</h3><ol class="steps">'
             f'<li>Open <b>{esc(name)}</b> and choose <b>{menu}</b>. Leave <b>Online</b> selected.</li>'
@@ -134,7 +134,7 @@ def online_steps(name, slug, online, site):
             f'<li>In <b>{menu}</b> choose <b>Paste code</b>, then <b>Join room</b>.</li>'
             f'<li>Lost your connection? Reopen the game on the same computer and choose <b>Rejoin last room</b>.</li></ol></div></div>'
             f'<p class="download-note">{esc(online["retention"])} Invite links look like '
-            f'<code>{esc(site)}/join/{esc(slug)}-v1/abc123</code> and contain only the game and room code, never your private seat.</p>')
+            f'<code>{esc(site)}/join/{esc(game_id)}/abc123</code> and contain only the game and room code, never your private seat.</p>')
 
 
 def game_page(slug, entry, content, images, site):
@@ -158,7 +158,7 @@ def game_page(slug, entry, content, images, site):
                      f'<p>{esc(name)} does not have a published installer yet. It runs from the '
                      f'<a href="{SOURCE_URL}">source repository</a> with <code>uv run python -m {esc({"shardbound": "eador"}.get(slug, slug))}</code>, '
                      f'including its online mode. This page will list the installer when a release passes acceptance.</p></section>')
-    online = f'<h2 id="online">Play online: {esc(content["online"]["mode"]).lower()}</h2>' + online_steps(name, slug, content['online'], site)
+    online = f'<h2 id="online">Play online: {esc(content["online"]["mode"]).lower()}</h2>' + online_steps(name, slug, entry['game_ids'][0], content['online'], site)
     first = '<h2>Your first match</h2><ol class="steps">' + ''.join(f'<li>{esc(step)}</li>' for step in content['first_match']) + '</ol>'
     gallery = '<h2>Screenshots</h2><div class="gallery">' + ''.join(
         f'<figure><a href="{img["full"]}"><img src="{img["thumb"]}" alt="{esc(img["alt"])}" loading="lazy" width="640" height="400"></a>'
