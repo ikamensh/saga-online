@@ -3,7 +3,10 @@
 Tribes, Warband and Shardbound share one authoritative Python room server at
 `wss://games.tachyon-ai.eu/play`. Caddy terminates TLS on port 443 and forwards
 `/play` and `/healthz` to `127.0.0.1:8765`; `/healthz` returns HTTP 200 and
-`ok\n`. Every other path is the static games website, served from
+`ok\n`. The candidate proxy also forwards `/server-compatibility.json` to the
+same running game process, with `Cache-Control: no-store`. This route becomes
+available only after the candidate server is accepted and deployed. Every other
+path is the static games website, served from
 `/srv/saga2d-site/current`, including the release catalog at `/releases.json`
 and invitation links under `/join/`.
 
@@ -47,20 +50,40 @@ limits. No managed load balancer or serverless service is required.
 
 ## Releases and validation
 
-`package` allowlists Python source from all three games, Saga2D and the server,
-plus deployment templates. It exports hashed dependencies from `uv.lock` using
-`uv export --frozen`. Keep the lock current with `pyproject.toml` before release.
-Artifacts are content-addressed tarballs under ignored `dist/online/`; local
-credential files, saves, caches and the working tree's metadata are excluded.
+`package` requires clean checkouts at the exact sibling commits in
+`../.github/server-pins.json`, together with its pinned Python and uv versions.
+Use separate adjacent checkouts when these differ from active development
+branches. It reads allowlisted game source from Git objects, verifies Saga2D's
+installed PyPI source against its wheel inventory, and exports hashed runtime
+dependencies using `uv export --locked`. The server lock must agree with the
+Warband native release's compatibility contract. Content-addressed tarballs
+under ignored `dist/online/` contain `deploy/server-inputs.json` with exact
+source commits, runtime versions and file hashes. Credentials, saves, caches,
+untracked source and working-tree metadata are excluded.
 
-The installer verifies the remote instance marker and upload checksum, creates
-an isolated venv under `/opt/saga2d-online/releases/<sha256>`, then starts a
-candidate on an ephemeral loopback port. Before activation, the candidate must
-pass health and create/join a room for **each of the three games**, exercising
-their lazy imports and model constructors. The `current` symlink is replaced
+After checking the managed-instance marker, the installer calls
+`prepare_release.sh`. Preparation verifies and extracts the uploaded archive
+into `/opt/saga2d-online/releases/<sha256>`, rejecting unsafe archives or changes
+to existing release bytes. It bootstraps a hash-pinned uv wheel with Ubuntu's
+Python, installs the exact managed Python under `/opt/saga2d-online/python`
+(accessible with `ProtectHome=true`), and installs a dedicated hashed runtime.
+As the unprivileged service account, `check_release.py` then starts the actual
+packaged launcher on an ephemeral loopback port, verifies its live attestation,
+creates and joins **all three actual games**, submits orders, stops the server
+with SIGTERM, and checks authenticated rejoin and exact paused state after
+restart. Its temporary room store and private seat tokens never enter the live
+store or public report. Only success writes `.ready`; a retry verifies the same
+release again and preserves its environment. Preparation does not activate a
+service or change the proxy, and is exercised separately by branch CI.
+
+Activation replaces the `current` symlink
 atomically, followed by a systemd restart and health check. An activation failure
 restores the previous release's service and proxy configuration. First-time
 activation failure stops the failed service and reports the error.
+The process's compatibility response must match the accepted candidate before
+the proxy is reloaded. This startup gate does not replace rollout acceptance:
+shared server/site locking, room draining, reviewed backup/restore and public
+packaged-client checks still need to be completed for unattended publication.
 
 The systemd service has `MemoryMax=1200M`, `CPUQuota=150%`, `TasksMax=128`,
 `LimitNOFILE=4096`, 32 rooms and 96 connections. Rooms expire 15 minutes after

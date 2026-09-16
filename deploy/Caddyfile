@@ -1,9 +1,11 @@
 __DOMAIN__ {
     encode gzip
 
-    # The room server owns the WebSocket endpoint and liveness probe only.
-    @server path /play /healthz
-    reverse_proxy @server 127.0.0.1:8765
+    # Compatibility comes from the running process, never the static website.
+    @server path /play /healthz /server-compatibility.json
+    reverse_proxy @server 127.0.0.1:8765 {
+        header_down Cache-Control "no-store"
+    }
 
     # Everything else is the published static site and release catalog.
     root * /srv/saga2d-site/current
@@ -12,8 +14,9 @@ __DOMAIN__ {
     @invite path /join/*
     rewrite @invite /join/index.html
 
+    @static not path /play /healthz /server-compatibility.json
+    header @static Cache-Control "public, max-age=300"
     header {
-        Cache-Control "public, max-age=300"
         X-Content-Type-Options nosniff
         Referrer-Policy strict-origin-when-cross-origin
         -Server

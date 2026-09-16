@@ -268,3 +268,44 @@ source inventory, resolves Saga2D from that package and uses the engine's public
 RoomServer interface for traffic, maintenance and final checkpoint flushing.
 These fixtures are not actual-game package acceptance. Package construction,
 installation and reverse-proxy wiring still need to adopt this launcher.
+
+## Linux package preparation acceptance, before implementation
+
+Separate preparing and accepting an immutable runtime from activating the
+service. The same preparation command used by the installer must run on an
+ephemeral Ubuntu 24.04 CI runner: verify the uploaded archive, install the exact
+managed Python and hash-pinned dependencies outside root's home, and exercise
+all three actual games as the unprivileged service account. Repeat preparation
+of the same release, preserving its environment and accepted source bytes.
+Acceptance includes orders, SIGTERM checkpoint flushing and authenticated rejoin;
+the report contains no private seat tokens. This check must not activate systemd,
+change the public proxy, use cloud credentials or touch a live room store.
+
+CI must check out the exact reviewed sibling commits, use the pinned Python/uv,
+run the complete server suite with native Caddy available, and retain the real
+package and acceptance report. A green fixture suite alone cannot satisfy this
+gate. Production activation, common server/site locking and public-client
+acceptance remain separate rollout requirements.
+
+Local package acceptance now passes with the real pinned sources in
+`.github/server-pins.json`: Warband `2361f79`, Tribes `888cdac`, Shardbound
+`cc070e3` and Sagaforge `2fa6fad`, using Python 3.13.2 and Saga2D 0.3.2. The
+entire server/publication suite passed **103 tests in 63.94 seconds** on the
+Mac host, in an isolated clean candidate stack. The package installs only its
+exported hashed dependencies, starts outside source checkouts, attests the
+accepted native Warband contract, and accepts real orders and restart/rejoin
+for all three games. Sixteen focused startup/proxy/staging checks include
+changed-source and unsafe-archive refusal. Native Caddy 2.11.4 confirms that a
+static compatibility file cannot shadow the live response, that response is
+uncached, and static pages retain their intended cache policy.
+
+The upload-layout test caught `release.tar.gz` being copied into the runtime;
+staging now verifies and extracts a private copy of those exact bytes. The proxy
+test caught the global static cache header overriding `no-store`; cache policy
+now applies to static routes only. No acceptance condition was weakened.
+Shell syntax, workflow lint and the stack's 389 Markdown files passed their
+checks. Linux root/bootstrap preparation is still pending the newly pinned
+read-only CI run; the local suite does not establish Linux service activation.
+The two previously local game pins were pushed only to
+`codex/warband-server-runtime` branches so CI can fetch their exact commits.
+No game main, version tag, release or live deployment changed.

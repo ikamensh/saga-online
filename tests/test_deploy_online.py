@@ -1,6 +1,7 @@
 """Deployment preparation must run offline without opening cloud credentials."""
 import json
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tarfile
@@ -26,41 +27,77 @@ def test_plan_is_reviewable_without_credentials(tmp_path):
     assert plan["secrets_on_server"] is False
     assert not list(tmp_path.iterdir())
 
-GAMES = ('tribes.multiplayer:ONLINE', 'warband.multiplayer:ONLINE', 'eador.multiplayer:ONLINE')
-
-
 def test_packaged_release_runs_server_entrypoint(tmp_path):
-    """The artifact contains all game modules and runs away from the checkout."""
+    """The actual three-game artifact attests its inputs and serves clients away from the source checkout."""
     result = subprocess.run(
         [sys.executable, str(ROOT / "tools/deploy_online.py"), "package",
          "--name", "saga2d-online", "--output", str(tmp_path)],
         check=True, capture_output=True, text=True,
     )
     package = json.loads(result.stdout)
-    unpacked = tmp_path / "unpacked"
+    uploaded = tmp_path / "uploaded"
     with tarfile.open(package["archive"]) as archive:
-        archive.extractall(unpacked, filter="data")
-    subprocess.run([sys.executable, "-m", "saga2d.server", "--help"],
-                   cwd=unpacked, check=True, capture_output=True)
+        archive.extractall(uploaded, filter="data")
+    shutil.copyfile(package["archive"], uploaded / "release.tar.gz")
+    unpacked = tmp_path / "unpacked"
+    stage_command = [sys.executable, "-B", str(uploaded / "deploy/stage_release.py"),
+                     str(uploaded / "release.tar.gz"), str(unpacked), package["release"]]
+    staged = subprocess.run(stage_command, capture_output=True, text=True)
+    assert staged.returncode == 0, staged.stderr
+    assert not (unpacked / "release.tar.gz").exists()
+    inputs = json.loads((unpacked / "deploy/server-inputs.json").read_text())
+    assert inputs["warband_compatibility"]["registry"] == "warband.authority:ONLINE"
+    # Install only the exported hashed runtime. The server must not borrow
+    # editable game imports or dependencies from the build environment.
+    subprocess.run(["uv", "venv", "--python", inputs["python"], str(unpacked / ".venv")],
+                   check=True, capture_output=True)
+    server_python = str(unpacked / ".venv/bin/python")
+    subprocess.run(["uv", "pip", "install", "--python", server_python, "--require-hashes",
+                    "-r", str(unpacked / "deploy/requirements.txt")], check=True, capture_output=True)
+    subprocess.run([server_python, "-B", str(unpacked / "deploy/server.py"), "--help"],
+                   cwd=tmp_path, check=True, capture_output=True)
     subprocess.run(["bash", "-n", str(unpacked / "deploy/install.sh")], check=True)
     assert all((unpacked / game / "multiplayer.py").exists()
                for game in ["tribes", "warband", "eador"])
     # Warband counts its committed death and wreckage pieces when imported.
     assert list((unpacked / "warband/assets/deaths").glob("*.wav")) and list((unpacked / "warband/assets/wreckage").glob("*.wav"))
-    assert not list(unpacked.rglob("*.png"))  # Art stays out of the server release.
-    assert not list(unpacked.rglob("*.md"))  # No local secret stores in artifacts.
+    assert not [path for path in unpacked.rglob("*.png") if ".venv" not in path.parts]  # Game art stays out.
+    assert not [path for path in unpacked.rglob("*.md") if ".venv" not in path.parts]  # No local secret stores.
     assert (unpacked / "deploy/requirements.txt").read_text().find("websockets==") >= 0
-    with subprocess.Popen([sys.executable, "-m", "saga2d.server", "--port", "0", "--games", *GAMES],
-                          cwd=unpacked, stdout=subprocess.PIPE, text=True) as process:
+    with subprocess.Popen([server_python, "-B", str(unpacked / "deploy/server.py"), "--port", "0",
+                           "--release-id", package["release"], "--endpoint", "wss://games.tachyon-ai.eu/play",
+                           "--state-dir", str(tmp_path / "state")],
+                          cwd=tmp_path, stdout=subprocess.PIPE, text=True) as process:
         try:
             readable, _, _ = select.select([process.stdout], [], [], 15)
             assert readable, "Packaged server failed to start"
-            endpoint = process.stdout.readline().strip().removeprefix("LISTENING ") + "/play"
-            subprocess.run([sys.executable, str(unpacked / "deploy/smoke.py"), endpoint],
-                           cwd=unpacked, check=True, timeout=60, capture_output=True)
+            line = process.stdout.readline().strip()
+            assert line.startswith("LISTENING ws://127.0.0.1:"), f"Packaged server did not announce readiness: {line}"
+            endpoint = line.removeprefix("LISTENING ") + "/play"
+            from urllib.request import urlopen
+            with urlopen(endpoint.replace("ws://", "http://").removesuffix("/play") + "/server-compatibility.json") as response:
+                baseline = json.load(response)
+            assert baseline["deployment_release"] == package["release"]
+            assert baseline["warband"] == {"source_commit": inputs["sources"]["warband"],
+                                           "compatibility": inputs["warband_compatibility"]}
+            subprocess.run([server_python, "-B", str(unpacked / "deploy/smoke.py"), endpoint],
+                           cwd=tmp_path, check=True, timeout=60, capture_output=True)
         finally:
             process.terminate()
             process.wait(timeout=10)
+    verified = subprocess.run([server_python, "-B", str(unpacked / "deploy/check_release.py"), str(unpacked),
+                               "--release-id", package["release"], "--endpoint", "wss://games.tachyon-ai.eu/play"],
+                              cwd=tmp_path, capture_output=True, text=True, timeout=60)
+    assert verified.returncode == 0, verified.stderr
+    report = json.loads(verified.stdout)
+    assert report["passed"] is True and report["restart_rejoin"] is True
+    assert report["games"] == ["tribes-v1", "warband-v2", "shardbound-v1"]
+    assert report["baseline"] == baseline
+    marker = unpacked / ".venv/retry-marker"
+    marker.write_text("Keep the existing environment on a staging retry")
+    staged = subprocess.run(stage_command, capture_output=True, text=True)
+    assert staged.returncode == 0, staged.stderr
+    assert marker.read_text() == "Keep the existing environment on a staging retry"
 
 
 def test_credentials_selected_by_heading_not_file_order(tmp_path):

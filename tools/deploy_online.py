@@ -11,7 +11,6 @@ import argparse
 from dataclasses import dataclass, field
 import gzip
 import hashlib
-import importlib
 import io
 import json
 import os
@@ -19,6 +18,7 @@ from pathlib import Path
 import re
 import shlex
 import subprocess
+import sys
 import tarfile
 import tempfile
 import time
@@ -28,14 +28,7 @@ import urllib.request
 
 
 ROOT = Path(__file__).resolve().parents[1]
-# The sibling checkouts whose sources ship in the release tar, each with the file
-# patterns the server needs from it; their third-party dependencies come from
-# uv.lock with hashes, the packages themselves as source. Warband's death and
-# wreckage cues count their committed audio pieces when the module is imported,
-# so the server carries those pieces (a few megabytes) even though it never plays them.
-PACKAGES = {"saga2d": ("*.py",), "sagaforge": ("*.py",), "tribes": ("*.py",),
-            "warband": ("*.py", "*.wav"), "eador": ("*.py",)}
-DISTRIBUTIONS = ("saga2d", "sagaforge", "tribes", "warband", "shardbound")
+sys.path.insert(0, str(ROOT))
 ORGANIZATION = "17efcf03-4911-41f9-a059-4bd6fe2f3ffe"
 MARKER = "Managed by Saga2D online deployment"
 RESOURCE_TAG = "saga2d-online-managed"
@@ -211,29 +204,16 @@ def deployment_plan(args):
         "instance": {"name": args.name, "type": "DEV1-S", "zone": args.zone,
                      "root_volume": "sbs:20GB:5000", "ipv4": "reserved"},
         "inbound_tcp_ports": [22, 80, 443],
-        "server": "python -m saga2d.server --games tribes.multiplayer:ONLINE warband.multiplayer:ONLINE eador.multiplayer:ONLINE --host 127.0.0.1 --port 8765",
+        "server": f"python -B deploy/server.py --release-id <archive-sha256> --endpoint wss://{args.domain}/play --host 127.0.0.1 --port 8765",
         "monthly_eur_before_tax_at_730_hours": 11.37,
         "secrets_on_server": False,
     }
 
 
 def package_release(output: Path):
-    """Allowlist source files and hashed, frozen dependencies into a stable tar."""
-    files = {}
-    for package, patterns in PACKAGES.items():
-        root = Path(importlib.import_module(package).__file__).resolve().parent
-        for path in sorted(path for pattern in patterns for path in root.rglob(pattern)):
-            if path.is_symlink():
-                raise ValueError(f"Refusing symlink in release: {path}")
-            files[f"{package}/{path.relative_to(root).as_posix()}"] = path.read_bytes()
-    for name in ("install.sh", "check_release.py", "smoke.py", "backup.py", "saga2d-online.service",
-                 "saga2d-backup.service", "saga2d-backup.timer", "Caddyfile"):
-        files[f"deploy/{name}"] = (ROOT / "deploy" / name).read_bytes()
-    files["deploy/requirements.txt"] = subprocess.run(
-        ["uv", "export", "--frozen", "--no-dev", "--no-emit-project", "--no-header",
-         *(f"--no-emit-package={name}" for name in DISTRIBUTIONS)],
-        cwd=ROOT, check=True, capture_output=True,
-    ).stdout
+    """Archive clean, pinned source and locked runtime inputs for the attested server."""
+    from tools.server_package import server_files
+    files = server_files(ROOT)
     payload = _stable_tar(files)
     digest = hashlib.sha256(payload).hexdigest()
     output.mkdir(parents=True, exist_ok=True)

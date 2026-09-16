@@ -1,19 +1,28 @@
-"""Run every game's create/join path before activating an unpacked release."""
-import os
+"""Verify the attested package and three-game orders/rejoin before activation.
+
+Run as the intended service user. Test rooms and private seat credentials remain
+in this process and its private temporary directory, never the live store.
+"""
+from __future__ import annotations
+
+import argparse
+from contextlib import contextmanager
+import json
 from pathlib import Path
-import subprocess
-import sys
 import select
+import subprocess
+import tempfile
+from urllib.request import urlopen
+
+from smoke import smoke, resume
 
 
-release = Path(sys.argv[1]).resolve()
-python = str(release / ".venv/bin/python")
-with subprocess.Popen(
-    ["runuser", "-u", "saga2d-online", "--", python,
-     "-m", "saga2d.server", "--host", "127.0.0.1", "--port", "0", "--games", *"tribes.multiplayer:ONLINE warband.multiplayer:ONLINE eador.multiplayer:ONLINE".split()],
-    cwd=release, env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
-    stdout=subprocess.PIPE, text=True,
-) as process:
+@contextmanager
+def running(release, release_id, endpoint, state):
+    python = str(release / ".venv/bin/python")
+    process = subprocess.Popen([python, "-B", str(release / "deploy/server.py"), "--host", "127.0.0.1", "--port", "0",
+                                "--release-id", release_id, "--endpoint", endpoint, "--state-dir", str(state)],
+                               cwd=state.parent, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     try:
         readable, _, _ = select.select([process.stdout], [], [], 15)
         if not readable:
@@ -21,8 +30,39 @@ with subprocess.Popen(
         line = process.stdout.readline().strip()
         if not line.startswith("LISTENING ws://127.0.0.1:"):
             raise RuntimeError(f"Candidate server did not announce a loopback endpoint: {line}")
-        endpoint = line.removeprefix("LISTENING ") + "/play"
-        subprocess.run([python, str(release / "deploy/smoke.py"), endpoint], check=True, timeout=60)
+        yield line.removeprefix("LISTENING ")
     finally:
-        process.terminate()
-        process.wait(timeout=25)
+        if process.poll() is None:
+            process.terminate()
+        _, error = process.communicate(timeout=25)
+        if process.returncode != 0:
+            raise RuntimeError(f"Candidate server exited with {process.returncode}: {error}")
+
+
+def verify(release, release_id, endpoint):
+    release = release.resolve()
+    inputs = json.loads((release / "deploy/server-inputs.json").read_bytes())
+    expected = {"schema_version": 1, "deployment_release": release_id, "endpoint": endpoint, "protocol": 1,
+                "warband": {"source_commit": inputs["sources"]["warband"], "compatibility": inputs["warband_compatibility"]}}
+    with tempfile.TemporaryDirectory(prefix="saga2d-check-") as temporary:
+        state = Path(temporary) / "rooms"
+        for restart in (False, True):
+            with running(release, release_id, endpoint, state) as local:
+                with urlopen(local.replace("ws://", "http://") + "/server-compatibility.json", timeout=10) as response:
+                    actual = json.load(response)
+                if actual != expected:
+                    raise RuntimeError("Running candidate differs from its expected compatibility baseline")
+                if restart:
+                    resume(local + "/play", records)
+                else:
+                    records = smoke(local + "/play")
+    return {"passed": True, "baseline": expected, "games": [record["game"] for record in records], "restart_rejoin": True}
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("release", type=Path)
+    parser.add_argument("--release-id", required=True)
+    parser.add_argument("--endpoint", required=True)
+    args = parser.parse_args()
+    print(json.dumps(verify(args.release, args.release_id, args.endpoint), sort_keys=True, indent=2))

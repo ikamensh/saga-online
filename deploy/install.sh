@@ -12,17 +12,14 @@ domain=$4
 
 base=/opt/saga2d-online
 release="$base/releases/$release_id"
-mkdir -p "$base/releases"
-if [[ ! -f "$release/.ready" ]]; then
-    mkdir -p "$release"
-    cp -a "$source_dir"/. "$release/"
-    chown -R root:root "$release"
-    chmod -R u+rwX,go+rX,go-w "$release"
-    python3 -m venv "$release/.venv"
-    "$release/.venv/bin/pip" install --require-hashes -r "$release/deploy/requirements.txt"
-    python3 "$release/deploy/check_release.py" "$release"
-    touch "$release/.ready"
-fi
+bash "$source_dir/deploy/prepare_release.sh" "$source_dir" "$release_id" "$domain"
+
+install_service() {
+    local service_release=$1
+    sed -e "s/__RELEASE_ID__/${service_release##*/}/g" -e "s/__DOMAIN__/$domain/g" \
+        "$service_release/deploy/saga2d-online.service" > "$source_dir/saga2d-online.service"
+    install -m 644 "$source_dir/saga2d-online.service" /etc/systemd/system/saga2d-online.service
+}
 
 # Validate proxy configuration before replacing either live configuration.
 sed "s/__DOMAIN__/$domain/g" "$release/deploy/Caddyfile" > "$source_dir/Caddyfile"
@@ -38,7 +35,7 @@ rollback() {
     if [[ -n $previous ]]; then
         ln -sfn "$previous" "$base/current.next"
         mv -Tf "$base/current.next" "$base/current"
-        install -m 644 "$previous/deploy/saga2d-online.service" /etc/systemd/system/saga2d-online.service
+        install_service "$previous"
         systemctl daemon-reload
         systemctl restart saga2d-online
     else
@@ -49,7 +46,7 @@ rollback() {
     exit 1
 }
 trap rollback ERR
-install -m 644 "$release/deploy/saga2d-online.service" /etc/systemd/system/saga2d-online.service
+install_service "$release"
 install -m 644 "$release/deploy/saga2d-backup.service" /etc/systemd/system/saga2d-backup.service
 install -m 644 "$release/deploy/saga2d-backup.timer" /etc/systemd/system/saga2d-backup.timer
 install -d -m 700 -o saga2d-online -g saga2d-online /var/backups/saga2d-online
@@ -73,6 +70,14 @@ if [[ $healthy != true ]]; then
     echo 'New server failed its health check.' >&2
     false
 fi
+python3 - "$release/.ready" <<'PY'
+import json, sys, urllib.request
+expected = json.load(open(sys.argv[1]))["baseline"]
+with urllib.request.urlopen('http://127.0.0.1:8765/server-compatibility.json', timeout=10) as response:
+    actual = json.load(response)
+if actual != expected:
+    raise RuntimeError('Running server does not match the accepted candidate baseline')
+PY
 install -m 644 "$source_dir/Caddyfile" /etc/caddy/Caddyfile
 systemctl enable --now caddy
 systemctl reload caddy

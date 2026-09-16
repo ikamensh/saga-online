@@ -43,7 +43,7 @@ def attestation(root: Path, release_id: str, endpoint: str) -> dict:
     require(url.scheme == "wss" and url.hostname and url.path == "/play" and not url.query and not url.fragment
             and url.username is None and url.password is None, "Expected a public wss /play endpoint")
     inputs = json.loads((root / "deploy/server-inputs.json").read_bytes())
-    require(set(inputs) == {"schema_version", "sources", "python", "packages", "files", "warband_compatibility"}
+    require(set(inputs) == {"schema_version", "sources", "python", "uv", "packages", "files", "warband_compatibility"}
             and inputs["schema_version"] == 1, "Unsupported server input manifest")
     require(set(inputs["sources"]) == {"saga-online", "sagaforge", "tribes", "warband", "shardbound"}
             and all(re.fullmatch(r"[0-9a-f]{40}", commit) for commit in inputs["sources"].values()), "Invalid server source commits")

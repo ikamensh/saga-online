@@ -1,0 +1,2 @@
+# Dedicated Ubuntu x86_64 host: the PyPI manylinux wheel for uv 0.12.10.
+uv==0.12.10 --hash=sha256:f7d6248ad9f2d282fea795f248da8fa666ab382df50d8385bd98e01049440a0c
