@@ -304,8 +304,54 @@ staging now verifies and extracts a private copy of those exact bytes. The proxy
 test caught the global static cache header overriding `no-store`; cache policy
 now applies to static routes only. No acceptance condition was weakened.
 Shell syntax, workflow lint and the stack's 389 Markdown files passed their
-checks. Linux root/bootstrap preparation is still pending the newly pinned
-read-only CI run; the local suite does not establish Linux service activation.
+checks. The local suite does not establish Linux service activation.
 The two previously local game pins were pushed only to
 `codex/warband-server-runtime` branches so CI can fetch their exact commits.
 No game main, version tag, release or live deployment changed.
+
+### Linux acceptance of the real package
+
+[Server Tests 35158657345](https://github.com/ikamensh/saga-online/actions/runs/35158657345)
+passed on `126f2201193ba2eb8ed5cd9bdd2e3ff4e1f91ee7`: **103 passed, none skipped,
+in 65.69 seconds**, with Ubuntu 24.04's Caddy 2.6.2. The same run built the real
+archive, bootstrapped its exact managed Python and hashed dependencies as root,
+and ran three-game order/restart/rejoin acceptance as `saga2d-online`. Repeating
+preparation preserved the environment and produced the identical acceptance
+report; the service account could not write the authoritative source.
+
+The retained artifact was downloaded and independently checked. Its 6,674,467
+bytes are **identical to the archive built on the Mac** from the same commit:
+`cce03f0b961a05269c364a840274cf9a505d9ed46e062d0177c7a2baf2f03a10`.
+Every recorded file hash and the native Warband compatibility contract agree.
+The local package entry-point check also passed after switching the isolated
+stack to that real committed source. Evidence is retained in
+`dist/server-acceptance/github-35158657345/` and its adjacent log; the CI artifact
+contains the archive, package identity, JUnit result and token-free acceptance
+report. Its endpoint is deliberately `wss://games.example.test/play`, identifying
+the isolated acceptance target rather than a fabricated production baseline.
+
+[Website checks 35158657342](https://github.com/ikamensh/saga-online/actions/runs/35158657342)
+passed on the same commit: 98 passed, one native Caddy check skipped in that
+smaller environment, and the actual server-package test deselected there. The
+complete server job above exercised both. Website rendering and its preview
+artifact upload also passed. No root installer activation/systemd restart,
+public packaged-client acceptance or production rollout is claimed by these
+preparation checks. Shardbound's previously recorded client failures remain.
+
+## Promotion/activation exclusion acceptance, before implementation
+
+Server activation and site promotion must hold the same host filesystem lock
+through their live checks and commit/rollback. Check the running compatibility
+baseline again under that lock immediately before exposing a prepared Warband
+catalog, and after verifying public bytes. A baseline change while a promotion
+waits must cause rejection with the previous site intact. A failed check after
+the pointer swap must restore the previous site and leave its generation and
+rollback target unchanged. Retries must still verify the live baseline.
+
+Exercise contention with separate real processes, including a publisher paused
+inside its HTTP acceptance check. Preserve crash recovery under the shared lock.
+The deployed entry points must use the common lock; serializing only GitHub jobs
+or only two static-site publishers is insufficient. The eventual restricted CI
+entry point must bind the baseline and candidate catalog to the independently
+verified promotion receipt. Keep the generic operator and automated promotion
+paths explicit so an omitted promotion receipt cannot silently bypass this gate.
