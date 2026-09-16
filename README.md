@@ -6,7 +6,7 @@ and [Shardbound](../shardbound) share one authoritative room server
 a release catalog, and the self-service website at https://games.tachyon-ai.eu/
 with downloads, install steps, invite links and a status page.
 
-The local server environment uses the published `saga2d==0.3.0` release. Sagaforge and the games
+The local server environment uses the published `saga2d==0.3.1` release. Sagaforge and the games
 remain editable dependencies from their sibling checkouts; engine changes
 take effect only when the pinned release is deliberately upgraded.
 Updating this checkout does not deploy the hosted server.

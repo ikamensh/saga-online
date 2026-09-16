@@ -4,7 +4,7 @@ Planning baseline: 2026-09-08. The implementation status below records what
 has shipped since; the plan sections that follow are kept as the original
 reasoning.
 
-## Status (2026-09-08, later the same day)
+## Status (2026-09-16)
 
 Live: **https://games.tachyon-ai.eu/** — home page, per-game download/install
 pages, invitation links (`/join/<game id>/<code>`), service status and the
@@ -15,7 +15,7 @@ Published through `tools/build_site.py` and `tools/deploy_online.py site`.
 | --- | --- | --- |
 | Release contract | `releases/catalog.json` validated by `tools/release_catalog.py`; games fetch it when Multiplayer opens and offer **Open download page** for a newer build; the server rejects incompatible clients with a structured reason and the lobby shows **Update required**. | `tests/test_release.py`, `tests/test_online_menu.py`, `tests/tools/test_release_catalog.py` |
 | Invitations | **Copy invite link** on the waiting screen; the link page shows the code, joining steps and the download for the visitor's OS. | `tests/test_online_menu.py`, live page |
-| Warband | 0.1.0-preview.4 published (Windows installer, portable ZIP, Apple Silicon app) with invite links and update notices. | [warband-release.md](../../warband/docs/warband-release.md), `evidence/warband-distribution-2026-09-08/` |
+| Warband | 0.2.0-preview.2 published 2026-09-16 from the split repository (Windows installer, portable ZIP, Apple Silicon app): four races, painted art and the combat rework; rooms are `warband-v2`, older builds get **Update required**. The room server was refreshed the same day and carries the game's audio pieces. | [warband-release.md](../../warband/docs/warband-release.md) |
 | Tribes | 0.1.0-preview.1 published through the shared recipe `saga2d.packaging` (`tools/package.py`) and the Windows workflow. | [tribes-release.md](../../tribes/docs/tribes-release.md), `evidence/tribes-distribution-2026-09-08/` |
 | Shardbound | Versioned build, installer, online co-op diagnostic and verifying/publishing workflow; campaign rooms retained seven days and suspended to storage between visits. | `tools/verify_package.py`, `.github/workflows/windows.yml`, `tests/eador/test_online.py` |
 | Operations | Hourly consistent SQLite backups with laptop pull (`deploy_online.py backup`); site publication separate from server activation. | [deploy/README.md](../deploy/README.md) |

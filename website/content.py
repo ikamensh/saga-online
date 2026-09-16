@@ -37,14 +37,14 @@ GAMES = {
             'Eliminate every enemy unit and building to win.',
         ],
         'screenshots': [
-            (f'{MEDIA}/warband/01-10_battle.png', 'A pitched battle between two armies outside a farm row'),
-            (f'{MEDIA}/warband/02-06_settlement_normal.png', 'A settlement with every building type and unit role'),
-            (f'{MEDIA}/warband/03-09-active-production.png', 'The Plans panel listing construction and training'),
-            (f'{MEDIA}/warband/04-08_lumber_camp.png', 'Peasants chopping wood beside a lumber mill'),
+            (f'{MEDIA}/warband/01-battle.png', 'A pitched battle between the humans and the elves outside a farm row'),
+            (f'{MEDIA}/warband/02-orc-settlement.png', 'An orc settlement eight minutes in: pig farms, war camp, forge, kennels and sawmill'),
+            (f'{MEDIA}/warband/03-elf-train-plans.png', 'The Train card of an elf settlement in an online match, from the shipping Mac build'),
+            (f'{MEDIA}/warband/04-title.png', 'The title screen over a winter map'),
         ],
         'requirements': {
-            'windows': 'Windows 10 or 11, 64-bit, with OpenGL 3.3 graphics drivers. About 120 MB on disk.',
-            'macos': 'macOS 14 or later on Apple Silicon (M1 or newer). About 90 MB on disk.',
+            'windows': 'Windows 10 or 11, 64-bit, with OpenGL 3.3 graphics drivers. About 160 MB on disk.',
+            'macos': 'macOS 14 or later on Apple Silicon (M1 or newer). About 160 MB on disk.',
         },
         'known_issues': [
             'The installer is unsigned and the Mac app is not notarized; see the first-launch notes above.',
