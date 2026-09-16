@@ -89,6 +89,26 @@ def test_a_verified_site_activates_once_and_retains_the_previous_release(tmp_pat
         assert (base / "previous").resolve().name == "a" * 64
 
 
+def test_new_generation_of_current_site_preserves_the_distinct_rollback_target(tmp_path):
+    """A fresh CI attempt may verify current bytes without making them their own rollback release."""
+    base = tmp_path / "host"
+    first, second = site(tmp_path, "first"), site(tmp_path, "second")
+    faults = {}
+    with public_site(base, faults) as endpoint:
+        assert activate(first, base, endpoint, "a" * 64, 1).returncode == 0
+        assert activate(second, base, endpoint, "b" * 64, 2, "a" * 64).returncode == 0
+        result = activate(second, base, endpoint, "b" * 64, 3, "b" * 64)
+        assert result.returncode == 0, result.stderr
+        state = json.loads((base / "state.json").read_text())
+        assert state == {"release": "b" * 64, "generation": 3, "previous": "a" * 64}
+        assert (base / "previous").resolve().name == "a" * 64
+        faults["health"] = True
+        result = activate(second, base, endpoint, "b" * 64, 4, "b" * 64)
+        assert result.returncode != 0 and "health" in result.stderr
+        assert json.loads((base / "state.json").read_text()) == state
+        assert (base / "previous").resolve().name == "a" * 64
+
+
 def test_retry_recovers_an_activation_interrupted_after_the_pointer_swap(tmp_path):
     """Killing the publisher during its public check leaves recoverable state, not a wedged deployment."""
     base = tmp_path / "host"

@@ -148,7 +148,8 @@ def activate(source: Path, base: Path, release: str, generation: int, expected: 
         if retry:
             verify_public(files, public_url, health_url, release)
             return state
-        after = {"release": release, "generation": generation, "previous": previous}
+        rollback = state.get("previous", "none") if previous == release else previous
+        after = {"release": release, "generation": generation, "previous": rollback}
         pending = base / "pending.json"
         write_json(pending, {"before": state, "after": after})
         point(base, "current", release)
@@ -159,7 +160,7 @@ def activate(source: Path, base: Path, release: str, generation: int, expected: 
             pending.unlink()
             sync_directory(base)
             raise
-        point(base, "previous", previous)
+        point(base, "previous", rollback)
         write_json(state_path, after)
         pending.unlink()
         sync_directory(base)

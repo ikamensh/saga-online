@@ -53,6 +53,15 @@ scoped CI remote access, the caller's promotion generation and the promotion
 workflow still need the remaining WB-002 implementation and rollout verification.
 No live state was changed.
 
+Retry acceptance: activating the same bytes with a newer promotion generation
+must reverify the public site, advance the generation and retain the previous
+distinct release as the rollback target. A repeated current release must never
+replace that target with itself. Failed reverification preserves the accepted
+state and rollback target. Exercise this through the actual activation CLI.
+Verified by the new CLI regression and all 14 activation/offline operator checks:
+both successful newer-generation verification and failed health checks retain
+the previous distinct release. The helper and bundled upload path pass together.
+
 [Website checks run 35145766820](https://github.com/ikamensh/saga-online/actions/runs/35145766820)
 passed on `1f63106`, running the 28 isolated catalog, site, activation and offline
 operator checks and producing the seven-page static preview artifact. This was
