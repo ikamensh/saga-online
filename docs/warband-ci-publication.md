@@ -57,3 +57,32 @@ No live state was changed.
 passed on `1f63106`, running the 28 isolated catalog, site, activation and offline
 operator checks and producing the seven-page static preview artifact. This was
 a branch check with read-only permissions; it did not publish the site.
+
+## Authoritative runtime integration prerequisites
+
+Warband candidate `2361f79cecf5a584562847bdc25e2be4d2f353c8` moves its server
+entry point to `warband.authority:ONLINE` and embeds a static simulation-input
+contract in every native release identity. Its compatibility digest is
+`ffdfe856c27cf2c9d7f507d9e1caa54e631d41cdb283e367c2e08b954bd49524`:
+ten authoritative game source files, Python 3.13.2, Saga2D 0.3.2, Pillow 12.3.0,
+pyglet 2.1.16 and websockets 17.1. This describes the candidate's required
+inputs; it is not evidence about the running server.
+
+Before building the first server compatibility baseline, update this repo's
+service, deployment checks and test registry strings together with that Warband
+integration. Resolve the exact engine conflict normally: Warband and Tribes
+require 0.3.2, while this repo and Shardbound currently require 0.3.1. Do not
+silently ignore lockfiles or dependency metadata to construct the baseline.
+Verify the packaged server's actual Python, installed dependency versions and
+authoritative source bytes, then all three games' socket journeys outside the
+source checkout. A live baseline needs the separately reviewed deployment,
+room draining, backup/restore and public packaged-client checks.
+
+Shardbound alignment candidate `cc070e3` is isolated on
+`codex/warband-server-runtime`. Its full 0.3.2 suite produced 1,078 passes and
+19 failures; all 19 also reproduce under 0.3.1. Its native verifier stops at the
+same battle-victory assertion on both releases. The inspected engine diff only
+changes the version string and Banner placement; the candidate has not been
+merged or accepted. See [Shardbound's recorded acceptance findings](../../shardbound/docs/shardbound-release.md).
+These findings must not be presented as a green client release or a verified
+shared-server deployment.
