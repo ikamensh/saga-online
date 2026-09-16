@@ -52,3 +52,8 @@ This wiring has not been deployed. Server compatibility, candidate-source order,
 scoped CI remote access, the caller's promotion generation and the promotion
 workflow still need the remaining WB-002 implementation and rollout verification.
 No live state was changed.
+
+[Website checks run 35145766820](https://github.com/ikamensh/saga-online/actions/runs/35145766820)
+passed on `1f63106`, running the 28 isolated catalog, site, activation and offline
+operator checks and producing the seven-page static preview artifact. This was
+a branch check with read-only permissions; it did not publish the site.
