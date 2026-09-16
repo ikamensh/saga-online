@@ -173,3 +173,54 @@ write-enabled workflow remain unfinished.
 
 Local verification: all 43 promotion CLI checks and the 28 isolated catalog,
 site, activation and operator checks passed. Website checks now runs both sets.
+
+## Desired catalog commit acceptance, before implementation
+
+The Git writer consumes only a completed prepared promotion, a clean repository
+checkout and the exact checkout commit used by preparation. It must validate
+the candidate/receipt hashes against the current catalog, preserve all other
+games and server/site facts, and commit only the Warband catalog change plus
+its receipt. Another local edit or commit must cause an explicit failure.
+A retry of an already committed identical release must leave Git history and
+the original release receipt unchanged. A candidate marked already current
+cannot introduce a catalog change.
+
+Pushing is a separate explicit option, using an ordinary fast-forward push to
+the existing main branch. Test successful commit/push and a concurrent remote
+main advance against temporary bare Git repositories. A rejected push must
+preserve the remote's newer catalog; the workflow should start again from that
+head and rerun preparation. It must never force-push, automatically merge stale
+catalogs or treat a desired Git commit as proof of successful site activation.
+
+`tools/commit_warband_promotion.py` implements that step:
+
+```bash
+uv run --project publishing --locked python tools/commit_warband_promotion.py \
+  --prepared dist/warband-promotion --repository . --expected-head CHECKOUT_COMMIT
+```
+
+The checkout must be clean and `CHECKOUT_COMMIT` must be the full Git commit
+captured before preparation. The tool rechecks hashes, manifest identity and
+scope, then commits only `releases/catalog.json` and
+`releases/warband-promotion.json`. Retrying the same desired release keeps the
+original receipt and commit. `--push` explicitly enables an ordinary push to
+existing `origin/main`, after checking that remote main still names the expected
+checkout. Git also rejects a concurrent advance during the push itself. If a
+push is rejected after the local commit, that commit remains available for
+inspection; restart the workflow from current main and prepare again. There is
+no automatic merge or force-push and no site activation in this command.
+
+The Git integration tests run entirely against temporary local/bare repos. A
+real pre-push hook advances the competing repo after the writer's remote-head
+check: the stale publication push is rejected, and the competing game's new
+catalog remains intact. No live catalog commit or push has been made by this
+tool. The production workflow, runtime attestation, deployment lock and final
+public acceptance still need to be connected and verified before enabling it.
+
+Local verification: all 11 Git integration checks passed; the complete isolated
+publication suite passed 83 tests. The server-package test remains outside that
+environment and is not claimed as passing. Workflow lint and stack Markdown
+links also passed. The consumer and rollback changes already passed on Linux
+in [Website checks 35154038265](https://github.com/ikamensh/saga-online/actions/runs/35154038265)
+at `fbfccd4` (72 checks and a rebuilt seven-page preview). The new Git writer is
+now included in that same branch workflow.
