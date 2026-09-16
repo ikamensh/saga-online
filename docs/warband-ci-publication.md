@@ -24,3 +24,23 @@ retains it as a CI preview artifact. It does not publish the artifact.
 Local verification: 15 existing catalog/site tests passed in this environment.
 The separate server environment still needs deliberate engine/game alignment
 before a server rollout; these checks make no claim about that environment.
+
+## Static activation transaction
+
+`deploy/activate_site.py` is an offline-tested activation entry point. It takes
+an explicitly named site root, candidate source, expected current release and
+monotonic promotion generation. It stages immutable files, serializes activation
+with a filesystem lock, swaps the current symlink atomically, checks every
+served file and `/healthz`, and retains the previous release. Failed public
+acceptance restores the prior pointer and publication state. A durable journal
+allows the next invocation to recover an interrupted activation.
+
+Six CLI integration checks use temporary roots and real loopback HTTP servers:
+successful activation/retry, wrong public bytes, unhealthy server, stale/rebound
+promotion, concurrent publishers, and killing the publisher after its pointer
+swap followed by successful recovery. These checks are part of Website checks.
+
+This helper is not yet connected to the deployed site installer or the promotion
+workflow. Server compatibility, candidate-source order, scoped remote access,
+the caller's promotion generation and live activation still need the remaining
+WB-002 implementation and rollout verification. No live state was changed.
