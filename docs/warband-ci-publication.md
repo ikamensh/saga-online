@@ -386,5 +386,51 @@ fixtures, renders its actual catalog, packages it with the receipt, extracts the
 upload and activates those exact bytes through HTTP. These format fixtures do
 not replace the separately recorded native game execution evidence.
 Workflow lint, shell syntax and 389 Markdown link checks passed. The new
-Linux-only host verification is queued for CI; it refuses this Mac and is
-guarded against an existing managed host. No production operation occurred.
+Linux-only host verification refuses this Mac and is guarded against an
+existing managed host. No production operation occurred.
+
+[Server Tests 35160355976](https://github.com/ikamensh/saga-online/actions/runs/35160355976)
+then passed on `7bb54110864b5abd8b44bd1c3cd80d60c9e29fa5`: **112 passed, no
+skips, in 75.17 seconds**. On the isolated Ubuntu host, the actual server
+installer waited while the site CLI verified public files using their unchanged
+production lock paths. Killing a real publisher left its journal; the installer
+refused until a successful site retry recovered it. Deliberately absent upload
+inputs stopped the installer at preparation, so this test performed no server
+activation, proxy update or live-store operation. Root bootstrap, service-account
+three-game acceptance and repeat preparation also passed for the new archive.
+
+The downloaded archive's SHA-256 is
+`73e2db2e7fc432c0ee32bc302382d55ddcb3c1c8af1024eeceb3f4f4b4626d47`.
+Its source identity, full file inventory and actual installer bytes were checked
+locally against the committed candidate. The host-exclusion report, JUnit,
+archive and runtime acceptance are retained in
+`dist/server-acceptance/github-35160355976/`, with the adjacent CI log.
+[Website checks 35160355978](https://github.com/ikamensh/saga-online/actions/runs/35160355978)
+passed the same source with 107 checks, one native Caddy skip and one actual
+server-package deselection in its smaller environment; both were exercised by
+the complete server job. The site preview build/upload also passed.
+
+## Restricted CI upload acceptance, before implementation
+
+The CI credential must only inspect accepted site state and submit a prepared
+static-site promotion. It must not grant an interactive shell, arbitrary command
+execution, forwarding, cloud/DNS access, service administration, or access to
+room checkpoints. Keep the existing operator credential out of CI. Pin the host
+key and use a dedicated account/key with a forced command and narrowly scoped
+privilege for the trusted site transaction.
+
+Execute host-installed, reviewed activation code; never execute code carried
+inside an upload. Accept a bounded, checksum-bound archive through the fixed
+publication operation, reject unsafe paths, links, special/duplicate entries and
+unrelated payloads, and require the promotion receipt. Preserve the shared lock,
+live baseline, expected-head/generation, retry and crash-recovery behavior already
+verified above. Status must give enough accepted-state information to retry an
+interrupted promotion without treating an unverified pointer as committed.
+
+Exercise real SSH with a temporary key and isolated daemon on the Linux runner:
+successful publication/retry, wrong host key, arbitrary command/subsystem or
+forwarding refusal, malformed/unsafe uploads, and failed compatibility checks
+with the previous site intact. Verify that upload-supplied scripts cannot run
+and that server files and private room state remain unchanged. Build the reviewable
+host setup and CI caller locally; installing credentials or activating the
+production host remains the separately approved rollout step.

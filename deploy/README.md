@@ -82,7 +82,7 @@ restores the previous release's service and proxy configuration. First-time
 activation failure stops the failed service and reports the error.
 The process's compatibility response must match the accepted candidate before
 the proxy is reloaded. This startup gate does not replace rollout acceptance:
-shared server/site locking, room draining, reviewed backup/restore and public
+room draining, reviewed backup/restore, restricted CI access and public
 packaged-client checks still need to be completed for unattended publication.
 
 The systemd service has `MemoryMax=1200M`, `CPUQuota=150%`, `TasksMax=128`,
