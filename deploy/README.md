@@ -93,19 +93,35 @@ games read the same document. Update the catalog only after a release has
 passed acceptance, and never overwrite a versioned binary.
 
 ```sh
-uv run python tools/release_catalog.py                     # validate
-uv run python tools/build_site.py                          # render dist/site
-uv run python tools/deploy_online.py site --name saga2d-online
+uv run --project publishing --locked python tools/release_catalog.py
+uv run --project publishing --locked python tools/build_site.py
+# Set SITE_EXPECTED to the reviewed current SHA-256 (or none for first use),
+# and SITE_GENERATION to the reviewed next promotion generation.
+uv run --project publishing --locked python tools/deploy_online.py site --name saga2d-online \
+  --expected-site "$SITE_EXPECTED" --site-generation "$SITE_GENERATION"
 ```
 
-`site` bundles `dist/site` with `deploy/install_site.sh`, uploads it, installs
-it as an immutable release under `/srv/saga2d-site/releases/<sha256>`, swaps the
-`current` symlink and verifies that the public home page and `/releases.json`
-serve the exact local bytes. It does not touch the room server; `deploy`
+Before preparing publication, read `/srv/saga2d-site/state.json` and the
+`/srv/saga2d-site/current` symlink on the named host. The first transaction can
+adopt an existing legacy SHA-256 release as generation zero; use that release
+as `SITE_EXPECTED` and a positive generation. Subsequent generations must exceed
+the recorded accepted generation. Do not automatically substitute a newer head
+if the reviewed expected release is rejected: reconcile the catalog first.
+
+`site` bundles `dist/site` with `deploy/install_site.sh` and `activate_site.py`,
+uploads it and installs an immutable release under
+`/srv/saga2d-site/releases/<sha256>`. The transaction holds one filesystem lock
+through expected-head/generation checks, the atomic `current` symlink swap,
+verification of every public file and `/healthz`, and state recording. Failed
+acceptance restores the previous site; an interrupted process leaves a journal
+that the next invocation recovers before accepting another promotion. It does
+not touch the room server; `deploy`
 does not touch the site. The Caddy routes ship with the server release, so the
 first site publication requires a server deployment that carries the current
-`deploy/Caddyfile`. The three most recent site releases are retained for manual
-rollback by re-pointing the symlink.
+`deploy/Caddyfile`. The `previous` pointer and immutable releases are retained;
+there is no automatic pruning. An intentional rollback is a new promotion of
+the reviewed previous bytes with a higher generation and the current expected
+head. Do not move the symlink manually while leaving `state.json` unchanged.
 
 Installed games fetch `/releases.json` when the player opens Multiplayer and
 offer the download page when the catalog version differs from their build.

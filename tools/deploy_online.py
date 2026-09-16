@@ -184,6 +184,8 @@ def arguments(argv=None):
     parser.add_argument("--ssh-key", type=Path, default=Path.home() / ".ssh/id_ed25519.pub")
     parser.add_argument("--output", type=Path, default=ROOT / "dist/online")
     parser.add_argument("--site-dir", type=Path, default=ROOT / "dist/site", help="Built website to publish")
+    parser.add_argument("--site-generation", type=int, help="Reviewed promotion generation, greater than the accepted one")
+    parser.add_argument("--expected-site", help="Expected current site SHA-256, or none for first publication")
     args = parser.parse_args(argv)
     if not re.fullmatch(r"saga2d-[a-z0-9-]{1,40}", args.name):
         parser.error("--name must start with saga2d- and contain only lowercase letters, digits or hyphens")
@@ -193,6 +195,11 @@ def arguments(argv=None):
         parser.error("--project-name must be saga2d or start with saga2d-")
     if not re.fullmatch(r"saga2d-[a-z0-9-]+", args.key_section):
         parser.error("--key-section must start with saga2d-")
+    if args.command == "site":
+        if args.site_generation is None or args.site_generation <= 0:
+            parser.error("site requires a positive --site-generation")
+        if args.expected_site is None or not re.fullmatch(r"none|[a-f0-9]{64}", args.expected_site):
+            parser.error("site requires --expected-site SHA256|none")
     return args
 
 
@@ -251,7 +258,8 @@ def package_site(site_dir: Path, output: Path):
     site_dir = site_dir.resolve()
     if not (site_dir / "index.html").is_file() or not (site_dir / "releases.json").is_file():
         raise FileNotFoundError(f"Build the website first; {site_dir} lacks index.html or releases.json")
-    files = {"deploy/install_site.sh": (ROOT / "deploy/install_site.sh").read_bytes()}
+    files = {"deploy/" + name: (ROOT / "deploy" / name).read_bytes()
+             for name in ("install_site.sh", "activate_site.py")}
     for path in sorted(site_dir.rglob("*")):
         if path.is_symlink():
             raise ValueError(f"Refusing symlink in site release: {path}")
@@ -262,7 +270,7 @@ def package_site(site_dir: Path, output: Path):
     output.mkdir(parents=True, exist_ok=True)
     path = output / f"site-{digest}.tar.gz"
     path.write_bytes(payload)
-    return {"release": digest, "archive": str(path.resolve()), "files": len(files) - 1}
+    return {"release": digest, "archive": str(path.resolve()), "files": len(files) - 2}
 
 
 def deployment_api(args):
@@ -455,26 +463,18 @@ def check_health(url):
     return "ok"
 
 
-def fetch(url):
-    with urllib.request.urlopen(url, timeout=15) as response:
-        return response.read()
-
-
 def publish_site(args):
-    """Install a built website release beside the running server and verify it publicly."""
+    """Activate and verify under one remote lock, rolling back on failed public acceptance."""
     target = running_target(args)
     package = package_site(args.site_dir, args.output)
     staging = upload(args, target, package)
-    ssh(args, target, ["sudo", "bash", staging + "/deploy/install_site.sh", staging, package["release"], args.name])
+    result = ssh(args, target, ["sudo", "bash", staging + "/deploy/install_site.sh", staging,
+                               package["release"], args.name, args.domain,
+                               str(args.site_generation), args.expected_site], capture=True)
+    activation = json.loads(result.stdout)
     ssh(args, target, ["rm", "-rf", "--", staging])
-    served = {}
-    for name in ("index.html", "releases.json"):
-        expected = (args.site_dir / name).read_bytes()
-        public = f"https://{args.domain}/" + ("" if name == "index.html" else name)
-        if fetch(public) != expected:
-            raise RuntimeError(f"{public} does not serve the published bytes; inspect Caddy's site root")
-        served[name] = public
-    return {**target, **package, "served": served, "health": check_health(f"https://{args.domain}/healthz")}
+    return {**target, **package, "activation": activation,
+            "served": f"https://{args.domain}/", "health": "ok"}
 
 
 def pull_backup(args):

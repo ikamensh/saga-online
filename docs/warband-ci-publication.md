@@ -40,7 +40,15 @@ successful activation/retry, wrong public bytes, unhealthy server, stale/rebound
 promotion, concurrent publishers, and killing the publisher after its pointer
 swap followed by successful recovery. These checks are part of Website checks.
 
-This helper is not yet connected to the deployed site installer or the promotion
-workflow. Server compatibility, candidate-source order, scoped remote access,
-the caller's promotion generation and live activation still need the remaining
-WB-002 implementation and rollout verification. No live state was changed.
+The operator's `site` command now packages this helper and invokes it through
+`install_site.sh`. `--expected-site` and `--site-generation` are mandatory and
+validated before opening credentials. The former unprotected symlink swap and
+three-release pruning have been removed. An integration check extracts the
+actual upload archive, runs its bundled helper outside the checkout and verifies
+the served files; the offline deployment and site suites pass 28 tests. The
+server-package test is deliberately outside the isolated publishing environment.
+
+This wiring has not been deployed. Server compatibility, candidate-source order,
+scoped CI remote access, the caller's promotion generation and the promotion
+workflow still need the remaining WB-002 implementation and rollout verification.
+No live state was changed.

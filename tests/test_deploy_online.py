@@ -104,8 +104,32 @@ def test_site_release_bundles_built_pages_with_its_installer(tmp_path):
         archive.extractall(unpacked, filter="data")
     assert (unpacked / "site/warband/index.html").read_text() == "<h1>Warband</h1>"
     subprocess.run(["bash", "-n", str(unpacked / "deploy/install_site.sh")], check=True)
+    # Exercise the exact activation implementation carried by the upload,
+    # outside the source checkout, with the same expected-head/generation inputs.
+    from tests.test_site_activation import public_site
+    base = tmp_path / "host"
+    with public_site(base) as endpoint:
+        result = subprocess.run([sys.executable, str(unpacked / "deploy/activate_site.py"),
+                                 "--source", str(unpacked / "site"), "--base", str(base),
+                                 "--release", first["release"], "--generation", "1", "--expected", "none",
+                                 "--public-url", endpoint, "--health-url", endpoint + "/healthz"],
+                                cwd=tmp_path, capture_output=True, text=True)
+        assert result.returncode == 0, result.stderr
+        assert json.loads(result.stdout)["release"] == first["release"]
+        assert (base / "current/warband/index.html").read_bytes() == (site / "warband/index.html").read_bytes()
     (site / "index.html").write_text("<h1>Changed</h1>")
     assert package_site(site, tmp_path / "out")["release"] != first["release"]
+
+
+def test_site_publication_requires_explicit_order_and_current_release_before_accessing_credentials(tmp_path):
+    """A command prepared for another site head cannot choose a fresh generation implicitly."""
+    base = [sys.executable, str(ROOT / "tools/deploy_online.py"), "site", "--name", "saga2d-online",
+            "--secrets-file", str(tmp_path / "absent")]
+    for flags in ([], ["--site-generation", "0", "--expected-site", "none"],
+                  ["--site-generation", "1", "--expected-site", "malformed"]):
+        result = subprocess.run([*base, *flags], capture_output=True, text=True)
+        assert result.returncode == 2
+        assert "site" in result.stderr and "FileNotFoundError" not in result.stderr
 
 
 def test_proxy_configuration_keeps_play_and_health_on_the_room_server():
