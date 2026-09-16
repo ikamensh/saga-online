@@ -23,7 +23,7 @@ from urllib.parse import urlsplit, urlunsplit
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from saga2d.online import OnlineClient  # noqa: E402
 
-OPTIONS = {"warband": {"width": 40, "height": 32}, "tribes": {"size": 11}, "shardbound": {"campaign": True}}
+OPTIONS = {"warband": {"width": 48, "height": 40}, "tribes": {"size": 11}, "shardbound": {"campaign": True}}
 GAME_IDS = {"warband": "warband-v2", "tribes": "tribes-v1", "shardbound": "shardbound-v1"}
 
 
