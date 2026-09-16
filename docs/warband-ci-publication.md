@@ -86,3 +86,81 @@ changes the version string and Banner placement; the candidate has not been
 merged or accepted. See [Shardbound's recorded acceptance findings](../../shardbound/docs/shardbound-release.md).
 These findings must not be presented as a green client release or a verified
 shared-server deployment.
+
+## Promotion consumer acceptance, before implementation
+
+The read-only consumer takes a producer run ID, immutable release ID and manifest
+SHA-256, the current catalog, and a separately reviewed server baseline. It must:
+
+- Read release/tag/workflow provenance from GitHub, require a successful native
+  main build of that same commit, and independently download/recheck every
+  public asset, both platforms' native/socket receipts and executable digests.
+- Verify the candidate's complete compatibility contract against the reviewed
+  baseline and the live server's attestation. A missing or mismatched baseline
+  refuses promotion; desired pins or a matching game ID alone are insufficient.
+- Compare the catalog's Warband source with the candidate through Git ancestry;
+  reject older/divergent sources and older runs of the same source. Repeating
+  the exact accepted release is harmless and cannot rebind its manifest.
+- Produce a reviewable candidate catalog and promotion receipt only after all
+  gates pass. Preserve every other game, server and site field. Use the exact
+  accepted download bytes; never build or republish a game in this repo.
+  Bind the receipt to the input bytes actually read, and refuse preparation if
+  the catalog, baseline or previous receipt changes during download/verification.
+- Exercise successful preparation, retry, stale/divergent sources, corrupted or
+  incomplete downloads/receipts, and mismatched runtime/live baseline through
+  the CLI with real temporary files, ZIPs and loopback HTTP services. These are
+  protocol fixtures, not claims of native execution or a deployed baseline.
+
+The later write-enabled workflow must serialize against the latest catalog,
+commit its desired change for audit, activate through the existing transaction,
+recheck server compatibility while holding the deployment lock, and verify the
+public result. Consumer success alone does not satisfy the live publication gate.
+
+## Independent release consumer
+
+`tools/warband_promotion.py` prepares a candidate using the three dispatch
+values, the current catalog and a reviewed server baseline:
+
+```bash
+uv run --project publishing --locked python tools/warband_promotion.py \
+  --build-run-id BUILD_RUN_ID --release-id RELEASE_ID \
+  --manifest-sha256 MANIFEST_SHA256 --catalog releases/catalog.json \
+  --baseline SERVER_BASELINE_JSON --output dist/warband-promotion
+```
+
+The uppercase arguments are required values from the verified publisher and
+reviewed server deployment, not supplied example releases. No production server
+baseline has been created or accepted yet. GitHub API reads may use `GH_TOKEN`;
+all public asset downloads and live attestation reads are unauthenticated.
+Only HTTPS is accepted outside explicit loopback integration services.
+
+The output contains `catalog.json`, `promotion.json` and all seven downloaded
+release assets. Preparation independently verifies GitHub main/native provenance,
+the immutable release and source ancestry, both native receipt archives and
+the actual packaged executable hashes. It imports no producer or downloaded game
+code. It replaces only Warband's catalog entry, retaining the other games and
+server/site configuration. The receipt records both the input catalog digest
+and the candidate digest so the later Git writer can reject a concurrent edit.
+Input files are read once and checked again before the output becomes visible.
+
+Record `promotion.json` with the accepted desired catalog. Pass that receipt as
+`--previous-promotion` on subsequent runs. It binds an already accepted version
+to its original release ID, build ID, source and manifest, while permitting
+independent updates to other games. The `already_current` flag only describes
+the desired catalog; it does not prove site activation. A failed activation
+must still be retried and publicly verified. An existing output directory can
+be reused only if every prepared file is identical; it is never overwritten.
+
+The CLI integration suite uses real HTTP, ZIPs and temporary files to exercise
+provenance rejection, stale/divergent source order, same-version retries,
+download/evidence corruption, baseline mismatch and concurrent input edits.
+`tools/warband_evidence.py` also accepts the actual downloaded native artifacts
+from Warband producer `35149564980`; those are the native-execution evidence,
+whereas test fixtures deliberately contain no runnable game executable.
+The complete public-release preparation cannot run against that branch producer:
+it has not been published as an immutable main release and there is no live
+attested server baseline. Publication, compatibility-aware activation and the
+write-enabled workflow remain unfinished.
+
+Local verification: all 43 promotion CLI checks and the 28 isolated catalog,
+site, activation and operator checks passed. Website checks now runs both sets.
