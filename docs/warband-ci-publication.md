@@ -224,3 +224,9 @@ links also passed. The consumer and rollback changes already passed on Linux
 in [Website checks 35154038265](https://github.com/ikamensh/saga-online/actions/runs/35154038265)
 at `fbfccd4` (72 checks and a rebuilt seven-page preview). The new Git writer is
 now included in that same branch workflow.
+
+[Website checks 35154907841](https://github.com/ikamensh/saga-online/actions/runs/35154907841)
+then passed on `21f31c48e1e879c9b01ee3494b46d5c84c11243e`: all 83 isolated
+publication checks passed on Linux in 48.13 seconds, followed by the site build
+and preview artifact upload. This is branch CI evidence, not production
+publication or a verified server compatibility baseline.
