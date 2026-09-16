@@ -9,6 +9,7 @@ from pathlib import Path
 import subprocess
 import sys
 import threading
+import tarfile
 import zipfile
 
 import pytest
@@ -182,6 +183,36 @@ def test_prepare_accepts_exact_downloads_and_preserves_the_rest_of_the_catalog(r
     assert receipt["release_id"] == 456 and receipt["build_run_id"] == 123
     assert receipt["manifest_sha256"] == sha(release["assets"]["release.json"])
     assert receipt["baseline"] == json.loads((release["root"] / "baseline.json").read_text())
+
+
+def test_verified_promotion_builds_packages_and_activates_with_the_same_catalog_and_receipt(release):
+    """The independent consumer's output must pass the real website/upload/activation path without weakening its digest binding."""
+    from tests.test_site_activation import public_site
+    root = release["root"]
+    result = prepare(release)
+    assert result.returncode == 0, result.stderr
+    prepared, site = root / "prepared", root / "website"
+    subprocess.run([sys.executable, str(ROOT / "tools/build_site.py"), "--catalog", str(prepared / "catalog.json"),
+                    "--output", str(site)], check=True, capture_output=True)
+    packaged = subprocess.run([sys.executable, str(ROOT / "tools/deploy_online.py"), "package-site", "--name", "saga2d-ci",
+                               "--site-dir", str(site), "--output", str(root / "artifacts"),
+                               "--promotion-receipt", str(prepared / "promotion.json")], capture_output=True, text=True)
+    assert packaged.returncode == 0, packaged.stderr
+    package = json.loads(packaged.stdout)
+    assert package["mode"] == "warband-promotion"
+    uploaded, host = root / "uploaded", root / "host"
+    with tarfile.open(package["archive"]) as bundle:
+        bundle.extractall(uploaded, filter="data")
+    assert (uploaded / "promotion.json").read_bytes() == (prepared / "promotion.json").read_bytes()
+    assert not (uploaded / "site/promotion.json").exists()
+    with public_site(host, {"baseline": release["baseline"]}) as endpoint:
+        result = subprocess.run([sys.executable, str(uploaded / "deploy/activate_site.py"), "--source", str(uploaded / "site"),
+                                 "--base", str(host), "--release", package["release"], "--generation", "1", "--expected", "none",
+                                 "--public-url", endpoint, "--health-url", endpoint + "/healthz",
+                                 "--deployment-lock", str(root / "deployment.lock"), "--mode", "warband-promotion",
+                                 "--promotion-receipt", str(uploaded / "promotion.json")], capture_output=True, text=True)
+        assert result.returncode == 0, result.stderr
+    assert (host / "current/releases.json").read_bytes() == (prepared / "catalog.json").read_bytes()
 
 
 @pytest.mark.parametrize("problem", ["draft", "mutable", "wrong_release", "branch", "fork", "failed_run",

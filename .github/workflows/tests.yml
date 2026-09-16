@@ -75,6 +75,8 @@ jobs:
           uv sync --locked --extra dev
       - name: Run the complete server and publication suite
         run: uv run --locked python -m pytest -q --junitxml=dist/server-tests.xml
+      - name: Verify host exclusion through the actual Linux deployment entry points
+        run: sudo env GITHUB_ACTIONS=true .venv/bin/python -B tests/host_deployment_exclusion.py > dist/deployment-exclusion.json
       - name: Build the exact server archive
         run: uv run --locked python tools/deploy_online.py package --name saga2d-online --output dist/online > dist/server-package.json
       - name: Prepare and reverify the artifact as the Linux service account
@@ -102,6 +104,7 @@ jobs:
             saga-online/dist/server-tests.xml
             saga-online/dist/server-package.json
             saga-online/dist/server-acceptance.json
+            saga-online/dist/deployment-exclusion.json
             saga-online/dist/online/*.tar.gz
           if-no-files-found: error
           retention-days: 14

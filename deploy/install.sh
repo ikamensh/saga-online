@@ -10,6 +10,14 @@ domain=$4
 [[ $domain =~ ^[a-z0-9]+([.-][a-z0-9]+)+$ ]]
 [[ $(cat /etc/saga2d-online/managed-instance) == "$instance_name" ]]
 
+# Shared with activate_site.py; held through acceptance and any rollback.
+exec 9>/var/lock/saga2d-online.publish.lock
+flock 9
+if [[ -e /srv/saga2d-site/pending.json ]]; then
+    echo 'Recover the interrupted site promotion before activating a server.' >&2
+    exit 1
+fi
+
 base=/opt/saga2d-online
 release="$base/releases/$release_id"
 bash "$source_dir/deploy/prepare_release.sh" "$source_dir" "$release_id" "$domain"

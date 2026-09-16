@@ -179,6 +179,7 @@ def arguments(argv=None):
     parser.add_argument("--site-dir", type=Path, default=ROOT / "dist/site", help="Built website to publish")
     parser.add_argument("--site-generation", type=int, help="Reviewed promotion generation, greater than the accepted one")
     parser.add_argument("--expected-site", help="Expected current site SHA-256, or none for first publication")
+    parser.add_argument("--promotion-receipt", type=Path, help="Verified Warband receipt; enables compatibility-gated site promotion")
     args = parser.parse_args(argv)
     if not re.fullmatch(r"saga2d-[a-z0-9-]{1,40}", args.name):
         parser.error("--name must start with saga2d- and contain only lowercase letters, digits or hyphens")
@@ -188,6 +189,8 @@ def arguments(argv=None):
         parser.error("--project-name must be saga2d or start with saga2d-")
     if not re.fullmatch(r"saga2d-[a-z0-9-]+", args.key_section):
         parser.error("--key-section must start with saga2d-")
+    if args.promotion_receipt is not None and args.command not in ("package-site", "site"):
+        parser.error("--promotion-receipt is only valid for package-site or site")
     if args.command == "site":
         if args.site_generation is None or args.site_generation <= 0:
             parser.error("site requires a positive --site-generation")
@@ -233,7 +236,7 @@ def _stable_tar(files: dict) -> bytes:
     return gzip.compress(buffer.getvalue(), mtime=0)
 
 
-def package_site(site_dir: Path, output: Path):
+def package_site(site_dir: Path, output: Path, promotion: Path | None = None):
     """Bundle a built website with its installer; the archive digest names the release."""
     site_dir = site_dir.resolve()
     if not (site_dir / "index.html").is_file() or not (site_dir / "releases.json").is_file():
@@ -245,12 +248,18 @@ def package_site(site_dir: Path, output: Path):
             raise ValueError(f"Refusing symlink in site release: {path}")
         if path.is_file():
             files["site/" + path.relative_to(site_dir).as_posix()] = path.read_bytes()
+    if promotion is not None:
+        files["promotion.json"] = promotion.read_bytes()
+        receipt = json.loads(files["promotion.json"])
+        if receipt["schema_version"] != 1 or receipt["catalog_sha256"] != hashlib.sha256(files["site/releases.json"]).hexdigest():
+            raise ValueError("Built catalog differs from the verified promotion receipt")
     payload = _stable_tar(files)
     digest = hashlib.sha256(payload).hexdigest()
     output.mkdir(parents=True, exist_ok=True)
     path = output / f"site-{digest}.tar.gz"
     path.write_bytes(payload)
-    return {"release": digest, "archive": str(path.resolve()), "files": len(files) - 2}
+    return {"release": digest, "archive": str(path.resolve()), "files": sum(name.startswith("site/") for name in files),
+            "mode": "warband-promotion" if promotion is not None else "operator"}
 
 
 def deployment_api(args):
@@ -445,12 +454,12 @@ def check_health(url):
 
 def publish_site(args):
     """Activate and verify under one remote lock, rolling back on failed public acceptance."""
+    package = package_site(args.site_dir, args.output, args.promotion_receipt)
     target = running_target(args)
-    package = package_site(args.site_dir, args.output)
     staging = upload(args, target, package)
     result = ssh(args, target, ["sudo", "bash", staging + "/deploy/install_site.sh", staging,
                                package["release"], args.name, args.domain,
-                               str(args.site_generation), args.expected_site], capture=True)
+                               str(args.site_generation), args.expected_site, package["mode"]], capture=True)
     activation = json.loads(result.stdout)
     ssh(args, target, ["rm", "-rf", "--", staging])
     return {**target, **package, "activation": activation,
@@ -508,7 +517,7 @@ def main(argv=None):
     elif args.command == "deploy":
         result = deploy(args)
     elif args.command == "package-site":
-        result = package_site(args.site_dir, args.output)
+        result = package_site(args.site_dir, args.output, args.promotion_receipt)
     elif args.command == "site":
         result = publish_site(args)
     elif args.command == "backup":

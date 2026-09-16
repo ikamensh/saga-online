@@ -44,6 +44,12 @@ uv run python tools/load_online.py wss://games.tachyon-ai.eu/play warband --room
   and the verified PyPI engine wheel; records their inventory and locked runtime.
   Packaging requires clean inputs, including this repo. The read-only Tests
   workflow uses the pinned stack and exercises preparation on Ubuntu 24.04.
+- Server/site activation share `/var/lock/saga2d-online.publish.lock`.
+  Automated Warband promotion requires its verified receipt; explicit operator
+  mode is for the trusted operator. A pending site transaction blocks server
+  activation until site recovery. `tests/host_deployment_exclusion.py` exercises
+  the real host entry points only as root on an isolated GitHub Linux runner;
+  never run it on the production host.
 - `releases/catalog.json` — the single source of release facts (versions,
   download URLs, hashes, minimum client protocol); games fetch it when
   Multiplayer opens, the server rejects incompatible clients.

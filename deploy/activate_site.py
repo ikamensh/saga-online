@@ -16,7 +16,7 @@ import re
 import shutil
 import tempfile
 from urllib.parse import quote, urlsplit
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 
 
 def require(condition: bool, message: str) -> None:
@@ -101,7 +101,7 @@ def recover(base: Path) -> None:
     sync_directory(base)
 
 
-def verify_public(files: dict[str, str], public_url: str, health_url: str, release: str) -> None:
+def verify_public(files: dict[str, str], public_url: str, health_url: str, release: str, baseline: dict | None) -> None:
     for url in (public_url, health_url):
         parsed = urlsplit(url)
         require(parsed.scheme == "https" or (parsed.scheme == "http" and parsed.hostname in ("127.0.0.1", "::1", "localhost")),
@@ -113,18 +113,39 @@ def verify_public(files: dict[str, str], public_url: str, health_url: str, relea
                     f"Public site differs from candidate: {name}")
     with urlopen(health_url, timeout=10) as response:
         require(response.status == 200 and response.read() == b"ok\n", "Room server health check failed")
+    if baseline is not None:
+        verify_compatibility(baseline, public_url)
+
+
+def verify_compatibility(baseline: dict, public_url: str) -> None:
+    url = public_url.rstrip("/") + "/server-compatibility.json"
+    parsed = urlsplit(url)
+    require(parsed.scheme == "https" or (parsed.scheme == "http" and parsed.hostname in ("127.0.0.1", "::1", "localhost")),
+            "Compatibility verification requires HTTPS (or loopback HTTP for tests)")
+    require(baseline["schema_version"] == 1 and re.fullmatch(r"[0-9a-f]{64}", baseline["deployment_release"]),
+            "Unsupported promotion baseline")
+    request = Request(url + "?deployment=" + baseline["deployment_release"], headers={"Cache-Control": "no-cache"})
+    with urlopen(request, timeout=10) as response:
+        require(response.geturl().split("?")[0] == url, "Server attestation must not redirect elsewhere")
+        require("no-store" in response.headers.get("Cache-Control", "").lower(), "Server attestation must be uncached")
+        require(response.status == 200 and json.load(response) == baseline, "Live server differs from the reviewed compatibility baseline")
 
 
 def activate(source: Path, base: Path, release: str, generation: int, expected: str,
-             public_url: str, health_url: str) -> dict:
+             public_url: str, health_url: str, deployment_lock: Path, promotion: dict | None) -> dict:
     require(bool(re.fullmatch(r"[0-9a-f]{64}", release)), "Release must be a SHA-256 identifier")
     require(expected == "none" or bool(re.fullmatch(r"[0-9a-f]{64}", expected)), "Expected release must be a SHA-256 identifier or none")
     require(generation > 0, "Promotion generation must be positive")
     source, base = source.resolve(), base.resolve()
     require(not base.is_relative_to(source), "The destination must not be inside the source site")
     files = contents(source)
+    baseline = promotion["baseline"] if promotion is not None else None
+    if promotion is not None:
+        require(isinstance(baseline, dict), "Promotion receipt requires a server baseline")
+        require(promotion["schema_version"] == 1 and promotion["catalog_sha256"] == files["releases.json"],
+                "Site catalog differs from the verified promotion receipt")
     base.mkdir(parents=True, exist_ok=True)
-    with (base / ".publish.lock").open("a") as lock:
+    with deployment_lock.open("a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         recover(base)
         previous = current(base)
@@ -145,8 +166,10 @@ def activate(source: Path, base: Path, release: str, generation: int, expected: 
                 shutil.copytree(source, staged)
                 require(contents(staged) == files, "Site bytes changed during staging")
                 staged.rename(destination)
+        if baseline is not None:
+            verify_compatibility(baseline, public_url)
         if retry:
-            verify_public(files, public_url, health_url, release)
+            verify_public(files, public_url, health_url, release, baseline)
             return state
         rollback = state.get("previous", "none") if previous == release else previous
         after = {"release": release, "generation": generation, "previous": rollback}
@@ -154,7 +177,7 @@ def activate(source: Path, base: Path, release: str, generation: int, expected: 
         write_json(pending, {"before": state, "after": after})
         point(base, "current", release)
         try:
-            verify_public(files, public_url, health_url, release)
+            verify_public(files, public_url, health_url, release, baseline)
         except BaseException:
             point(base, "current", previous)
             pending.unlink()
@@ -176,8 +199,15 @@ def main() -> None:
     parser.add_argument("--expected", required=True)
     parser.add_argument("--public-url", required=True)
     parser.add_argument("--health-url", required=True)
+    parser.add_argument("--deployment-lock", type=Path, default=Path("/var/lock/saga2d-online.publish.lock"))
+    parser.add_argument("--mode", choices=("operator", "warband-promotion"), required=True)
+    parser.add_argument("--promotion-receipt", type=Path)
     args = parser.parse_args()
-    result = activate(args.source, args.base, args.release, args.generation, args.expected, args.public_url, args.health_url)
+    if (args.mode == "warband-promotion") != (args.promotion_receipt is not None):
+        parser.error("warband-promotion requires --promotion-receipt; operator mode does not accept one")
+    promotion = json.loads(args.promotion_receipt.read_bytes()) if args.promotion_receipt is not None else None
+    result = activate(args.source, args.base, args.release, args.generation, args.expected,
+                      args.public_url, args.health_url, args.deployment_lock, promotion)
     print(json.dumps(result, sort_keys=True))
 
 

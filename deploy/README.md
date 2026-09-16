@@ -131,13 +131,30 @@ as `SITE_EXPECTED` and a positive generation. Subsequent generations must exceed
 the recorded accepted generation. Do not automatically substitute a newer head
 if the reviewed expected release is rejected: reconcile the catalog first.
 
+For an independently prepared Warband promotion, build from its `catalog.json`
+and pass `--promotion-receipt PATH/TO/promotion.json` to `package-site` or `site`.
+The archive carries that receipt outside the public website and verifies its
+catalog digest. `site` selects explicit `warband-promotion` mode on the host;
+that mode requires the receipt and checks the uncached live compatibility
+response immediately before exposing downloads and after public acceptance,
+including retries. Ordinary operator site publication uses explicit `operator`
+mode. A promotion archive cannot be passed to operator mode. The future
+restricted CI entry point must always require promotion mode; this operator
+command is not a substitute for that credential restriction.
+
 `site` bundles `dist/site` with `deploy/install_site.sh` and `activate_site.py`,
 uploads it and installs an immutable release under
-`/srv/saga2d-site/releases/<sha256>`. The transaction holds one filesystem lock
+`/srv/saga2d-site/releases/<sha256>`. The transaction holds
+`/var/lock/saga2d-online.publish.lock`, shared with the server installer,
 through expected-head/generation checks, the atomic `current` symlink swap,
 verification of every public file and `/healthz`, and state recording. Failed
 acceptance restores the previous site; an interrupted process leaves a journal
-that the next invocation recovers before accepting another promotion. It does
+that the next site invocation recovers before accepting another promotion.
+The server installer refuses activation while that journal remains. Preserve
+the lock file; do not unlink it while either operation might hold it. Once this
+deployment protocol is installed, use these entry points for all publications
+and server refreshes, not an older archived installer with a different lock.
+It does
 not touch the room server; `deploy`
 does not touch the site. The Caddy routes ship with the server release, so the
 first site publication requires a server deployment that carries the current
@@ -145,6 +162,8 @@ first site publication requires a server deployment that carries the current
 there is no automatic pruning. An intentional rollback is a new promotion of
 the reviewed previous bytes with a higher generation and the current expected
 head. Do not move the symlink manually while leaving `state.json` unchanged.
+There is no production server baseline recorded yet; the CI runner's
+`games.example.test` acceptance report must not be used as one.
 
 Installed games fetch `/releases.json` when the player opens Multiplayer and
 offer the download page when the catalog version differs from their build.

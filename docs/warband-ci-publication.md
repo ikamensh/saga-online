@@ -355,3 +355,36 @@ or only two static-site publishers is insufficient. The eventual restricted CI
 entry point must bind the baseline and candidate catalog to the independently
 verified promotion receipt. Keep the generic operator and automated promotion
 paths explicit so an omitted promotion receipt cannot silently bypass this gate.
+
+If a publisher dies after changing the site pointer, releasing its lock does not
+make that transaction accepted. Server activation must refuse an outstanding
+site journal until the site transaction recovers it. Verify this on the isolated
+Linux host by killing a real publisher during public acceptance, observing the
+actual installer refuse, then retrying the publisher and checking the installer
+can proceed to preparation again.
+
+The shared lock and receipt gate are implemented. `activate_site.py` and the
+server installer use `/var/lock/saga2d-online.publish.lock`; the latter refuses a
+pending site journal before preparation. Site activation has explicit operator
+and Warband-promotion modes. Promotion requires its receipt, binds the exact
+built catalog digest, and checks the uncached live baseline immediately before
+the pointer swap and after public acceptance, including already-current retries.
+A failed post-swap check restores the old site without changing its generation
+or previous-release pointer. An absent or null baseline cannot bypass the gate.
+
+`package-site --promotion-receipt PATH` carries the receipt outside the public
+site, and the operator `site` command passes the corresponding explicit mode.
+The deployment installer rejects treating a promotion archive as an operator
+archive. This still needs the restricted CI credential/entry point before
+unattended publication; the trusted operator path is intentionally distinct.
+
+The complete pinned-stack suite passed **112 tests in 71.75 seconds** locally.
+Real processes exercise lock contention, a baseline changing while a publisher
+waits, post-swap rollback and retry, and receipt omission/catalog mutation. One
+integration journey runs the independent consumer against HTTP/release format
+fixtures, renders its actual catalog, packages it with the receipt, extracts the
+upload and activates those exact bytes through HTTP. These format fixtures do
+not replace the separately recorded native game execution evidence.
+Workflow lint, shell syntax and 389 Markdown link checks passed. The new
+Linux-only host verification is queued for CI; it refuses this Mac and is
+guarded against an existing managed host. No production operation occurred.

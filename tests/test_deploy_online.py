@@ -149,7 +149,8 @@ def test_site_release_bundles_built_pages_with_its_installer(tmp_path):
         result = subprocess.run([sys.executable, str(unpacked / "deploy/activate_site.py"),
                                  "--source", str(unpacked / "site"), "--base", str(base),
                                  "--release", first["release"], "--generation", "1", "--expected", "none",
-                                 "--public-url", endpoint, "--health-url", endpoint + "/healthz"],
+                                 "--public-url", endpoint, "--health-url", endpoint + "/healthz",
+                                 "--deployment-lock", str(tmp_path / "deployment.lock"), "--mode", "operator"],
                                 cwd=tmp_path, capture_output=True, text=True)
         assert result.returncode == 0, result.stderr
         assert json.loads(result.stdout)["release"] == first["release"]
