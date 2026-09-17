@@ -85,7 +85,29 @@ def test_packaged_release_runs_server_entrypoint(tmp_path):
         finally:
             process.terminate()
             process.wait(timeout=10)
-    verified = subprocess.run([server_python, "-B", str(unpacked / "deploy/check_release.py"), str(unpacked),
+    # Real sockets with delayed cleanup force RTS ticks while the rejoined
+    # players are both present. Restoring a backup must compare with that
+    # backup's paused state, not a snapshot from an earlier point in play.
+    delayed_disconnect = '''
+from contextlib import contextmanager
+from pathlib import Path
+import runpy, sys, time
+from websockets.sync import client
+connect = client.connect
+@contextmanager
+def delayed(*args, **kwargs):
+    with connect(*args, **kwargs) as socket:
+        try:
+            yield socket
+        finally:
+            time.sleep(0.15)
+client.connect = delayed
+sys.path.insert(0, str(Path(sys.argv[1]).parent))
+sys.argv = sys.argv[1:]
+runpy.run_path(sys.argv[0], run_name="__main__")
+'''
+    verified = subprocess.run([server_python, "-B", "-c", delayed_disconnect,
+                               str(unpacked / "deploy/check_release.py"), str(unpacked),
                                "--release-id", package["release"], "--endpoint", "wss://games.tachyon-ai.eu/play"],
                               cwd=tmp_path, capture_output=True, text=True, timeout=60)
     assert verified.returncode == 0, verified.stderr

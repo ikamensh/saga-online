@@ -49,6 +49,7 @@ def verify(release, release_id, endpoint):
                 "warband": {"source_commit": inputs["sources"]["warband"], "compatibility": inputs["warband_compatibility"]}}
     with tempfile.TemporaryDirectory(prefix="saga2d-check-") as temporary:
         state = Path(temporary) / "rooms"
+        restored = Path(temporary) / "restored"
         for restart in (False, True):
             with running(release, release_id, endpoint, state) as local:
                 with urlopen(local.replace("ws://", "http://") + "/server-compatibility.json", timeout=10) as response:
@@ -59,13 +60,14 @@ def verify(release, release_id, endpoint):
                     resume(local + "/play", records)
                 else:
                     records = smoke(local + "/play")
-        # Restore only the backup into a fresh directory: the new process must
-        # not recover seats/state from the original database or its WAL files.
-        with redirect_stdout(sys.stderr):
-            saved = backup(state / "rooms.sqlite3", Path(temporary) / "backups")
-        restored = Path(temporary) / "restored"
-        restored.mkdir(mode=0o700)
-        shutil.copy2(saved, restored / "rooms.sqlite3")
+            if not restart:
+                # Capture this exact paused checkpoint before rejoining both
+                # players lets the RTS advance during the restart check.
+                with redirect_stdout(sys.stderr):
+                    saved = backup(state / "rooms.sqlite3", Path(temporary) / "backups")
+                restored.mkdir(mode=0o700)
+                shutil.copy2(saved, restored / "rooms.sqlite3")
+        # Use only the backup, without borrowing the original database or WAL.
         with running(release, release_id, endpoint, restored) as local:
             resume(local + "/play", records)
     return {"passed": True, "baseline": expected, "games": [record["game"] for record in records],

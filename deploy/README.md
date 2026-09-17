@@ -70,10 +70,11 @@ Python, installs the exact managed Python under `/opt/saga2d-online/python`
 As the unprivileged service account, `check_release.py` then starts the actual
 packaged launcher on an ephemeral loopback port, verifies its live attestation,
 creates and joins **all three actual games**, submits orders, stops the server
-with SIGTERM, and checks authenticated rejoin and exact paused state after
-restart. It then uses the actual SQLite backup tool, restores only that backup
-into a fresh private state directory, and verifies the same seats and game state
-in another server process. Its temporary room store and private seat tokens
+with SIGTERM and backs up the paused checkpoint with the actual SQLite tool.
+It checks authenticated rejoin and exact paused state after restarting the
+original database, then after restoring only the backup into a fresh private
+state directory. Taking the backup before rejoining avoids comparing against
+RTS ticks that advance while both players are present. Its private seat tokens
 never enter the live store or public report. Only success writes `.ready`; a retry verifies the same
 release again and preserves its environment. Preparation does not activate a
 service or change the proxy, and is exercised separately by branch CI.

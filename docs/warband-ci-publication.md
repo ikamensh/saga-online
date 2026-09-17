@@ -664,3 +664,52 @@ The preflight off-host backup is retained privately under
 Caddy configuration and a metadata receipt. It matches the server's SHA-256,
 passes SQLite integrity verification and contains the two retained campaigns.
 No service or website activation occurred during this preflight.
+
+### Live rehearsal, activation and rollback on 2026-09-17
+
+Source `12bb775` passed [Linux run 35197462570](https://github.com/ikamensh/saga-online/actions/runs/35197462570):
+135 tests, no skips/failures/errors, 98.619 seconds, followed by root preparation
+and restore/rejoin acceptance. Website run `35197462576` passed 130 tests with
+the same native-proxy skip and package deselection as earlier website checks.
+The downloaded archive is
+`a2009709f6b96e13819c114ef22f2085f85bdbc8166bf99e42ee3176dd9fd675`
+(6,674,602 bytes). Its manifest records the accepted source commit.
+
+The public Tribes and Shardbound Mac application ZIPs matched their catalog
+hashes. Those frozen applications and Warband's accepted native-run Mac app
+passed create/join, orders and private-seat rejoin against the candidate locally.
+The two retained Shardbound campaigns reopened from a private backup copy with
+exact game state and seats, on both Mac and the live Linux service account.
+Room transport revisions increase on rejoin; game state was unchanged.
+
+The candidate was then activated on the named host and its public attestation
+matched the prepared baseline. All three downloaded Mac clients passed again
+over public TLS. Controlled rollback restored release `31ff0497…4883d0c`, the
+saved database and service/proxy configuration; exact stored campaign records
+and public health passed. The website pointer remained `43836139…ddfb9`.
+Private rollback materials are retained on the host under
+`/var/backups/saga2d-online-rollout/20260917-wb002/` and off-host preflight above.
+
+Reactivation exposed an intermittent **acceptance-check timing bug** before
+changing the service. The restart check rejoined both players, allowing RTS
+ticks, then backed up the newer state but compared it with the original paused
+snapshot. Twenty ordinary local trials passed; delaying real socket cleanup
+by 150 ms reliably failed. Instrumentation isolated exactly three additional
+Warband ticks (0.15 seconds), with no other changed world fields.
+
+The check now captures the original paused backup before rejoining anyone.
+Original-store restart and backup restore each compare against that same exact
+checkpoint. The actual packaged CLI regression injects delayed socket cleanup
+and failed before this fix, then passed in 9.58 seconds. No game rule, state
+comparison or error check was weakened. Diagnostic inputs/logs are archived in
+`dist/live-rollout/debug/`; they are not shipped.
+
+**Current host state:** rollback release `31ff0497…4883d0c` is healthy; candidate
+reactivation awaits verification of this timing fix. No production CI flags,
+credentials or committed live baseline have been configured. The first
+activation's baseline is historical evidence only, stored as
+`dist/live-rollout/accepted-first-activation-baseline.json`.
+Other receipts: `host-candidate.json`, `host-rehearsal.json`,
+`local-rehearsal-n_nc96bw/acceptance.json`, `public-clients/acceptance.json`,
+`activation.log`, `rollback-acceptance.log` and `reactivation.log`, all beneath
+`dist/live-rollout/`. Do not treat the first activation as the final live rollout.
