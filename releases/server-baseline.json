@@ -1,5 +1,5 @@
 {
-  "deployment_release": "c5193bd522039a8a38d3e57a6275496def29beddc7b165fbdd95f71bf9b63dca",
+  "deployment_release": "99e28517d6170e0957c56c3b7de8eeebdcf7befeaf54ecd371d6de11354609f7",
   "endpoint": "wss://games.tachyon-ai.eu/play",
   "protocol": 1,
   "schema_version": 1,
@@ -7,9 +7,9 @@
     "compatibility": {
       "files": {
         "warband/__init__.py": "f8235541f7a2761d6a20034d3630ff64084330823eef1df3001c20c8aecb5e21",
-        "warband/authority.py": "83eb45bf826d765b930e79d0fe2b7f52635fac1b63b826eebced17d15f1f4b0c",
+        "warband/authority.py": "e807b4d64677d1b47c93467e093f14e707fb7517c07a8f76b69dafdae0c0b2de",
         "warband/mapgen.py": "50755ae7b0466d697f86ade9660e78ac61291c303560d4ac3bb4c6b4e8ec9109",
-        "warband/model.py": "6482b5fd479e7f358cac27016285ce42d0699bdf414b1b54e612b50c4490e368",
+        "warband/model.py": "1bfe4f73a81e5ee243da25409b0dd0c5c28140dd4b98763f234151d7ad14cba7",
         "warband/path.py": "cee349f7360513e41c416f677d03d8e7a9ddbc1c1d062ab7711e83fde3c2b8e1",
         "warband/races.py": "efeefcc9f5bb2990c6e24da587a9a64b0290b2663746d045b7ac66f51325b7ed",
         "warband/rules.py": "76c860d4f5ece83864585749799c19221b6b486e2924192450af191a1c5d4068",
@@ -26,8 +26,8 @@
       "python": "3.13.2",
       "registry": "warband.authority:ONLINE",
       "schema_version": 1,
-      "sha256": "ffdfe856c27cf2c9d7f507d9e1caa54e631d41cdb283e367c2e08b954bd49524"
+      "sha256": "f88cb9138d3d9208366011b6289e0d5c8cb57a465d696ccc0a28d60accd43137"
     },
-    "source_commit": "2361f79cecf5a584562847bdc25e2be4d2f353c8"
+    "source_commit": "35b851f710a91a2b978ed922a38e6ca708a7cc46"
   }
 }

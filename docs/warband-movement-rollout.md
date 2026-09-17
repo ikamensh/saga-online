@@ -1,7 +1,8 @@
 # WB-003 — Movement input compatibility rollout
 
 Candidate preparation began on 2026-09-17 from Saga Online main `f3a4565`.
-This is pending acceptance; the live baseline and catalog are unchanged.
+Server acceptance completed on 2026-09-17. The live baseline now contains the
+verified candidate; client publication remains the next step.
 
 Warband `35b851f` fixes local/replay presentation and makes pointer actions
 follow the displayed units. Its optional `smart.target_id` field preserves the
@@ -45,7 +46,7 @@ to perform the verified rollout; no further approval is required.
 
 Separate worktrees under `~/saga/.worktrees/wb003-server/` hold the candidate
 and all exact sibling pins, preserving the active game worktrees. Candidate
-deployment remains pending. No live state has changed for WB-003.
+deployment is accepted below. The website stayed unchanged during activation.
 
 Warband `35b851f` passed [Tests 35210630104](https://github.com/ikamensh/warband/actions/runs/35210630104)
 and [Windows/Mac native package checks 35210630105](https://github.com/ikamensh/warband/actions/runs/35210630105),
@@ -58,5 +59,55 @@ disconnect/restart/backup-restore journey. Log:
 `docs/evidence/movement-rollout/full-tests.log`. Its locked Python 3.13.2
 environment contains the accepted Saga2D 0.3.2 release. A sibling engine symlink
 only resolves shared documentation links; it is not installed into the runtime.
-Linux preparation, packaged explicit smart-order probes, live backup rehearsal
-and rollout remain pending.
+
+### Accepted Linux package and live rollout
+
+[Linux run 35212059946](https://github.com/ikamensh/saga-online/actions/runs/35212059946)
+on `6c125cb` passed **135 tests, zero skips/failures, 100.740 seconds**, plus
+service-account preparation/retry, three-game checkpoint/restart/restore,
+deployment exclusion and restricted SSH acceptance. Website checks
+`35212059889` passed. The independently downloaded archive's SHA-256 is
+`99e28517d6170e0957c56c3b7de8eeebdcf7befeaf54ecd371d6de11354609f7`.
+It retains every accepted engine/other-game pin and changes Warband to `35b851f`.
+The authoritative contract digest is
+`f88cb9138d3d9208366011b6289e0d5c8cb57a465d696ccc0a28d60accd43137`.
+
+The old public server rejected the new explicit-null context command with
+`Invalid order arguments.` The accepted package, running privately under the
+actual Linux service account, passed explicit empty-ground, queued entity
+identity, legacy omission, malformed target rejection and foreign-unit rejection;
+rejections left the existing order queue unchanged. All five retained seats
+rejoined a private copy of the live backup; all three retained Shardbound
+campaigns kept exactly their state and seat credentials.
+
+After preserving service/proxy configuration and an off-host stopped checkpoint
+(`rooms-20260917T110553Z.sqlite3`, SHA-256
+`c419612c0084b67bd62e8bffaa448228292b63c466901b8b7b423db51b175833`),
+the accepted archive was activated through the existing installer. Public health,
+exact runtime attestation and all five context-command checks passed. The website
+pointer and transaction state stayed unchanged. The prior accepted release
+`c5193bd5…b63dca` remains available; its database/configuration rollback was
+verified during WB-002. No new rollback exercise is claimed here.
+
+Downloaded frozen Mac clients for **Tribes, Shardbound and candidate Warband**
+passed public TLS create/join, authoritative orders and private-seat rejoin.
+Warband's app/portable archive hashes match native run `35210630105`, its app
+signature verifies, and all eight packaged online checks passed. These are
+network/package checks; movement rendering evidence is in the game diagnosis.
+A fresh post-activation backup also preserves all three original campaigns and
+their credentials exactly. The normal online backup service succeeds.
+
+One operator issue was found before activation: with the main process stopped,
+the hardened backup unit's read-only state directory prevents SQLite from
+creating missing WAL helpers. The failed attempt restarted the old service and
+did not change its release. Taking the stopped checkpoint through the same
+SQLite backup API as the service UID outside that filesystem sandbox succeeded.
+This is tracked separately as [SO-001](../BACKLOG.md#so-001--back-up-a-stopped-wal-database).
+Do not treat the normal backup unit as verified for stopped-service backups yet.
+
+Evidence under `docs/evidence/movement-rollout/`: `host-candidate.json`,
+`private-host-acceptance.json`, `activation.json`, `retained-campaigns.json`,
+`public-clients/acceptance.json`, and the downloaded CI reports. Private SQLite
+copies and configuration snapshots are restricted and git-ignored. The
+[recorded production baseline](../releases/server-baseline.json) comes from the
+actual public process, not the CI test endpoint.
