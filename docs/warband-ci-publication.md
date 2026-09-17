@@ -6,6 +6,15 @@ New identities use schema 2 and a plain numeric version derived from the
 independently verified native run counter. The prior preview catalog remains a
 valid migration input; immutable historical downloads remain available.
 
+Completed 2026-09-17: [promotion 35271825201](https://github.com/ikamensh/saga-online/actions/runs/35271825201)
+published Warband **0.2.2** / `f6e3b28` through catalog commit `d0ad911` and site
+`3abd8bde…123f19` at generation 10. The live page was visually inspected.
+[Fresh public Windows/Mac checks 35272034238](https://github.com/ikamensh/saga-online/actions/runs/35272034238)
+passed archive/source/version validation and all eight online checks. The room
+server and its compatibility baseline are unchanged. Compact activation and
+client receipts are under `docs/evidence/versioning/` in this checkout; the
+linked Warband record contains the full release identity and verification chain.
+
 WB-002 completed on main on 2026-09-17. Work began on
 `codex/warband-publishing` at `c33c195`.
 The acceptance criteria and cross-repository decisions are recorded before
@@ -895,11 +904,12 @@ package deselection covered by the full server job. This completes WB-002.
 ### Operating the enabled pipeline
 
 Warband main pushes build and test both native platforms, then publish an
-immutable preview and dispatch this repository. Feature branches only run
-checks. The preview version includes the native run ID; Windows remains unsigned
-and the Mac app is ad-hoc signed, with no notarization claim. There is no manual
-approval stage. A changed authoritative compatibility contract stops promotion
-until a separately verified server rollout updates the live baseline.
+immutable early access release and dispatch this repository. Feature branches
+only run checks. Versions use MAJOR.MINOR.PATCH derived from the native workflow
+counter; the large run ID remains metadata. Windows remains unsigned and the
+Mac app is ad-hoc signed, with no notarization claim. There is no manual approval
+stage. A changed authoritative compatibility contract stops promotion until a
+separately verified server rollout updates the live baseline.
 
 For a publisher failure, rerun only the failed publisher job (or dispatch it
 with the original native `build_run_id`); never rebuild an accepted version.
