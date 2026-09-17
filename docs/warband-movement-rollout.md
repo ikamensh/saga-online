@@ -2,7 +2,7 @@
 
 Candidate preparation began on 2026-09-17 from Saga Online main `f3a4565`.
 Server acceptance completed on 2026-09-17. The live baseline now contains the
-verified candidate; client publication remains the next step.
+verified candidate, and client publication/download acceptance is complete.
 
 Warband `35b851f` fixes local/replay presentation and makes pointer actions
 follow the displayed units. Its optional `smart.target_id` field preserves the
@@ -111,3 +111,24 @@ Evidence under `docs/evidence/movement-rollout/`: `host-candidate.json`,
 copies and configuration snapshots are restricted and git-ignored. The
 [recorded production baseline](../releases/server-baseline.json) comes from the
 actual public process, not the CI test endpoint.
+
+
+### Main publication and public downloads completed
+
+Warband main `2e31cda` passed [native build 35214358368](https://github.com/ikamensh/warband/actions/runs/35214358368)
+and [publisher 35215555895](https://github.com/ikamensh/warband/actions/runs/35215555895).
+[Promotion 35215726975](https://github.com/ikamensh/saga-online/actions/runs/35215726975)
+activated **0.2.0-preview.35214358368**, recorded by catalog commit `6b3c952`.
+The release is immutable, has the expected seven assets, and its public manifest
+SHA-256 is `a9ed38619a8749f1ebb2fab30327c43abb0ee987501a62a9f46899cd78750725`.
+All four package URLs are present on the actual Warband page. The client source
+is newer than the pinned server only through presentation/documentation changes;
+its exact authoritative compatibility contract equals the live baseline.
+
+[Public download checks 35215886199](https://github.com/ikamensh/saga-online/actions/runs/35215886199)
+passed on Windows and Mac from `6b3c952`. Both independently downloaded frozen
+clients match their accepted archive hashes, version/source and executable
+identity, and pass all eight public online checks. Receipts are under
+`docs/evidence/movement-rollout/public-downloads/` in the isolated rollout
+checkout. WB-003 is complete; this does not claim network snapshot smoothing
+(WB-010), waypoint-speed changes (WB-017) or the large-selection HUD fix (WB-018).
