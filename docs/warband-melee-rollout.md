@@ -1,8 +1,9 @@
 # WB-004 — Melee and renderer rollout
 
-Started 2026-09-17. This is the release dependency of Warband WB-004; pause
-backlog execution after that item is accepted. The shared server rollout below
-is accepted; final public Warband publication checks follow.
+Completed 2026-09-17. The shared server rollout, immutable Warband publication,
+website promotion and public Windows/Mac download checks are accepted.
+Warband WB-004 is done; backlog execution is paused at the user's request.
+Earlier sections preserve the upfront gates and staged acceptance decisions.
 
 Warband's melee presentation preserves the authoritative game fingerprint.
 Its crowded-battle acceptance required the verified Saga2D 0.3.3 renderer
@@ -110,5 +111,41 @@ has SHA-256 `b5eef9dd456f53430fb8a8aacf17fde9c5529c9afdd877646172486a4a343181`.
 Private backups/configuration and the exact receipts are under the ignored
 `docs/evidence/melee-rollout/` directory; no private seat tokens are committed.
 
-This accepts the shared-server dependency of WB-004. Its public client release
-must still complete automatic publication and Windows/Mac download checks.
+This accepts the shared-server dependency of WB-004. The final public client
+acceptance follows.
+
+## Accepted public Warband release — 2026-09-17
+
+Main source `cac35b7a908f0526aaa9a3117c5e36a8d415dc90` passes
+[Linux tests](https://github.com/ikamensh/warband/actions/runs/35244288009)
+(1,048 passed, 12 skipped) and
+[native package acceptance](https://github.com/ikamensh/warband/actions/runs/35244288044)
+on Windows and Mac, including independent archive validation.
+
+[Publisher run 35245660396](https://github.com/ikamensh/warband/actions/runs/35245660396)
+succeeds on attempt 3. GitHub transport/finalization failures required operator
+recovery of the original accepted uploads; no binaries were rebuilt and no
+integrity checks were relaxed. The normal publisher verifies and publishes
+immutable release
+[0.2.0-preview.35244288044](https://github.com/ikamensh/warband/releases/tag/v0.2.0-preview.35244288044)
+(release ID `390874643`). Its manifest SHA-256 is
+`a7d655de558e62a051b5a395c362edbf5e23f7fe574954d703e340596c8b0f05`.
+Warband WB-020 records the proposed recovery-diagnostics follow-up.
+
+[Promotion run 35256004880](https://github.com/ikamensh/saga-online/actions/runs/35256004880)
+independently validates public bytes and strict live compatibility, commits
+catalog `be75290aa162c4d47564e0da9616b462a107d412`, and activates site generation
+**9**, release `8fabbe9a072867cca0011e20772cfb63501b93e0b9037317a04160bc0dcb44ed`.
+The live catalog identifies the same source and version. Its acceptance receipt
+is `docs/evidence/melee-rollout/site-35256004880/publication.json`.
+
+[Public download run 35256113070](https://github.com/ikamensh/saga-online/actions/runs/35256113070)
+passes on both Windows and Mac. Each job downloads the actual public archive,
+verifies its bytes/hash, and runs the frozen client against the accepted TLS
+server. Frozen execution, bundled fonts, create/join, authoritative movement,
+foreign-order rejection, private-seat rejoin, global production, automatic
+plan builders, plan cancellation and assembly points all pass. The live catalog
+and server attestation stay unchanged. The two accepted receipts are under
+`docs/evidence/melee-rollout/public-downloads-35256113070/`.
+
+This completes WB-004 publication. No next backlog item is started.
