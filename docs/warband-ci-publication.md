@@ -483,3 +483,42 @@ deployment-lock check and retains its report. Website checks include the
 receiver suite. The promotion workflow, actual CI credentials/host setup, live
 server baseline and main-push/public-download acceptance remain to be completed;
 the standing authorization permits those steps after their verification.
+
+## Promotion workflow acceptance, before implementation
+
+Connect Warband's existing dispatch (`build_run_id`, `release_id`,
+`manifest_sha256`) to this repository's `warband-promotion.yml`. The workflow
+must independently prepare the public release using the current main catalog,
+its previous receipt and the recorded **actual** live server baseline. Missing
+baseline or mismatched compatibility fails before Git/site writes. Dispatch
+values are data passed through quoted environment variables, never shell code.
+
+Keep preparation read-only. Only a main workflow with an explicit enable flag
+may enter the publication environment, obtain catalog write access and the
+dedicated SSH key, commit/push the desired catalog and activate the site.
+Environment branch restrictions replace manual approval; the user has already
+authorized the verified rollout. Serialize Warband promotions without cancelling
+an active transaction. The existing source-ancestry and Git compare-and-swap
+checks must reject older releases and concurrent main changes independently of
+queue order. Never force-push or treat a catalog commit as site acceptance.
+
+Exercise the workflow's orchestration through real local Git/HTTP/SSH before
+enabling production. A successful run verifies downloaded release bytes, pushes
+only the Warband catalog/receipt, builds the site and publishes with the host's
+accepted generation/current-release preconditions. An already-current desired
+catalog must still attempt required site activation. Test an interruption after
+the Git push, a completed-site retry, changed host state, an older queued release,
+and compatibility/public-byte failure. Preserve other games' catalog entries.
+
+Keep publication bytes stable across retries. Current `build_site.py` inserts
+the wall-clock date, and a fresh preparation of an already-current release has
+different bookkeeping fields in its receipt. Resolve both explicitly before
+orchestration: a retry on another day must not create a different site archive or
+replace the distinct previous known-good site merely because the clock or
+preparation bookkeeping changed. Bind rendering inputs/date and the deployment
+receipt to the verified candidate; record their identity with the run evidence.
+
+Finally configure the scoped credentials and real baseline, enable the workflow,
+and demonstrate the actual main-push → release → catalog → public-download
+journey. Local fixtures and disabled workflow syntax checks remain preparation,
+not completion of WB-002.
