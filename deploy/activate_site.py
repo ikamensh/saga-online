@@ -80,21 +80,31 @@ def point(base: Path, name: str, release: str) -> None:
     sync_directory(base)
 
 
+def accepted_state(base: Path) -> dict:
+    """Inspect accepted state under the host lock without committing or recovering an unfinished pointer swap."""
+    pending_path = base / "pending.json"
+    transaction = json.loads(pending_path.read_bytes()) if pending_path.exists() else None
+    state_path = base / "state.json"
+    pointer = current(base)
+    initial = transaction["before"] if transaction is not None else {"release": pointer, "generation": 0}
+    stored = json.loads(state_path.read_bytes()) if state_path.exists() else initial
+    if transaction is None or stored == transaction["after"]:
+        require(stored["release"] == pointer, "Site pointer differs from publication state")
+    else:
+        before, after = transaction["before"], transaction["after"]
+        require(stored == before and pointer in (before["release"], after["release"]),
+                "Interrupted activation conflicts with externally changed publication state")
+    return stored
+
+
 def recover(base: Path) -> None:
     """Resolve an interrupted transaction under the same publication lock."""
     pending = base / "pending.json"
     if not pending.exists():
         return
-    transaction = json.loads(pending.read_text())
-    before, after = transaction["before"], transaction["after"]
-    state_path = base / "state.json"
-    stored = json.loads(state_path.read_text()) if state_path.exists() else before
-    pointer = current(base)
-    if stored == after:
-        require(pointer == after["release"], "Committed activation has an unexpected site pointer")
-    else:
-        require(stored == before and pointer in (before["release"], after["release"]),
-                "Interrupted activation conflicts with externally changed publication state")
+    transaction = json.loads(pending.read_bytes())
+    if accepted_state(base) != transaction["after"]:
+        before = transaction["before"]
         point(base, "current", before["release"])
         point(base, "previous", before.get("previous", "none"))
     pending.unlink()
@@ -148,10 +158,9 @@ def activate(source: Path, base: Path, release: str, generation: int, expected: 
     with deployment_lock.open("a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         recover(base)
-        previous = current(base)
         state_path = base / "state.json"
-        state = json.loads(state_path.read_text()) if state_path.exists() else {"release": previous, "generation": 0}
-        require(state["release"] == previous, "Site pointer differs from publication state")
+        state = accepted_state(base)
+        previous = state["release"]
         retry = previous == release and state["generation"] == generation
         if not retry:
             require(previous == expected, "Current site changed since this promotion was prepared")
@@ -161,10 +170,17 @@ def activate(source: Path, base: Path, release: str, generation: int, expected: 
             require(not destination.is_symlink() and contents(destination) == files, "A versioned site release cannot be overwritten")
         else:
             destination.parent.mkdir(exist_ok=True)
+            destination.parent.chmod(0o755)
             with tempfile.TemporaryDirectory(prefix="site-", dir=destination.parent) as temporary:
                 staged = Path(temporary) / "site"
                 shutil.copytree(source, staged)
                 require(contents(staged) == files, "Site bytes changed during staging")
+                # Only explicitly public site content enters this tree. It must
+                # remain readable by the separate Caddy account regardless of
+                # the uploader's umask or archive permissions.
+                staged.chmod(0o755)
+                for path in staged.rglob("*"):
+                    path.chmod(0o755 if path.is_dir() else 0o644)
                 staged.rename(destination)
         if baseline is not None:
             verify_compatibility(baseline, public_url)

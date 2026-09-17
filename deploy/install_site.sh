@@ -21,7 +21,12 @@ else
     [[ $mode == operator && ! -e $source_dir/promotion.json ]]
 fi
 
-exec python3 "$source_dir/deploy/activate_site.py" \
+# The operator uses the same account as CI so accepted state remains readable
+# by future publications. Upload data stays owned by deploy for later cleanup.
+chgrp -R saga2d-site-ci "$source_dir"
+chmod -R g+rX "$source_dir"
+trusted=$(readlink -f /usr/local/lib/saga2d-site-ci/current)
+exec runuser -u saga2d-site-ci -- /usr/bin/python3 -I -B "$trusted/activate_site.py" \
     --source "$source_dir/site" --base /srv/saga2d-site \
     --release "$release_id" --generation "$generation" --expected "$expected" \
     --public-url "https://$domain" --health-url "https://$domain/healthz" \

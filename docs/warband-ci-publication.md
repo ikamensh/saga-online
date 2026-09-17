@@ -442,3 +442,44 @@ sudo grant. Its home, authorized keys, configuration and receiver code remain
 root-owned. The trusted operator must use the same site account for transactions
 after setup so subsequent CI runs can read the accepted state. Server processes,
 checkpoints and deployment directories retain their separate ownership.
+
+### Restricted SSH implementation and local acceptance
+
+`package-site-ci` now prepares trusted receiver/activation tools plus only the
+dedicated public key. `setup-site-ci` installs them with the operator credential,
+checks the effective OpenSSH configuration and reloads SSH. Tool versions,
+configuration, keys and account home remain root-owned. The site account has no
+sudo or supplementary groups. Setup preserves the deployment lock inode while
+transferring website ownership; ordinary operator publications use this account
+too. Website archives contain no executable deployment tools.
+
+`tools/site_publish.py` performs only fixed `status`/`publish` operations with a
+pinned host key, dedicated identity and no ambient SSH configuration or agent.
+The receiver bounds compressed/expanded input and entry count, rejects unsafe
+archives, and hands the required receipt to the existing compatibility-gated
+transaction. Status reports accepted state even after a killed first promotion.
+
+Local acceptance on 2026-09-17:
+
+- All **133 tests** passed in the clean, pinned server stack (81.96 seconds),
+  including real packaged-server acceptance. The receiver's **21 process tests**
+  cover production archive format, retries, killed publication/status/recovery,
+  malformed uploads, links/path escapes, duplicate entries and all size/count
+  limits.
+- The actual packaged setup, receiver and CI client passed
+  `tests/host_site_ssh.py` on Ubuntu 24.04 ARM64 with OpenSSH 9.6p1 in a disposable
+  container, with no external network and a read-only source mount. It exercised
+  real SSH publication/retry, a separate public reader, command/SFTP/forwarding
+  rejection, wrong-host-key refusal, no sudo or access to private server state,
+  inert uploaded scripts, compatibility refusal, public-health rollback and
+  successful retry. Evidence: `dist/site-ssh/acceptance.json`.
+- A restrictive operator umask exposed inaccessible trusted tool directories.
+  Explicit public directory permissions fixed that regression; the same SSH
+  journey now runs with umask `077` and checks another account can read pages.
+  Public release directories also set their permissions explicitly.
+
+The GitHub server workflow now runs this real SSH acceptance after the shared
+deployment-lock check and retains its report. Website checks include the
+receiver suite. The promotion workflow, actual CI credentials/host setup, live
+server baseline and main-push/public-download acceptance remain to be completed;
+the standing authorization permits those steps after their verification.

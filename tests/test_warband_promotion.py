@@ -206,7 +206,7 @@ def test_verified_promotion_builds_packages_and_activates_with_the_same_catalog_
     assert (uploaded / "promotion.json").read_bytes() == (prepared / "promotion.json").read_bytes()
     assert not (uploaded / "site/promotion.json").exists()
     with public_site(host, {"baseline": release["baseline"]}) as endpoint:
-        result = subprocess.run([sys.executable, str(uploaded / "deploy/activate_site.py"), "--source", str(uploaded / "site"),
+        result = subprocess.run([sys.executable, str(ROOT / "deploy/activate_site.py"), "--source", str(uploaded / "site"),
                                  "--base", str(host), "--release", package["release"], "--generation", "1", "--expected", "none",
                                  "--public-url", endpoint, "--health-url", endpoint + "/healthz",
                                  "--deployment-lock", str(root / "deployment.lock"), "--mode", "warband-promotion",

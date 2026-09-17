@@ -138,12 +138,13 @@ catalog digest. `site` selects explicit `warband-promotion` mode on the host;
 that mode requires the receipt and checks the uncached live compatibility
 response immediately before exposing downloads and after public acceptance,
 including retries. Ordinary operator site publication uses explicit `operator`
-mode. A promotion archive cannot be passed to operator mode. The future
-restricted CI entry point must always require promotion mode; this operator
+mode. A promotion archive cannot be passed to operator mode. The restricted
+CI receiver always requires promotion mode; this operator
 command is not a substitute for that credential restriction.
 
-`site` bundles `dist/site` with `deploy/install_site.sh` and `activate_site.py`,
-uploads it and installs an immutable release under
+`site` uploads only `dist/site` and the optional promotion receipt. Trusted
+activation code, installed separately with `setup-site-ci` (below), installs
+an immutable release under
 `/srv/saga2d-site/releases/<sha256>`. The transaction holds
 `/var/lock/saga2d-online.publish.lock`, shared with the server installer,
 through expected-head/generation checks, the atomic `current` symlink swap,
@@ -164,6 +165,62 @@ the reviewed previous bytes with a higher generation and the current expected
 head. Do not move the symlink manually while leaving `state.json` unchanged.
 There is no production server baseline recorded yet; the CI runner's
 `games.example.test` acceptance report must not be used as one.
+
+### Restricted CI publisher
+
+Prepare a dedicated Ed25519 key for website CI. Keep the operator's SSH key and
+cloud/DNS credentials local. With the dedicated **public** key, the operator can
+prepare the trusted host tools offline, then install them on the named host:
+
+```sh
+uv run --project publishing --locked python tools/deploy_online.py package-site-ci \
+  --name saga2d-online --site-public-key /path/to/site-ci.pub
+uv run --project publishing --locked python tools/deploy_online.py setup-site-ci \
+  --name saga2d-online --site-public-key /path/to/site-ci.pub
+```
+
+Setup creates `saga2d-site-ci` with no sudo or supplementary groups. Its home,
+authorized keys, versioned tools and configuration are root-owned; it owns only
+the website tree and can use the existing shared lock. Existing site transaction
+files move to this account without replacing the lock inode or site pointer.
+The operator's `site` command also runs the trusted transaction as this account.
+Setup validates the effective SSH restrictions before installing the key and
+reloading SSH. It does not publish a site or restart the game server. Repeat the
+same command to update trusted tools or rotate the dedicated key.
+
+The account's forced command accepts exactly `status` and `publish`. It executes
+host-installed Python in isolated mode. Uploads contain only bounded website
+data and a receipt; even script-shaped public files remain data. Forwarding,
+TTY, user startup hooks, password authentication and arbitrary commands are
+disabled. Both `ForceCommand` and forwarding restrictions are required; see
+[OpenSSH's configuration reference](https://man.openbsd.org/sshd_config).
+
+Give CI the dedicated private key and an independently verified `known_hosts`
+entry for the host. The client requires the pinned key, ignores ambient SSH
+configuration/agents, and never accepts a new host key automatically:
+
+```sh
+python tools/site_publish.py --host HOST --identity /path/to/site-ci \
+  --known-hosts /path/to/known_hosts status
+python tools/site_publish.py --host HOST --identity /path/to/site-ci \
+  --known-hosts /path/to/known_hosts publish --archive /path/to/site-SHA256.tar.gz \
+  --generation GENERATION --expected EXPECTED_SHA256
+```
+
+`status` returns accepted state and whether an interrupted transaction remains;
+it never adopts an unverified pointer. Reconcile that accepted state with the
+prepared catalog before choosing a generation. Use `none` for the expected
+release only on a first publication. A retry uses the same archive and ordering
+preconditions. Limits are 64 MiB compressed, 256 MiB expanded, 2,048 regular
+files, and 300 seconds on the host; failures are explicit and preserve/recover
+the last accepted site.
+
+`tests/host_site_ssh.py` verifies the actual setup, client, forced command and
+rollback through a loopback SSH daemon on a disposable Linux container or GitHub
+runner. It writes production paths and refuses an already managed host. Never
+run this acceptance program on the live server.
+
+### Installed client update notices
 
 Installed games fetch `/releases.json` when the player opens Multiplayer and
 offer the download page when the catalog version differs from their build.

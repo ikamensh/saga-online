@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Prepare and deploy the dedicated online server; cloud credentials stay local.
 
-``plan``, ``package`` and ``package-site`` are offline. The other subcommands
+``plan``, ``package``, ``package-site`` and ``package-site-ci`` are offline. The other subcommands
 change the explicitly named Saga2D infrastructure. See deploy/README.md for the
 first deployment; ``site`` publishes a built website without touching the server.
 """
@@ -165,7 +165,7 @@ def bootstrap_project(args):
 def arguments(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=["plan", "package", "bootstrap-project", "provision", "deploy", "status",
-                                            "package-site", "site", "backup"])
+                                            "package-site", "site", "package-site-ci", "setup-site-ci", "backup"])
     parser.add_argument("--name", required=True, help="Dedicated resource name, starting saga2d-")
     parser.add_argument("--project-name", default="saga2d")
     parser.add_argument("--project-id")
@@ -180,6 +180,7 @@ def arguments(argv=None):
     parser.add_argument("--site-generation", type=int, help="Reviewed promotion generation, greater than the accepted one")
     parser.add_argument("--expected-site", help="Expected current site SHA-256, or none for first publication")
     parser.add_argument("--promotion-receipt", type=Path, help="Verified Warband receipt; enables compatibility-gated site promotion")
+    parser.add_argument("--site-public-key", type=Path, help="Dedicated CI Ed25519 public key for host setup (never the private key)")
     args = parser.parse_args(argv)
     if not re.fullmatch(r"saga2d-[a-z0-9-]{1,40}", args.name):
         parser.error("--name must start with saga2d- and contain only lowercase letters, digits or hyphens")
@@ -191,6 +192,8 @@ def arguments(argv=None):
         parser.error("--key-section must start with saga2d-")
     if args.promotion_receipt is not None and args.command not in ("package-site", "site"):
         parser.error("--promotion-receipt is only valid for package-site or site")
+    if args.command in ("package-site-ci", "setup-site-ci") and args.site_public_key is None:
+        parser.error("Site CI setup requires --site-public-key")
     if args.command == "site":
         if args.site_generation is None or args.site_generation <= 0:
             parser.error("site requires a positive --site-generation")
@@ -237,12 +240,11 @@ def _stable_tar(files: dict) -> bytes:
 
 
 def package_site(site_dir: Path, output: Path, promotion: Path | None = None):
-    """Bundle a built website with its installer; the archive digest names the release."""
+    """Bundle website data and its optional promotion receipt; executable tools stay on the host."""
     site_dir = site_dir.resolve()
     if not (site_dir / "index.html").is_file() or not (site_dir / "releases.json").is_file():
         raise FileNotFoundError(f"Build the website first; {site_dir} lacks index.html or releases.json")
-    files = {"deploy/" + name: (ROOT / "deploy" / name).read_bytes()
-             for name in ("install_site.sh", "activate_site.py")}
+    files = {}
     for path in sorted(site_dir.rglob("*")):
         if path.is_symlink():
             raise ValueError(f"Refusing symlink in site release: {path}")
@@ -260,6 +262,22 @@ def package_site(site_dir: Path, output: Path, promotion: Path | None = None):
     path.write_bytes(payload)
     return {"release": digest, "archive": str(path.resolve()), "files": sum(name.startswith("site/") for name in files),
             "mode": "warband-promotion" if promotion is not None else "operator"}
+
+
+def package_site_ci(public_key: Path, output: Path):
+    """Prepare trusted receiver code for operator installation, separately from CI website uploads."""
+    key = public_key.read_text().strip()
+    if not re.fullmatch(r"ssh-ed25519 [A-Za-z0-9+/=]+(?: [^\r\n]+)?", key):
+        raise ValueError("Site CI setup accepts only a plain Ed25519 public key")
+    files = {name: (ROOT / "deploy" / name).read_bytes()
+             for name in ("install_site_ci.py", "site_receiver.py", "activate_site.py", "install_site.sh")}
+    files["site-ci.pub"] = (key + "\n").encode()
+    payload = _stable_tar(files)
+    digest = hashlib.sha256(payload).hexdigest()
+    output.mkdir(parents=True, exist_ok=True)
+    path = output / f"site-ci-{digest}.tar.gz"
+    path.write_bytes(payload)
+    return {"release": digest, "archive": str(path.resolve()), "files": len(files)}
 
 
 def deployment_api(args):
@@ -457,13 +475,26 @@ def publish_site(args):
     package = package_site(args.site_dir, args.output, args.promotion_receipt)
     target = running_target(args)
     staging = upload(args, target, package)
-    result = ssh(args, target, ["sudo", "bash", staging + "/deploy/install_site.sh", staging,
+    result = ssh(args, target, ["sudo", "bash", "/usr/local/lib/saga2d-site-ci/current/install_site.sh", staging,
                                package["release"], args.name, args.domain,
                                str(args.site_generation), args.expected_site, package["mode"]], capture=True)
     activation = json.loads(result.stdout)
     ssh(args, target, ["rm", "-rf", "--", staging])
     return {**target, **package, "activation": activation,
             "served": f"https://{args.domain}/", "health": "ok"}
+
+
+def setup_site_ci(args):
+    """Install/reconcile the receiver using the operator credential, then reload validated SSH configuration."""
+    package = package_site_ci(args.site_public_key, args.output)
+    target = running_target(args)
+    staging = upload(args, target, package)
+    result = ssh(args, target, ["sudo", "python3", staging + "/install_site_ci.py", "--instance", args.name,
+                               "--public-key", staging + "/site-ci.pub", "--public-url", f"https://{args.domain}"], capture=True)
+    installed = json.loads(result.stdout)
+    ssh(args, target, ["sudo", "systemctl", "reload", "ssh"])
+    ssh(args, target, ["rm", "-rf", "--", staging])
+    return {**target, **package, "receiver": installed, "ssh_reloaded": True}
 
 
 def pull_backup(args):
@@ -520,6 +551,10 @@ def main(argv=None):
         result = package_site(args.site_dir, args.output, args.promotion_receipt)
     elif args.command == "site":
         result = publish_site(args)
+    elif args.command == "package-site-ci":
+        result = package_site_ci(args.site_public_key, args.output)
+    elif args.command == "setup-site-ci":
+        result = setup_site_ci(args)
     elif args.command == "backup":
         result = pull_backup(args)
     else:

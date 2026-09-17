@@ -50,6 +50,13 @@ uv run python tools/load_online.py wss://games.tachyon-ai.eu/play warband --room
   activation until site recovery. `tests/host_deployment_exclusion.py` exercises
   the real host entry points only as root on an isolated GitHub Linux runner;
   never run it on the production host.
+- `tools/site_publish.py` — CI's host-key-pinned SSH status/publish client.
+  `deploy/site_receiver.py` accepts website data and a required promotion
+  receipt, executing only operator-installed activation code. Install/update
+  that code and the dedicated unprivileged account through
+  `tools/deploy_online.py setup-site-ci --name saga2d-online --site-public-key PATH`.
+  `tests/host_site_ssh.py` exercises real SSH on a disposable Linux host; never
+  run it on production. See `deploy/README.md` for credentials and protocol limits.
 - `releases/catalog.json` — the single source of release facts (versions,
   download URLs, hashes, minimum client protocol); games fetch it when
   Multiplayer opens, the server rejects incompatible clients.

@@ -122,8 +122,8 @@ def test_provider_smtp_blocks_survive_game_firewall_setup():
     assert firewall_ports(provider_rules + [game_rule]) == {443}
 
 
-def test_site_release_bundles_built_pages_with_its_installer(tmp_path):
-    """Publishing needs a finished build; the archive is content-addressed and self-contained."""
+def test_site_release_bundles_only_built_pages_for_the_trusted_host_installer(tmp_path):
+    """Publishing carries content-addressed data; the separately installed host tool owns activation."""
     from tools.deploy_online import package_site
 
     site = tmp_path / "site"
@@ -140,13 +140,12 @@ def test_site_release_bundles_built_pages_with_its_installer(tmp_path):
     with tarfile.open(first["archive"]) as archive:
         archive.extractall(unpacked, filter="data")
     assert (unpacked / "site/warband/index.html").read_text() == "<h1>Warband</h1>"
-    subprocess.run(["bash", "-n", str(unpacked / "deploy/install_site.sh")], check=True)
-    # Exercise the exact activation implementation carried by the upload,
-    # outside the source checkout, with the same expected-head/generation inputs.
+    assert not (unpacked / "deploy").exists()
+    # Exercise the trusted host implementation against extracted upload data.
     from tests.test_site_activation import public_site
     base = tmp_path / "host"
     with public_site(base) as endpoint:
-        result = subprocess.run([sys.executable, str(unpacked / "deploy/activate_site.py"),
+        result = subprocess.run([sys.executable, str(ROOT / "deploy/activate_site.py"),
                                  "--source", str(unpacked / "site"), "--base", str(base),
                                  "--release", first["release"], "--generation", "1", "--expected", "none",
                                  "--public-url", endpoint, "--health-url", endpoint + "/healthz",
