@@ -484,6 +484,30 @@ receiver suite. The promotion workflow, actual CI credentials/host setup, live
 server baseline and main-push/public-download acceptance remain to be completed;
 the standing authorization permits those steps after their verification.
 
+### GitHub acceptance of the restricted publisher
+
+[Server Tests 35194126106](https://github.com/ikamensh/saga-online/actions/runs/35194126106)
+passed on `f8222e567a78993ab77fddeb2c5ac56caa862b83`: **133 passed, no skips,
+89.472 seconds**. Both root-only host checks passed: shared deployment exclusion
+and the complete real-SSH journey above, including the restrictive-umask case.
+The subsequent actual server package preparation, three-game restart/rejoin and
+unchanged-release retry also passed as the Linux service account.
+
+The acceptance artifact was downloaded independently. Its SSH/exclusion/runtime
+JSON reports all indicate success, and the downloaded 6,674,478-byte archive
+matches the recorded SHA-256
+`770700f5c64257d62b6c5da96febb990f3964fb7f5635ffd46eff82731431b95`.
+Reports, JUnit and archive are under `dist/server-acceptance/github-35194126106/`;
+the adjacent `.log` records the full run.
+
+[Website checks 35194126064](https://github.com/ikamensh/saga-online/actions/runs/35194126064)
+passed on the same source: **128 passed, one native Caddy skip and one packaged
+server deselection** in the smaller publishing environment, followed by the
+site build/upload. The full server job covered both omitted checks. The current
+37-file website packages to 1,751,230 bytes, within the receiver's upload limits.
+The restricted publisher milestone is accepted; production installation and
+the complete promotion workflow remain outstanding.
+
 ## Promotion workflow acceptance, before implementation
 
 Connect Warband's existing dispatch (`build_run_id`, `release_id`,
