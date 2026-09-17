@@ -11,8 +11,8 @@ Local test servers and temporary site roots establish the failure/retry behavior
 the real GitHub and hosted journey is still required before WB-002 can be done.
 
 The live server and backup/rollback path are accepted. The restricted website
-account and both GitHub publishing environments are configured. Main integration,
-publishing enablement and the complete public release journey remain outstanding.
+account and both GitHub publishing environments are configured. Main integration
+and publishing enablement are complete; the public release journey is running.
 Earlier sections below retain the evidence from each implementation milestone.
 
 ## Isolated site checks
@@ -769,5 +769,29 @@ index. The operator SSH key, cloud credentials and local GitHub OAuth token stay
 on the laptop.
 
 Evidence: `dist/live-rollout/site-ci-setup.json`, `site-ci-status.json` and
-`ci-settings.json`. Both publishing enable flags remain unset until main
-integration is ready; configuration alone does not complete WB-002.
+`ci-settings.json`. At this configuration checkpoint both publishing enable
+flags were still unset; the main integration below enabled them.
+
+### Main integration and final public-download acceptance
+
+Saga Online main `c3266a3` and Warband main `8e5e06b` contain the verified
+implementation. Both repository publishing flags are now enabled. Warband's
+first main native run is `35201502611`; the complete publication remains pending.
+
+Before closing WB-002, a separate read-only check must fetch the public catalog
+without authentication, require the explicitly requested Warband version and
+the catalog committed in this checkout, verify downloaded archive sizes/hashes,
+and run the downloaded Windows portable executable and Mac app outside the
+checkout with fresh profiles. The frozen clients must pass their real public
+TLS create/join/order/rejoin diagnostics, identify the expected source/version
+and executable hash, and report bundled fonts. The live baseline and catalog
+must remain unchanged throughout. This check uses no publishing credentials,
+performs no builds and retains its receipts as workflow artifacts. It is a
+post-publication acceptance tool; pre-publication native checks remain mandatory.
+
+`tools/check_public_warband.py` implements that check and
+`.github/workflows/public-warband-checks.yml` runs it on Windows 2025 and Mac 15
+through a manual version input. Its first local integration passed against
+the existing public Mac release `0.2.0-preview.2`; an explicit wrong version
+was rejected before download/execution. Workflow lint and stack links passed.
+These are preliminary tool checks, not acceptance of the new main release.

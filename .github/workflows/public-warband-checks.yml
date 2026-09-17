@@ -1,0 +1,44 @@
+name: Public Warband download checks
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Exact Warband version already published in the public catalog
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [windows-2025, macos-15]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: '0.12.10'
+          python-version: '3.13.2'
+          enable-cache: false
+      - name: Download public bytes and exercise the frozen client over TLS
+        shell: pwsh
+        env:
+          EXPECTED_VERSION: ${{ inputs.version }}
+        run: |
+          uv run --project publishing --locked python tools/check_public_warband.py --version $env:EXPECTED_VERSION --output dist/public-client
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: public-warband-${{ matrix.runner }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: dist/public-client/
+          if-no-files-found: warn
+          retention-days: 90
