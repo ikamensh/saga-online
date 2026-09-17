@@ -704,12 +704,38 @@ and failed before this fix, then passed in 9.58 seconds. No game rule, state
 comparison or error check was weakened. Diagnostic inputs/logs are archived in
 `dist/live-rollout/debug/`; they are not shipped.
 
-**Current host state:** rollback release `31ff0497…4883d0c` is healthy; candidate
-reactivation awaits verification of this timing fix. No production CI flags,
+At this point, rollback release `31ff0497…4883d0c` was healthy while candidate
+reactivation awaited verification of the timing fix. No production CI flags,
 credentials or committed live baseline have been configured. The first
 activation's baseline is historical evidence only, stored as
 `dist/live-rollout/accepted-first-activation-baseline.json`.
 Other receipts: `host-candidate.json`, `host-rehearsal.json`,
 `local-rehearsal-n_nc96bw/acceptance.json`, `public-clients/acceptance.json`,
 `activation.log`, `rollback-acceptance.log` and `reactivation.log`, all beneath
-`dist/live-rollout/`. Do not treat the first activation as the final live rollout.
+`dist/live-rollout/`. The first activation is not the final live rollout.
+
+### Accepted live server baseline
+
+The timing fix at `f7d3c61` passed
+[Linux run 35199018970](https://github.com/ikamensh/saga-online/actions/runs/35199018970):
+**135 tests, no skips/failures/errors, 101.560 seconds**, including the
+delayed-disconnect regression, then all root host checks and repeated package
+preparation. Website run `35199018963` also passed.
+
+The independently downloaded archive
+`c5193bd522039a8a38d3e57a6275496def29beddc7b165fbdd95f71bf9b63dca`
+was installed and accepted on the live host. The
+[recorded server baseline](../releases/server-baseline.json) comes from that
+process's public response and matches Warband's accepted native identity.
+All three downloaded Mac clients again passed public TLS create/join, orders
+and private-seat rejoin. The two original retained campaigns and their seats
+remain unchanged. The previous release is `31ff0497…4883d0c`, whose live
+database/configuration rollback was exercised above. The website is unchanged.
+
+Final evidence is in `dist/live-rollout/public-clients-final/acceptance.json`,
+`final-host-state.json`, `host-candidate.json` and `fixed-activation.log`; CI
+reports and the archive are under `dist/server-acceptance/github-35199018970/`.
+This accepts the hosted runtime, including the isolated Shardbound dependency
+alignment; it does not claim to fix its unrelated client-suite failures or
+merge that client candidate to main. Windows public-client acceptance, CI
+credentials/enablement and the actual main-push publication remain outstanding.
