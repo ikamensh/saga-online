@@ -432,5 +432,13 @@ successful publication/retry, wrong host key, arbitrary command/subsystem or
 forwarding refusal, malformed/unsafe uploads, and failed compatibility checks
 with the previous site intact. Verify that upload-supplied scripts cannot run
 and that server files and private room state remain unchanged. Build the reviewable
-host setup and CI caller locally; installing credentials or activating the
-production host remains the separately approved rollout step.
+host setup and CI caller locally; install credentials and activate production
+after these checks pass. The user's 2026-09-17 standing Saga authorization covers
+CI setup, publication and deployment without another go-ahead.
+
+Implementation choice: use a dedicated unprivileged site account with write
+access to the website tree and the shared lock, not a root upload receiver or
+sudo grant. Its home, authorized keys, configuration and receiver code remain
+root-owned. The trusted operator must use the same site account for transactions
+after setup so subsequent CI runs can read the accepted state. Server processes,
+checkpoints and deployment directories retain their separate ownership.
