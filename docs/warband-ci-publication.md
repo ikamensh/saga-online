@@ -628,3 +628,26 @@ checkpoint/rejoin and unchanged-package retry also passed. Reports and logs:
 `dist/server-acceptance/github-35196347871/`, the adjacent `.log`, and
 `dist/site-ssh/github-35196347793.log`. This is implementation acceptance;
 main workflow execution, live rollout and public downloads remain outstanding.
+
+## Server rollout and restore acceptance, before implementation
+
+The live host inspected on 2026-09-17 is healthy at release `31ff0497…4883d0c`.
+Its room database has two retained Shardbound campaigns; preserve them even
+though the project currently has no users. There is no pending site transaction.
+
+Extend the existing packaged three-game acceptance to take the real SQLite
+backup, restore it into a fresh private state directory, restart the candidate
+and rejoin the same seats with exact game state. Report backup/restore only
+after that journey succeeds. Keep the ordinary checkpoint/restart check too.
+Run this through the actual package and Linux service-user preparation.
+
+Before live activation, retain a private off-host database backup and the
+current service/proxy configuration. Inspect a candidate launched against a
+private copy of that backup; never use the live database for this rehearsal.
+Stop the live process with SIGTERM to checkpoint, retain the final stopped
+database, then activate and verify the exact live baseline and public
+three-game orders. If acceptance fails, stop the candidate, restore the saved
+database and prior service/proxy configuration, and verify the old service.
+The website pointer must not change during server rollout. Preserve the old
+release and backups after success; verify packaged clients before recording
+the server baseline for automatic website promotion.
