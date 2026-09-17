@@ -39,8 +39,8 @@ outside the hardened backup unit's read-only filesystem sandbox.
 
 Saga2D 0.3.3 is published from `9a1a58c` / `v0.3.3`; engine/consumer tests,
 installed-wheel native checks and fresh PyPI installation passed. Warband's
-unchanged battle passes whole-run p95 15.58 ms. Its candidate `2bae3b2` pins
-that exact release, with native run `35240528494` awaiting acceptance.
+unchanged battle passes whole-run p95 15.58 ms. Its candidate `cac35b7` pins
+that exact release, with native run `35241590924` awaiting acceptance.
 
 The installed 0.3.2 → 0.3.3 package comparison changes only `__init__.py` and
 `backends/pyglet_backend.py`. All authoritative Warband source hashes and all
@@ -71,3 +71,8 @@ The corrected Warband source is `cac35b7`; its 32 release CLI/HTTP tests pass
 locally, and new native run **35241590924** is the only candidate recorded
 in the server pins. The earlier failed/cancelled run is excluded. Full Linux
 game and Windows/Mac package acceptance are still required before activation.
+
+The exact isolated cohort passes all **135 Saga Online tests in 91.78 s**.
+The off-host checkpoint contains four retained Shardbound campaigns; all four
+must survive the private rehearsal and activation. Linux service-account
+package acceptance and the live checks remain required.
