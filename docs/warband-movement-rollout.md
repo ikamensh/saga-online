@@ -45,4 +45,18 @@ to perform the verified rollout; no further approval is required.
 
 Separate worktrees under `~/saga/.worktrees/wb003-server/` hold the candidate
 and all exact sibling pins, preserving the active game worktrees. Candidate
-checks and deployment remain pending. No live state has changed for WB-003.
+deployment remains pending. No live state has changed for WB-003.
+
+Warband `35b851f` passed [Tests 35210630104](https://github.com/ikamensh/warband/actions/runs/35210630104)
+and [Windows/Mac native package checks 35210630105](https://github.com/ikamensh/warband/actions/runs/35210630105),
+including the final artifact validation job. Local native movement and pointer
+acceptance is recorded in the game diagnosis.
+
+The isolated Saga Online candidate at `501558a` passed **135 tests in 92.38
+seconds**, including the actual packaged server, three-game orders and delayed
+disconnect/restart/backup-restore journey. Log:
+`docs/evidence/movement-rollout/full-tests.log`. Its locked Python 3.13.2
+environment contains the accepted Saga2D 0.3.2 release. A sibling engine symlink
+only resolves shared documentation links; it is not installed into the runtime.
+Linux preparation, packaged explicit smart-order probes, live backup rehearsal
+and rollout remain pending.
