@@ -9,7 +9,7 @@ Publish it with ``tools/deploy_online.py site``.
 from __future__ import annotations
 
 import argparse
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 import html
 import json
 from pathlib import Path
@@ -226,7 +226,7 @@ def status_page(catalog):
             'Logs keep connection errors for a short time. No accounts, names or chat exist. Downloads are served from GitHub releases and this site.</p>')
 
 
-def build(output: Path, catalog_path: Path = CATALOG) -> dict:
+def build(output: Path, catalog_path: Path = CATALOG, *, build_date: date | None = None) -> dict:
     catalog = load(catalog_path)
     if set(catalog['games']) != set(GAMES):
         raise ValueError(f'Website content covers {sorted(GAMES)} but the catalog lists {sorted(catalog["games"])}')
@@ -240,7 +240,7 @@ def build(output: Path, catalog_path: Path = CATALOG) -> dict:
     for font in FONTS.iterdir():
         shutil.copyfile(font, output / 'fonts' / font.name)
     (output / 'releases.json').write_text(json.dumps(catalog, indent=2) + '\n', encoding='utf-8')
-    built = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+    built = (build_date if build_date is not None else datetime.now(timezone.utc).date()).isoformat()
     images = {slug: convert_images(slug, GAMES[slug]['screenshots'], output) for slug in catalog['games']}
     pages = [page(output, '/', title='Saga2D Games', description='Free strategy games for Windows and Mac with online play by invitation.',
                   content=index_page(catalog, images), site=site, names=names, built=built)]
@@ -262,8 +262,9 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, default=ROOT / 'dist' / 'site')
     parser.add_argument('--catalog', type=Path, default=CATALOG)
+    parser.add_argument('--build-date', type=date.fromisoformat, help='Recorded YYYY-MM-DD for reproducible release publication')
     args = parser.parse_args()
-    print(json.dumps(build(args.output.resolve(), args.catalog), indent=2))
+    print(json.dumps(build(args.output.resolve(), args.catalog, build_date=args.build_date), indent=2))
 
 
 if __name__ == '__main__':

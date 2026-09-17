@@ -57,6 +57,12 @@ uv run python tools/load_online.py wss://games.tachyon-ai.eu/play warband --room
   `tools/deploy_online.py setup-site-ci --name saga2d-online --site-public-key PATH`.
   `tests/host_site_ssh.py` exercises real SSH on a disposable Linux host; never
   run it on production. See `deploy/README.md` for credentials and protocol limits.
+- `tools/prepare_warband_site.py` and `tools/apply_warband_promotion.py` — stable
+  upload preparation and the Git-to-SSH publication transaction used by
+  `.github/workflows/warband-promotion.yml`. A catalog commit is desired state,
+  never proof of site acceptance. Retrying an already-current catalog must
+  still verify/activate the site. `docs/warband-ci-publication.md` records the
+  exact acceptance, credentials and remaining rollout gates.
 - `releases/catalog.json` — the single source of release facts (versions,
   download URLs, hashes, minimum client protocol); games fetch it when
   Multiplayer opens, the server rejects incompatible clients.

@@ -150,13 +150,15 @@ def verify():
                         assert json.loads(run(next_publish).stdout)["release"] == replacement_release
                         assert (base / "previous").resolve().name == release
                         assert checkpoint.read_text() == "private checkpoint must survive unchanged"
+                        from tests.warband_publish_journey import verify as verify_promotion
+                        promotion = verify_promotion(folder, base, client, faults)
                     finally:
                         daemon.terminate()
                         daemon.wait(timeout=10)
     return {"passed": True, "real_ssh_publish_retry": True, "separate_public_reader": True,
             "host_setup_repeatable": True, "command_subsystem_forwarding_refused": True,
             "wrong_host_key_refused": True, "server_files_private_and_unchanged": True,
-            "compatibility_failure_preserves_site": True, "public_failure_rolls_back": True}
+            "compatibility_failure_preserves_site": True, "public_failure_rolls_back": True, "promotion": promotion}
 
 
 if __name__ == "__main__":

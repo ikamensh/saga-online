@@ -546,3 +546,61 @@ Finally configure the scoped credentials and real baseline, enable the workflow,
 and demonstrate the actual main-push → release → catalog → public-download
 journey. Local fixtures and disabled workflow syntax checks remain preparation,
 not completion of WB-002.
+
+### Promotion orchestration implementation
+
+`tools/prepare_warband_site.py` consumes the independent verifier's prepared
+directory. It checks catalog/manifest identity, renders with the release's
+recorded date and creates a stable deployment receipt. Preparation-only
+`already_current` and `before_catalog_sha256` fields stay out of that receipt.
+`site-plan.json` records archive bytes/hash, catalog/receipt hashes, date and the
+actual rendering inputs: tool/template/static/media/font hashes and Python,
+engine and Pillow versions. Unchanged rendering inputs and release facts produce
+the same archive across a fresh preparation after the catalog commit; an actual
+rendering-input change is a new site candidate. An existing prepared directory
+cannot be overwritten with a different candidate.
+
+`tools/apply_warband_promotion.py` validates this plan and the actual upload
+protocol/archive, keeps a private verified copy, and reads the host's accepted
+state. It pushes the desired catalog through the existing Git compare-and-swap
+writer, rechecks remote main, then publishes with that host snapshot's ordering
+preconditions. An already accepted archive reuses its generation and still
+checks public bytes/health/compatibility. A failed upload after a successful Git
+push can be retried with fresh preparation from current main; no new catalog
+commit is required and the distinct previous site is preserved.
+
+`.github/workflows/warband-promotion.yml` now accepts the three inputs already
+dispatched by Warband. Preparation checks out current main with read-only
+permissions, verifies the public release against `releases/server-baseline.json`
+and the live host, and uploads immutable native/site preparation. The write job
+is restricted to main and `WARBAND_PROMOTION_ENABLED=true`, uses the
+`warband-promotion` environment, checks out the exact prepared main commit and
+downloads that preparation by artifact ID. It needs:
+
+- Variable `SAGA_SITE_HOST`, matching the pinned SSH host entry.
+- Environment secrets `SAGA_SITE_SSH_KEY` and `SAGA_SITE_KNOWN_HOSTS` for the
+  dedicated restricted account. Temporary key files are removed even on failure.
+- The default repository token with contents-write only in the write job. It
+  commits only the desired Warband catalog and its receipt.
+
+Preparation uses the default read-only token for public Warband provenance.
+GitHub documents public read access for the [workflow/job APIs](https://docs.github.com/en/rest/actions/workflow-jobs);
+the server CI now also probes the actual cross-repository token access before
+host acceptance. The release consumer strips authorization on redirects and
+downloads public binaries without attaching that API token.
+
+Local acceptance: **135 tests passed in 86.15 seconds** in the clean pinned
+stack. The real Ubuntu SSH acceptance now also exercises a full Git/HTTP/site
+journey: a Git hook removes the temporary upload identity after status, the
+catalog push succeeds and the upload fails, fresh independent preparation
+reproduces identical bytes, and the retry finishes without another Git commit.
+Completed retries preserve generation/previous and still fail a bad public
+health check. Changed archives and stale catalog checkouts are refused; a real
+competing host publication between status and upload remains intact. Report:
+`dist/site-ssh/promotion-acceptance.json`. Workflow lint and Markdown links pass.
+The generated index was inspected as a full-page browser screenshot with the
+fixed `2026-09-16` footer date; layout/content are otherwise unchanged.
+
+The workflow has not yet run from main, and no enable flag, live baseline or
+production credential has been installed by this implementation. Those remain
+rollout work, followed by the actual public-download acceptance.

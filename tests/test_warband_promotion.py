@@ -35,8 +35,7 @@ def archive(files):
     return out.getvalue()
 
 
-@pytest.fixture
-def release(tmp_path):
+def release_data(tmp_path):
     contract = {"schema_version": 1, "registry": "warband.authority:ONLINE", "python": "3.13.2",
                 "packages": {"saga2d": "0.3.2", "pillow": "12.3.0", "pyglet": "2.1.16", "websockets": "17.1"},
                 "files": {"warband/authority.py": sha(b"A reviewed simulation input fixture")}}
@@ -107,6 +106,11 @@ def release(tmp_path):
                      ("inputs", "native (windows-2025, windows-x64)", "native (macos-15, darwin-arm64)", "validate")],
             "tag_commit": identity["source_commit"], "compare": {"status": "ahead"}, "requests": []}
     return data
+
+
+@pytest.fixture
+def release(tmp_path):
+    return release_data(tmp_path)
 
 
 @contextmanager
