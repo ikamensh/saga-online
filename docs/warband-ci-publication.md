@@ -795,3 +795,32 @@ through a manual version input. Its first local integration passed against
 the existing public Mac release `0.2.0-preview.2`; an explicit wrong version
 was rejected before download/execution. Workflow lint and stack links passed.
 These are preliminary tool checks, not acceptance of the new main release.
+
+### First real publication and recovery
+
+Both platforms in Warband native run `35201502611` passed 901 tests with 12
+skips each, plus frozen/native/installed checks. Publisher `35202693598` created
+immutable release `390564613` (`0.2.0-preview.35201502611`), then its anonymous
+download check exposed stale draft asset URLs. Warband `e38618d` fixes that
+behavior with a regression that failed before the fix; all 57 publication
+checks passed. The second publisher attempt verified the existing immutable
+bytes and successfully dispatched this repo using the scoped token.
+
+[Promotion run 35203364594](https://github.com/ikamensh/saga-online/actions/runs/35203364594)
+passed independent public download/provenance and live compatibility checks,
+committed catalog `58fe7f2`, and activated site
+`9ed2bc8a67121fbf143514990c527989c6e306ac980fa2da274fe913a5c84eea`
+at generation 1. The prior website `43836139…ddfb9` is retained. Public catalog
+bytes match Git, and all non-Warband release/server/site fields are unchanged.
+The activation receipt is `dist/ci-acceptance/promotion-35203364594/publication.json`
+in the publishing worktree. Native evidence was downloaded anonymously and its
+Windows match and Mac title frames were inspected.
+
+The public-page screenshot exposed a pre-existing responsive-image bug: HTML
+image height attributes remained fixed while CSS scaled the width. Setting
+image height to auto restores the original proportions. The seven-page render
+and three build-site checks pass; the browser preview shows the 1280×800 hero
+at 426×267 and the gallery at 315×197. The corrected website will be promoted
+through the same checked publication path. Public native checks for this new
+release and the next automatic main run remain to be recorded before WB-002
+is complete.
