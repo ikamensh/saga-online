@@ -1,6 +1,7 @@
 # Warband CI publication
 
-WB-002 is in progress on `codex/warband-publishing`, beginning at `c33c195`.
+WB-002 completed on main on 2026-09-17. Work began on
+`codex/warband-publishing` at `c33c195`.
 The acceptance criteria and cross-repository decisions are recorded before
 implementation in [Warband's CI publication plan](../../warband/docs/ci-publication.md).
 
@@ -8,11 +9,12 @@ Saga Online's part is release validation, compatibility-gated catalog/site
 promotion, stale-run rejection, atomic activation and tested rollback. It must
 preserve other games' downloads and remain independent of room-server activation.
 Local test servers and temporary site roots establish the failure/retry behavior;
-the real GitHub and hosted journey is still required before WB-002 can be done.
+the real GitHub, public-client and hosted rollback journeys also passed.
 
 The live server and backup/rollback path are accepted. The restricted website
 account and both GitHub publishing environments are configured. Main integration
-and publishing enablement are complete; the public release journey is running.
+and publishing enablement are complete. Preview `0.2.0-preview.35203328191` is
+live and its downloaded Windows/Mac clients passed all eight online checks.
 Earlier sections below retain the evidence from each implementation milestone.
 
 ## Isolated site checks
@@ -820,7 +822,92 @@ The public-page screenshot exposed a pre-existing responsive-image bug: HTML
 image height attributes remained fixed while CSS scaled the width. Setting
 image height to auto restores the original proportions. The seven-page render
 and three build-site checks pass; the browser preview shows the 1280×800 hero
-at 426×267 and the gallery at 315×197. The corrected website will be promoted
-through the same checked publication path. Public native checks for this new
-release and the next automatic main run remain to be recorded before WB-002
-is complete.
+at 426×267 and the gallery at 315×197. Promotion
+[35203819779](https://github.com/ikamensh/saga-online/actions/runs/35203819779)
+accepted the corrected site `5bba8ee4…b1f233f` at generation 2. The actual public
+page was inspected after its five-minute static cache expired; image proportions
+are correct at gameplay screenshot scale.
+
+Public download check
+[35203510969](https://github.com/ikamensh/saga-online/actions/runs/35203510969)
+passed on both Windows and Mac for `0.2.0-preview.35201502611`. The downloaded
+frozen clients matched the catalog bytes, source and executable digests, used
+bundled fonts, and passed all eight public online checks, including create/join,
+authoritative orders and private-seat rejoin. Receipts are under
+`dist/ci-acceptance/public-downloads-35203510969/` in the main checkout.
+
+### Live rollback and repeated publication
+
+Using the restricted CI account and exact retained archives, rollback restored
+site `9ed2bc8a…c84eea` at generation 3. Restoring the corrected site
+`5bba8ee4…b1f233f` advanced to generation 4 and retained the previous distinct
+site. Repeating that upload reverified the public bytes and health without
+changing its generation or rollback target. A stale generation-3 upload was
+refused with “Current site changed since this promotion was prepared”; the
+accepted state remained unchanged. Public catalog and server baseline remained
+unchanged throughout. Evidence: `dist/ci-acceptance/live-site-rollback.json`.
+
+### Fresh publication with the final URL fix
+
+Warband main `e38618d` passed native run
+[35203328191](https://github.com/ikamensh/warband/actions/runs/35203328191).
+Its automatically triggered publisher
+[35204501320](https://github.com/ikamensh/warband/actions/runs/35204501320)
+passed on its first attempt, creating immutable release `390577131`, version
+`0.2.0-preview.35203328191`, with manifest SHA-256
+`f8a9a14b80c6771d8e743570105d88839b6e0a7aa363066039f0fcd4d35a6996`.
+The scoped credential automatically dispatched promotion `35204667815`.
+Independent release verification and site generation passed; GitHub's artifact
+service returned an intermediary 403 during finalization, before catalog or site
+publication. Retrying the failed preparation job succeeded with unchanged
+publication code and the same immutable release. Promotion
+[35204667815, attempt 2](https://github.com/ikamensh/saga-online/actions/runs/35204667815/attempts/2)
+committed catalog `3fcb79a` and accepted site
+`1fd8db6eb325b28a16f8edca0ec83f2d81e2d3a3e76d547ceb4f242e0a11f681`
+at generation 5, retaining corrected site `5bba8ee4…b1f233f` for rollback.
+The live browser page shows the new version, source and four download links;
+the screenshot confirms the responsive image proportions and readable labels.
+Receipt: `dist/ci-acceptance/promotion-35204667815/publication.json`.
+
+The first catalog update also retired `warband-v1`; an old duplicate-ID test
+therefore stopped creating a duplicate. Commit `1be6068` derives its deliberately
+duplicated ID from the current Warband entry. All 13 catalog checks pass without
+changing validation behavior.
+
+Final [public download run 35205462324](https://github.com/ikamensh/saga-online/actions/runs/35205462324)
+passed on Windows and Mac for `0.2.0-preview.35203328191` / Warband `e38618d`.
+It independently verified archive bytes, source/version/executable identity,
+bundled fonts and all eight online checks from fresh user directories, with an
+unchanged public catalog and live baseline. Receipts are under
+`dist/ci-acceptance/public-downloads-35205462324/` in the main checkout.
+Saga Online `1be6068` passed [all 135 server/publication checks](https://github.com/ikamensh/saga-online/actions/runs/35205251486)
+in 100.80 seconds, followed by the root preparation and real SSH acceptance.
+[Website checks](https://github.com/ikamensh/saga-online/actions/runs/35205251476)
+passed 130 tests in 77.52 seconds, with the existing native-proxy skip and server
+package deselection covered by the full server job. This completes WB-002.
+
+### Operating the enabled pipeline
+
+Warband main pushes build and test both native platforms, then publish an
+immutable preview and dispatch this repository. Feature branches only run
+checks. The preview version includes the native run ID; Windows remains unsigned
+and the Mac app is ad-hoc signed, with no notarization claim. There is no manual
+approval stage. A changed authoritative compatibility contract stops promotion
+until a separately verified server rollout updates the live baseline.
+
+For a publisher failure, rerun only the failed publisher job (or dispatch it
+with the original native `build_run_id`); never rebuild an accepted version.
+For a consumer failure, rerun this promotion's failed jobs, or dispatch
+`warband-promotion.yml` on current main with the same `build_run_id`, `release_id`
+and `manifest_sha256`. Preparation checks current source order, public release
+bytes and the live baseline again. A stale source is refused, not force-pushed.
+The Git catalog records desired state; the activation receipt and public bytes
+establish whether publication finished.
+
+Set Warband's `WARBAND_PUBLISH_ENABLED` or Saga Online's
+`WARBAND_PROMOTION_ENABLED` repository variable to `false` to stop the
+corresponding publishing stage while keeping checks available. Retain prior
+release archives and use the explicit generation/current-site controls in
+[the deployment runbook](../deploy/README.md) for rollback. Re-enable the
+appropriate flag after verification. Credential rotation is recorded above;
+no cloud/admin credential is required for ordinary site publication.

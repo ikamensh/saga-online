@@ -3,7 +3,7 @@
 The hosted side of the Saga games (`~/saga/`, see `../AGENTS.md`): the
 authoritative room server deployment on Scaleway, the release catalog, the
 self-service website at https://games.tachyon-ai.eu/ and the operator tools.
-This candidate uses the published `saga2d==0.3.2` release; all three games and
+This checkout uses the published `saga2d==0.3.2` release; all three games and
 Sagaforge remain editable path dependencies. Changes to the sibling engine
 checkout do not affect this environment. `.github/server-pins.json` records the
 exact sibling commits, Python and uv required for a server package. Use separate
@@ -62,7 +62,7 @@ uv run python tools/load_online.py wss://games.tachyon-ai.eu/play warband --room
   `.github/workflows/warband-promotion.yml`. A catalog commit is desired state,
   never proof of site acceptance. Retrying an already-current catalog must
   still verify/activate the site. `docs/warband-ci-publication.md` records the
-  exact acceptance, credentials and remaining rollout gates.
+  completed live acceptance, credentials and retry/disable/rollback procedure.
 - `releases/catalog.json` — the single source of release facts (versions,
   download URLs, hashes, minimum client protocol); games fetch it when
   Multiplayer opens, the server rejects incompatible clients.
