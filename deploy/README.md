@@ -170,8 +170,8 @@ The accepted production baseline is recorded in
 [`releases/server-baseline.json`](../releases/server-baseline.json), captured
 from the live `99e28517…54609f7` release on 2026-09-17 after public client and
 retained-campaign acceptance. The [WB-003 rollout](../docs/warband-movement-rollout.md)
-records the candidate, backup, prior verified rollback release and exact checks. CI's `games.example.test` reports are test evidence,
-not production baselines.
+records the candidate, backup, prior verified rollback release and exact checks.
+CI's `games.example.test` reports are test evidence, not production baselines.
 
 ### Restricted CI publisher
 

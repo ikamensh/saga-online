@@ -7,8 +7,8 @@ verified candidate; client publication remains the next step.
 Warband `35b851f` fixes local/replay presentation and makes pointer actions
 follow the displayed units. Its optional `smart.target_id` field preserves the
 clicked identity: an integer selects that entity; explicit null means empty
-ground; omission keeps the existing model-point behavior. The current server
-rejects the new field, so this client needs a verified server update before
+ground; omission keeps the existing model-point behavior. The previous server
+rejected the new field, so a verified server update was required before client
 publication. The default simulation fingerprint is unchanged. See
 [the game diagnosis](../../warband/docs/movement-diagnosis.md).
 
