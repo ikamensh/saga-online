@@ -1,7 +1,8 @@
 # WB-004 — Melee and renderer rollout
 
 Started 2026-09-17. This is the release dependency of Warband WB-004; pause
-backlog execution after that item is accepted. No deployment is claimed yet.
+backlog execution after that item is accepted. The shared server rollout below
+is accepted; final public Warband publication checks follow.
 
 Warband's melee presentation preserves the authoritative game fingerprint.
 Its crowded-battle acceptance required the verified Saga2D 0.3.3 renderer
@@ -76,3 +77,38 @@ The exact isolated cohort passes all **135 Saga Online tests in 91.78 s**.
 The off-host checkpoint contains four retained Shardbound campaigns; all four
 must survive the private rehearsal and activation. Linux service-account
 package acceptance and the live checks remain required.
+
+## Accepted live server — 2026-09-17
+
+Warband source `cac35b7` passes Linux Tests run **35241591056** (1,048 tests,
+12 skips), and native run **35241590924** passes Windows, Mac and independent
+archive validation. Saga Online source `a28623f` passes Linux run
+**35243222879**, including the full suite, real restricted SSH, deployment
+exclusion, service-account preparation, three-game orders, checkpoint/restart,
+backup restore and unchanged-release retry. Website checks also pass.
+
+The exact accepted archive is
+`acb8cef212b94daad035a604dc6319fd9e9d025703f131e39202f213de53e082`
+(6,679,612 bytes). Production preparation preserved the live service and site.
+A private copy of the live backup successfully resumed all **four retained
+Shardbound campaigns and seven saved seats**, preserving state and tokens.
+
+After a stopped checkpoint, the existing installer activated that archive.
+Public health and runtime attestation match its preparation receipt. Real
+Warband smart-order checks pass: explicit ground targets, queued entity IDs,
+invalid target rejection, omitted legacy targets and ownership rejection.
+Downloaded frozen Mac clients for the existing Tribes and Shardbound releases
+and the accepted Warband candidate pass public TLS create/join, orders and
+private-seat rejoin; all eight Warband online checks pass. A fresh off-host
+checkpoint passes SQLite integrity and preserves all four prior campaigns'
+state and seat tokens. The website pointer and publication state are unchanged.
+
+The live baseline is recorded in `releases/server-baseline.json`. The prior
+server `99e28517d6170e0957c56c3b7de8eeebdcf7befeaf54ecd371d6de11354609f7`
+remains installed at the `previous` pointer. Its stopped off-host checkpoint
+has SHA-256 `b5eef9dd456f53430fb8a8aacf17fde9c5529c9afdd877646172486a4a343181`.
+Private backups/configuration and the exact receipts are under the ignored
+`docs/evidence/melee-rollout/` directory; no private seat tokens are committed.
+
+This accepts the shared-server dependency of WB-004. Its public client release
+must still complete automatic publication and Windows/Mac download checks.
