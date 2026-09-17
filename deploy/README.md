@@ -3,7 +3,10 @@
 Tribes, Warband and Shardbound share one authoritative Python room server at
 `wss://games.tachyon-ai.eu/play`. Caddy terminates TLS on port 443 and forwards
 `/play` and `/healthz` to `127.0.0.1:8765`; `/healthz` returns HTTP 200 and
-`ok\n`. Every other path is the static games website, served from
+`ok\n`. The candidate proxy also forwards `/server-compatibility.json` to the
+same running game process, with `Cache-Control: no-store`. This route becomes
+available only after the candidate server is accepted and deployed. Every other
+path is the static games website, served from
 `/srv/saga2d-site/current`, including the release catalog at `/releases.json`
 and invitation links under `/join/`.
 
@@ -47,20 +50,43 @@ limits. No managed load balancer or serverless service is required.
 
 ## Releases and validation
 
-`package` allowlists Python source from all three games, Saga2D and the server,
-plus deployment templates. It exports hashed dependencies from `uv.lock` using
-`uv export --frozen`. Keep the lock current with `pyproject.toml` before release.
-Artifacts are content-addressed tarballs under ignored `dist/online/`; local
-credential files, saves, caches and the working tree's metadata are excluded.
+`package` requires clean checkouts at the exact sibling commits in
+`../.github/server-pins.json`, together with its pinned Python and uv versions.
+Use separate adjacent checkouts when these differ from active development
+branches. It reads allowlisted game source from Git objects, verifies Saga2D's
+installed PyPI source against its wheel inventory, and exports hashed runtime
+dependencies using `uv export --locked`. The server lock must agree with the
+Warband native release's compatibility contract. Content-addressed tarballs
+under ignored `dist/online/` contain `deploy/server-inputs.json` with exact
+source commits, runtime versions and file hashes. Credentials, saves, caches,
+untracked source and working-tree metadata are excluded.
 
-The installer verifies the remote instance marker and upload checksum, creates
-an isolated venv under `/opt/saga2d-online/releases/<sha256>`, then starts a
-candidate on an ephemeral loopback port. Before activation, the candidate must
-pass health and create/join a room for **each of the three games**, exercising
-their lazy imports and model constructors. The `current` symlink is replaced
+After checking the managed-instance marker, the installer calls
+`prepare_release.sh`. Preparation verifies and extracts the uploaded archive
+into `/opt/saga2d-online/releases/<sha256>`, rejecting unsafe archives or changes
+to existing release bytes. It bootstraps a hash-pinned uv wheel with Ubuntu's
+Python, installs the exact managed Python under `/opt/saga2d-online/python`
+(accessible with `ProtectHome=true`), and installs a dedicated hashed runtime.
+As the unprivileged service account, `check_release.py` then starts the actual
+packaged launcher on an ephemeral loopback port, verifies its live attestation,
+creates and joins **all three actual games**, submits orders, stops the server
+with SIGTERM and backs up the paused checkpoint with the actual SQLite tool.
+It checks authenticated rejoin and exact paused state after restarting the
+original database, then after restoring only the backup into a fresh private
+state directory. Taking the backup before rejoining avoids comparing against
+RTS ticks that advance while both players are present. Its private seat tokens
+never enter the live store or public report. Only success writes `.ready`; a retry verifies the same
+release again and preserves its environment. Preparation does not activate a
+service or change the proxy, and is exercised separately by branch CI.
+
+Activation replaces the `current` symlink
 atomically, followed by a systemd restart and health check. An activation failure
 restores the previous release's service and proxy configuration. First-time
 activation failure stops the failed service and reports the error.
+The process's compatibility response must match the accepted candidate before
+the proxy is reloaded. This startup gate does not replace rollout acceptance:
+room draining, reviewed backup/restore, restricted CI access and public
+packaged-client checks still need to be completed for unattended publication.
 
 The systemd service has `MemoryMax=1200M`, `CPUQuota=150%`, `TasksMax=128`,
 `LimitNOFILE=4096`, 32 rooms and 96 connections. Rooms expire 15 minutes after
@@ -93,19 +119,123 @@ games read the same document. Update the catalog only after a release has
 passed acceptance, and never overwrite a versioned binary.
 
 ```sh
-uv run python tools/release_catalog.py                     # validate
-uv run python tools/build_site.py                          # render dist/site
-uv run python tools/deploy_online.py site --name saga2d-online
+uv run --project publishing --locked python tools/release_catalog.py
+uv run --project publishing --locked python tools/build_site.py
+# Set SITE_EXPECTED to the reviewed current SHA-256 (or none for first use),
+# and SITE_GENERATION to the reviewed next promotion generation.
+uv run --project publishing --locked python tools/deploy_online.py site --name saga2d-online \
+  --expected-site "$SITE_EXPECTED" --site-generation "$SITE_GENERATION"
 ```
 
-`site` bundles `dist/site` with `deploy/install_site.sh`, uploads it, installs
-it as an immutable release under `/srv/saga2d-site/releases/<sha256>`, swaps the
-`current` symlink and verifies that the public home page and `/releases.json`
-serve the exact local bytes. It does not touch the room server; `deploy`
+Before preparing publication, read `/srv/saga2d-site/state.json` and the
+`/srv/saga2d-site/current` symlink on the named host. The first transaction can
+adopt an existing legacy SHA-256 release as generation zero; use that release
+as `SITE_EXPECTED` and a positive generation. Subsequent generations must exceed
+the recorded accepted generation. Do not automatically substitute a newer head
+if the reviewed expected release is rejected: reconcile the catalog first.
+
+For an independently prepared Warband promotion, build from its `catalog.json`
+and pass `--promotion-receipt PATH/TO/promotion.json` to `package-site` or `site`.
+The archive carries that receipt outside the public website and verifies its
+catalog digest. `site` selects explicit `warband-promotion` mode on the host;
+that mode requires the receipt and checks the uncached live compatibility
+response immediately before exposing downloads and after public acceptance,
+including retries. Ordinary operator site publication uses explicit `operator`
+mode. A promotion archive cannot be passed to operator mode. The restricted
+CI receiver always requires promotion mode; this operator
+command is not a substitute for that credential restriction.
+
+`site` uploads only `dist/site` and the optional promotion receipt. Trusted
+activation code, installed separately with `setup-site-ci` (below), installs
+an immutable release under
+`/srv/saga2d-site/releases/<sha256>`. The transaction holds
+`/var/lock/saga2d-online.publish.lock`, shared with the server installer,
+through expected-head/generation checks, the atomic `current` symlink swap,
+verification of every public file and `/healthz`, and state recording. Failed
+acceptance restores the previous site; an interrupted process leaves a journal
+that the next site invocation recovers before accepting another promotion.
+The server installer refuses activation while that journal remains. Preserve
+the lock file; do not unlink it while either operation might hold it. Once this
+deployment protocol is installed, use these entry points for all publications
+and server refreshes, not an older archived installer with a different lock.
+It does
+not touch the room server; `deploy`
 does not touch the site. The Caddy routes ship with the server release, so the
 first site publication requires a server deployment that carries the current
-`deploy/Caddyfile`. The three most recent site releases are retained for manual
-rollback by re-pointing the symlink.
+`deploy/Caddyfile`. The `previous` pointer and immutable releases are retained;
+there is no automatic pruning. An intentional rollback is a new promotion of
+the reviewed previous bytes with a higher generation and the current expected
+head. Do not move the symlink manually while leaving `state.json` unchanged.
+The accepted production baseline is recorded in
+[`releases/server-baseline.json`](../releases/server-baseline.json), captured
+from the live `c5193bd5…b63dca` release on 2026-09-17 after public client and
+backup/rollback acceptance. CI's `games.example.test` reports are test evidence,
+not production baselines.
+
+### Restricted CI publisher
+
+Installed on `saga2d-online` on 2026-09-17. The dedicated account's real SSH
+`status` check passed with the pinned host key, reporting the unchanged legacy
+site `43836139…ddfb9`, generation zero, and no pending transaction. GitHub's
+`warband-promotion` environment holds `SAGA_SITE_SSH_KEY`,
+`SAGA_SITE_KNOWN_HOSTS` and the `SAGA_SITE_HOST` variable; only `main` can use it.
+The local Secrets index records the dedicated credential files and rotation
+instructions. See [CI publication status](../docs/warband-ci-publication.md)
+for enablement and the first complete release journey.
+
+Prepare a dedicated Ed25519 key for website CI. Keep the operator's SSH key and
+cloud/DNS credentials local. With the dedicated **public** key, the operator can
+prepare the trusted host tools offline, then install them on the named host:
+
+```sh
+uv run --project publishing --locked python tools/deploy_online.py package-site-ci \
+  --name saga2d-online --site-public-key /path/to/site-ci.pub
+uv run --project publishing --locked python tools/deploy_online.py setup-site-ci \
+  --name saga2d-online --site-public-key /path/to/site-ci.pub
+```
+
+Setup creates `saga2d-site-ci` with no sudo or supplementary groups. Its home,
+authorized keys, versioned tools and configuration are root-owned; it owns only
+the website tree and can use the existing shared lock. Existing site transaction
+files move to this account without replacing the lock inode or site pointer.
+The operator's `site` command also runs the trusted transaction as this account.
+Setup validates the effective SSH restrictions before installing the key and
+reloading SSH. It does not publish a site or restart the game server. Repeat the
+same command to update trusted tools or rotate the dedicated key.
+
+The account's forced command accepts exactly `status` and `publish`. It executes
+host-installed Python in isolated mode. Uploads contain only bounded website
+data and a receipt; even script-shaped public files remain data. Forwarding,
+TTY, user startup hooks, password authentication and arbitrary commands are
+disabled. Both `ForceCommand` and forwarding restrictions are required; see
+[OpenSSH's configuration reference](https://man.openbsd.org/sshd_config).
+
+Give CI the dedicated private key and an independently verified `known_hosts`
+entry for the host. The client requires the pinned key, ignores ambient SSH
+configuration/agents, and never accepts a new host key automatically:
+
+```sh
+python tools/site_publish.py --host HOST --identity /path/to/site-ci \
+  --known-hosts /path/to/known_hosts status
+python tools/site_publish.py --host HOST --identity /path/to/site-ci \
+  --known-hosts /path/to/known_hosts publish --archive /path/to/site-SHA256.tar.gz \
+  --generation GENERATION --expected EXPECTED_SHA256
+```
+
+`status` returns accepted state and whether an interrupted transaction remains;
+it never adopts an unverified pointer. Reconcile that accepted state with the
+prepared catalog before choosing a generation. Use `none` for the expected
+release only on a first publication. A retry uses the same archive and ordering
+preconditions. Limits are 64 MiB compressed, 256 MiB expanded, 2,048 regular
+files, and 300 seconds on the host; failures are explicit and preserve/recover
+the last accepted site.
+
+`tests/host_site_ssh.py` verifies the actual setup, client, forced command and
+rollback through a loopback SSH daemon on a disposable Linux container or GitHub
+runner. It writes production paths and refuses an already managed host. Never
+run this acceptance program on the live server.
+
+### Installed client update notices
 
 Installed games fetch `/releases.json` when the player opens Multiplayer and
 offer the download page when the catalog version differs from their build.

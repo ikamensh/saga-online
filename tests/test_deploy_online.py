@@ -1,6 +1,7 @@
 """Deployment preparation must run offline without opening cloud credentials."""
 import json
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tarfile
@@ -26,41 +27,100 @@ def test_plan_is_reviewable_without_credentials(tmp_path):
     assert plan["secrets_on_server"] is False
     assert not list(tmp_path.iterdir())
 
-GAMES = ('tribes.multiplayer:ONLINE', 'warband.multiplayer:ONLINE', 'eador.multiplayer:ONLINE')
-
-
 def test_packaged_release_runs_server_entrypoint(tmp_path):
-    """The artifact contains all game modules and runs away from the checkout."""
+    """The actual three-game artifact attests its inputs and serves clients away from the source checkout."""
     result = subprocess.run(
         [sys.executable, str(ROOT / "tools/deploy_online.py"), "package",
          "--name", "saga2d-online", "--output", str(tmp_path)],
         check=True, capture_output=True, text=True,
     )
     package = json.loads(result.stdout)
-    unpacked = tmp_path / "unpacked"
+    uploaded = tmp_path / "uploaded"
     with tarfile.open(package["archive"]) as archive:
-        archive.extractall(unpacked, filter="data")
-    subprocess.run([sys.executable, "-m", "saga2d.server", "--help"],
-                   cwd=unpacked, check=True, capture_output=True)
+        archive.extractall(uploaded, filter="data")
+    shutil.copyfile(package["archive"], uploaded / "release.tar.gz")
+    unpacked = tmp_path / "unpacked"
+    stage_command = [sys.executable, "-B", str(uploaded / "deploy/stage_release.py"),
+                     str(uploaded / "release.tar.gz"), str(unpacked), package["release"]]
+    staged = subprocess.run(stage_command, capture_output=True, text=True)
+    assert staged.returncode == 0, staged.stderr
+    assert not (unpacked / "release.tar.gz").exists()
+    inputs = json.loads((unpacked / "deploy/server-inputs.json").read_text())
+    assert inputs["warband_compatibility"]["registry"] == "warband.authority:ONLINE"
+    # Install only the exported hashed runtime. The server must not borrow
+    # editable game imports or dependencies from the build environment.
+    subprocess.run(["uv", "venv", "--python", inputs["python"], str(unpacked / ".venv")],
+                   check=True, capture_output=True)
+    server_python = str(unpacked / ".venv/bin/python")
+    subprocess.run(["uv", "pip", "install", "--python", server_python, "--require-hashes",
+                    "-r", str(unpacked / "deploy/requirements.txt")], check=True, capture_output=True)
+    subprocess.run([server_python, "-B", str(unpacked / "deploy/server.py"), "--help"],
+                   cwd=tmp_path, check=True, capture_output=True)
     subprocess.run(["bash", "-n", str(unpacked / "deploy/install.sh")], check=True)
     assert all((unpacked / game / "multiplayer.py").exists()
                for game in ["tribes", "warband", "eador"])
     # Warband counts its committed death and wreckage pieces when imported.
     assert list((unpacked / "warband/assets/deaths").glob("*.wav")) and list((unpacked / "warband/assets/wreckage").glob("*.wav"))
-    assert not list(unpacked.rglob("*.png"))  # Art stays out of the server release.
-    assert not list(unpacked.rglob("*.md"))  # No local secret stores in artifacts.
+    assert not [path for path in unpacked.rglob("*.png") if ".venv" not in path.parts]  # Game art stays out.
+    assert not [path for path in unpacked.rglob("*.md") if ".venv" not in path.parts]  # No local secret stores.
     assert (unpacked / "deploy/requirements.txt").read_text().find("websockets==") >= 0
-    with subprocess.Popen([sys.executable, "-m", "saga2d.server", "--port", "0", "--games", *GAMES],
-                          cwd=unpacked, stdout=subprocess.PIPE, text=True) as process:
+    with subprocess.Popen([server_python, "-B", str(unpacked / "deploy/server.py"), "--port", "0",
+                           "--release-id", package["release"], "--endpoint", "wss://games.tachyon-ai.eu/play",
+                           "--state-dir", str(tmp_path / "state")],
+                          cwd=tmp_path, stdout=subprocess.PIPE, text=True) as process:
         try:
             readable, _, _ = select.select([process.stdout], [], [], 15)
             assert readable, "Packaged server failed to start"
-            endpoint = process.stdout.readline().strip().removeprefix("LISTENING ") + "/play"
-            subprocess.run([sys.executable, str(unpacked / "deploy/smoke.py"), endpoint],
-                           cwd=unpacked, check=True, timeout=60, capture_output=True)
+            line = process.stdout.readline().strip()
+            assert line.startswith("LISTENING ws://127.0.0.1:"), f"Packaged server did not announce readiness: {line}"
+            endpoint = line.removeprefix("LISTENING ") + "/play"
+            from urllib.request import urlopen
+            with urlopen(endpoint.replace("ws://", "http://").removesuffix("/play") + "/server-compatibility.json") as response:
+                baseline = json.load(response)
+            assert baseline["deployment_release"] == package["release"]
+            assert baseline["warband"] == {"source_commit": inputs["sources"]["warband"],
+                                           "compatibility": inputs["warband_compatibility"]}
+            subprocess.run([server_python, "-B", str(unpacked / "deploy/smoke.py"), endpoint],
+                           cwd=tmp_path, check=True, timeout=60, capture_output=True)
         finally:
             process.terminate()
             process.wait(timeout=10)
+    # Real sockets with delayed cleanup force RTS ticks while the rejoined
+    # players are both present. Restoring a backup must compare with that
+    # backup's paused state, not a snapshot from an earlier point in play.
+    delayed_disconnect = '''
+from contextlib import contextmanager
+from pathlib import Path
+import runpy, sys, time
+from websockets.sync import client
+connect = client.connect
+@contextmanager
+def delayed(*args, **kwargs):
+    with connect(*args, **kwargs) as socket:
+        try:
+            yield socket
+        finally:
+            time.sleep(0.15)
+client.connect = delayed
+sys.path.insert(0, str(Path(sys.argv[1]).parent))
+sys.argv = sys.argv[1:]
+runpy.run_path(sys.argv[0], run_name="__main__")
+'''
+    verified = subprocess.run([server_python, "-B", "-c", delayed_disconnect,
+                               str(unpacked / "deploy/check_release.py"), str(unpacked),
+                               "--release-id", package["release"], "--endpoint", "wss://games.tachyon-ai.eu/play"],
+                              cwd=tmp_path, capture_output=True, text=True, timeout=60)
+    assert verified.returncode == 0, verified.stderr
+    report = json.loads(verified.stdout)
+    assert report["passed"] is True and report["restart_rejoin"] is True
+    assert report["backup_restore"] is True
+    assert report["games"] == ["tribes-v1", "warband-v2", "shardbound-v1"]
+    assert report["baseline"] == baseline
+    marker = unpacked / ".venv/retry-marker"
+    marker.write_text("Keep the existing environment on a staging retry")
+    staged = subprocess.run(stage_command, capture_output=True, text=True)
+    assert staged.returncode == 0, staged.stderr
+    assert marker.read_text() == "Keep the existing environment on a staging retry"
 
 
 def test_credentials_selected_by_heading_not_file_order(tmp_path):
@@ -85,8 +145,8 @@ def test_provider_smtp_blocks_survive_game_firewall_setup():
     assert firewall_ports(provider_rules + [game_rule]) == {443}
 
 
-def test_site_release_bundles_built_pages_with_its_installer(tmp_path):
-    """Publishing needs a finished build; the archive is content-addressed and self-contained."""
+def test_site_release_bundles_only_built_pages_for_the_trusted_host_installer(tmp_path):
+    """Publishing carries content-addressed data; the separately installed host tool owns activation."""
     from tools.deploy_online import package_site
 
     site = tmp_path / "site"
@@ -103,9 +163,33 @@ def test_site_release_bundles_built_pages_with_its_installer(tmp_path):
     with tarfile.open(first["archive"]) as archive:
         archive.extractall(unpacked, filter="data")
     assert (unpacked / "site/warband/index.html").read_text() == "<h1>Warband</h1>"
-    subprocess.run(["bash", "-n", str(unpacked / "deploy/install_site.sh")], check=True)
+    assert not (unpacked / "deploy").exists()
+    # Exercise the trusted host implementation against extracted upload data.
+    from tests.test_site_activation import public_site
+    base = tmp_path / "host"
+    with public_site(base) as endpoint:
+        result = subprocess.run([sys.executable, str(ROOT / "deploy/activate_site.py"),
+                                 "--source", str(unpacked / "site"), "--base", str(base),
+                                 "--release", first["release"], "--generation", "1", "--expected", "none",
+                                 "--public-url", endpoint, "--health-url", endpoint + "/healthz",
+                                 "--deployment-lock", str(tmp_path / "deployment.lock"), "--mode", "operator"],
+                                cwd=tmp_path, capture_output=True, text=True)
+        assert result.returncode == 0, result.stderr
+        assert json.loads(result.stdout)["release"] == first["release"]
+        assert (base / "current/warband/index.html").read_bytes() == (site / "warband/index.html").read_bytes()
     (site / "index.html").write_text("<h1>Changed</h1>")
     assert package_site(site, tmp_path / "out")["release"] != first["release"]
+
+
+def test_site_publication_requires_explicit_order_and_current_release_before_accessing_credentials(tmp_path):
+    """A command prepared for another site head cannot choose a fresh generation implicitly."""
+    base = [sys.executable, str(ROOT / "tools/deploy_online.py"), "site", "--name", "saga2d-online",
+            "--secrets-file", str(tmp_path / "absent")]
+    for flags in ([], ["--site-generation", "0", "--expected-site", "none"],
+                  ["--site-generation", "1", "--expected-site", "malformed"]):
+        result = subprocess.run([*base, *flags], capture_output=True, text=True)
+        assert result.returncode == 2
+        assert "site" in result.stderr and "FileNotFoundError" not in result.stderr
 
 
 def test_proxy_configuration_keeps_play_and_health_on_the_room_server():

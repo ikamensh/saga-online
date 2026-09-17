@@ -4,7 +4,7 @@ import pytest
 from tools.load_online import run
 from saga2d.packaging.verify import local_server
 
-GAMES = ('tribes.multiplayer:ONLINE', 'warband.multiplayer:ONLINE', 'eador.multiplayer:ONLINE')
+GAMES = ('tribes.multiplayer:ONLINE', 'warband.authority:ONLINE', 'eador.multiplayer:ONLINE')
 
 
 @pytest.mark.parametrize('game', ['tribes', 'warband', 'shardbound'])

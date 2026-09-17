@@ -2,38 +2,129 @@ name: Tests
 
 on:
   push:
-    branches: [main]
+    branches: ['**']
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: server-checks-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: saga-online
+    env:
+      UV_PYTHON_PREFERENCE: only-managed
+      SAGA2D_SILENT: '1'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           path: saga-online
-      - uses: actions/checkout@v4
+      - name: Read reviewed server inputs
+        id: pins
+        run: |
+          python3 - <<'PY'
+          import json, os
+          pins = json.load(open('.github/server-pins.json'))
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              for name, value in {**pins['sources'], 'python': pins['python'], 'uv': pins['uv']}.items():
+                  print(f'{name}={value}', file=output)
+          PY
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ikamensh/sagaforge
+          ref: ${{ steps.pins.outputs.sagaforge }}
+          persist-credentials: false
           path: sagaforge
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ikamensh/tribes
+          ref: ${{ steps.pins.outputs.tribes }}
+          persist-credentials: false
           path: tribes
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ikamensh/warband
+          ref: ${{ steps.pins.outputs.warband }}
+          persist-credentials: false
           path: warband
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ikamensh/shardbound
+          ref: ${{ steps.pins.outputs.shardbound }}
+          persist-credentials: false
           path: shardbound
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-      - name: Install dependencies
-        run: uv sync --locked --extra dev
-        working-directory: saga-online
-      - name: Run tests
-        run: uv run --locked pytest -q
-        working-directory: saga-online
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: ${{ steps.pins.outputs.uv }}
+          python-version: ${{ steps.pins.outputs.python }}
+          enable-cache: false
+      - name: Install server and native proxy test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y caddy python3-venv openssh-server
+          caddy version
+          uv sync --locked --extra dev
+      - name: Run the complete server and publication suite
+        run: uv run --locked python -m pytest -q --junitxml=dist/server-tests.xml
+      - name: Verify the read-only CI token can inspect public native provenance
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          uv run --locked python - <<'PY'
+          import json, sys
+          from pathlib import Path
+          sys.path.insert(0, 'tools')
+          from warband_promotion import GitHub
+          pins = json.loads(Path('.github/server-pins.json').read_text())
+          api = GitHub('https://api.github.com')
+          run = api.get(f"/actions/runs/{pins['warband_run_id']}")
+          assert run['head_sha'] == pins['sources']['warband']
+          jobs = list(api.pages(f"/actions/runs/{run['id']}/attempts/{run['run_attempt']}/jobs", 'jobs'))
+          assert jobs and all(job['conclusion'] == 'success' for job in jobs)
+          print('Read-only public provenance access passed')
+          PY
+      - name: Verify host exclusion through the actual Linux deployment entry points
+        run: sudo env GITHUB_ACTIONS=true .venv/bin/python -B tests/host_deployment_exclusion.py > dist/deployment-exclusion.json
+      - name: Verify the restricted publisher through real SSH on the isolated runner
+        run: sudo env GITHUB_ACTIONS=true .venv/bin/python -B tests/host_site_ssh.py > dist/site-ssh-acceptance.json
+      - name: Build the exact server archive
+        run: uv run --locked python tools/deploy_online.py package --name saga2d-online --output dist/online > dist/server-package.json
+      - name: Prepare and reverify the artifact as the Linux service account
+        run: |
+          sudo useradd --system --user-group --shell /usr/sbin/nologin saga2d-online
+          archive=$(python3 -c 'import json; print(json.load(open("dist/server-package.json"))["archive"])')
+          release=$(python3 -c 'import json; print(json.load(open("dist/server-package.json"))["release"])')
+          upload="$RUNNER_TEMP/server-upload"
+          mkdir -p "$upload"
+          tar -xzf "$archive" -C "$upload"
+          cp "$archive" "$upload/release.tar.gz"
+          sudo bash "$upload/deploy/prepare_release.sh" "$upload" "$release" games.example.test
+          runtime="/opt/saga2d-online/releases/$release"
+          sudo cat "$runtime/.ready" > dist/server-acceptance.json
+          sudo touch "$runtime/.venv/retry-marker"
+          sudo bash "$upload/deploy/prepare_release.sh" "$upload" "$release" games.example.test
+          sudo test -f "$runtime/.venv/retry-marker"
+          sudo cmp dist/server-acceptance.json "$runtime/.ready"
+          sudo -u saga2d-online test ! -w "$runtime/warband/authority.py"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: server-acceptance-${{ github.sha }}-${{ github.run_attempt }}
+          path: |
+            saga-online/dist/server-tests.xml
+            saga-online/dist/server-package.json
+            saga-online/dist/server-acceptance.json
+            saga-online/dist/deployment-exclusion.json
+            saga-online/dist/site-ssh-acceptance.json
+            saga-online/dist/online/*.tar.gz
+          if-no-files-found: error
+          retention-days: 14

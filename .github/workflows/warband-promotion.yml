@@ -1,0 +1,144 @@
+name: Promote verified Warband
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_run_id:
+        description: Successful main native build already published by Warband
+        required: true
+        type: string
+      release_id:
+        description: Immutable public Warband preview release ID
+        required: true
+        type: string
+      manifest_sha256:
+        description: SHA-256 of its accepted release.json
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: warband-site-publication
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    outputs:
+      expected_head: ${{ steps.inputs.outputs.expected_head }}
+      python: ${{ steps.inputs.outputs.python }}
+      uv: ${{ steps.inputs.outputs.uv }}
+      artifact_id: ${{ steps.upload.outputs.artifact-id }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Record the current main checkout and pinned tools
+        id: inputs
+        run: |
+          python3 - <<'PY'
+          import json, os, subprocess
+          from pathlib import Path
+          pins = json.loads(Path('.github/server-pins.json').read_text())
+          values = {'expected_head': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
+                    'python': pins['python'], 'uv': pins['uv']}
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              for key, value in values.items():
+                  print(f'{key}={value}', file=output)
+          PY
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: ${{ steps.inputs.outputs.uv }}
+          python-version: ${{ steps.inputs.outputs.python }}
+          enable-cache: false
+      - name: Independently verify the public release and live compatibility
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD_RUN_ID: ${{ inputs.build_run_id }}
+          RELEASE_ID: ${{ inputs.release_id }}
+          MANIFEST_SHA256: ${{ inputs.manifest_sha256 }}
+        run: |
+          previous=()
+          if [[ -f releases/warband-promotion.json ]]; then
+            previous=(--previous-promotion releases/warband-promotion.json)
+          fi
+          uv run --project publishing --locked python tools/warband_promotion.py \
+            --build-run-id "$BUILD_RUN_ID" --release-id "$RELEASE_ID" --manifest-sha256 "$MANIFEST_SHA256" \
+            --catalog releases/catalog.json --baseline releases/server-baseline.json \
+            "${previous[@]}" --output dist/promotion/native
+      - name: Build the immutable site with recorded inputs and release date
+        run: >-
+          uv run --project publishing --locked python tools/prepare_warband_site.py
+          --prepared dist/promotion/native --output dist/promotion/site
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        id: upload
+        with:
+          name: warband-promotion-${{ github.run_id }}-${{ github.run_attempt }}
+          path: dist/promotion/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+
+  publish:
+    needs: prepare
+    if: github.ref == 'refs/heads/main' && vars.WARBAND_PROMOTION_ENABLED == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: warband-promotion
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.prepare.outputs.expected_head }}
+          persist-credentials: true
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: ${{ needs.prepare.outputs.uv }}
+          python-version: ${{ needs.prepare.outputs.python }}
+          enable-cache: false
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          artifact-ids: ${{ needs.prepare.outputs.artifact_id }}
+          merge-multiple: true
+          path: dist/promotion
+      - name: Commit the desired catalog and activate the exact prepared site
+        env:
+          EXPECTED_HEAD: ${{ needs.prepare.outputs.expected_head }}
+          SITE_HOST: ${{ vars.SAGA_SITE_HOST }}
+          SITE_KEY: ${{ secrets.SAGA_SITE_SSH_KEY }}
+          SITE_KNOWN_HOSTS: ${{ secrets.SAGA_SITE_KNOWN_HOSTS }}
+        run: |
+          git config user.name 'Saga release automation'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          python3 - <<'PY'
+          import os, subprocess, tempfile
+          from pathlib import Path
+          for name in ('SITE_HOST', 'SITE_KEY', 'SITE_KNOWN_HOSTS'):
+              if not os.environ.get(name):
+                  raise ValueError(f'Missing publication configuration: {name}')
+          with tempfile.TemporaryDirectory(prefix='site-credentials-', dir=os.environ['RUNNER_TEMP']) as temporary:
+              root = Path(temporary)
+              key, hosts = root / 'identity', root / 'known_hosts'
+              key.write_text(os.environ['SITE_KEY'].strip() + '\n')
+              key.chmod(0o600)
+              hosts.write_text(os.environ['SITE_KNOWN_HOSTS'].strip() + '\n')
+              command = ['uv', 'run', '--project', 'publishing', '--locked', 'python', 'tools/apply_warband_promotion.py',
+                         '--repository', '.', '--expected-head', os.environ['EXPECTED_HEAD'],
+                         '--prepared', 'dist/promotion/native', '--site', 'dist/promotion/site',
+                         '--host', os.environ['SITE_HOST'], '--identity', str(key), '--known-hosts', str(hosts)]
+              with (Path(os.environ['RUNNER_TEMP']) / 'publication.json').open('w') as output:
+                  subprocess.run(command, check=True, stdout=output)
+          PY
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: warband-site-result-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/publication.json
+          if-no-files-found: warn
+          retention-days: 90

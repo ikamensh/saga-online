@@ -1,9 +1,26 @@
 """The website is generated from the catalog and shows real release facts per game."""
 import json
 from pathlib import Path
+import subprocess
+import sys
 
 from tools.build_site import build
 from tools.release_catalog import load
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_explicit_build_date_makes_the_cli_output_reproducible(tmp_path):
+    """A release retry renders identical website bytes with its recorded date, independently of today's date."""
+    sites = [tmp_path / 'first', tmp_path / 'retry']
+    for output in sites:
+        result = subprocess.run([sys.executable, str(ROOT / 'tools/build_site.py'), '--output', str(output),
+                                 '--build-date', '2000-01-02'], capture_output=True, text=True)
+        assert result.returncode == 0, result.stderr
+        assert 'Built 2000-01-02' in (output / 'index.html').read_text()
+    def files(output):
+        return {path.relative_to(output).as_posix(): path.read_bytes() for path in output.rglob('*') if path.is_file()}
+    assert files(sites[0]) == files(sites[1])
 
 
 def test_site_pages_reflect_the_catalog_and_content(tmp_path):
