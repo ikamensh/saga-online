@@ -34,7 +34,9 @@ def test_site_pages_reflect_the_catalog_and_content(tmp_path):
     for package in catalog['games']['warband']['packages']:
         assert package['url'] in warband and package['sha256'] in warband
     assert 'Copy invite link' in warband and 'games.tachyon-ai.eu/join/warband-v2/' in warband
-    assert 'Unsigned preview' in warband and 'Not yet notarized' in warband
+    assert 'Unsigned build' in warband and 'Not yet notarized' in warband
+    assert 'Early access</span>' in warband
+    assert f'<span>Version <b>{catalog["games"]["warband"]["version"]}</b></span>' in warband
     tribes = (output / 'tribes/index.html').read_text()
     for package in catalog['games']['tribes']['packages']:
         assert package['url'] in tribes

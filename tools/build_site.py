@@ -107,8 +107,8 @@ def install_steps(name, packages):
                    f'<li>Follow the installer with its default folder. It installs for your Windows account only; no administrator password or Python is needed.</li>'
                    f'<li>Leave <b>Play {esc(name)}</b> selected on the last page, or open Start and type <b>{esc(name)}</b> later.</li></ol>')
         if not signed.get('windows', True):
-            windows += ('<div class="note"><b>Unsigned preview.</b> If Windows shows <b>Windows protected your PC</b>, choose '
-                        '<b>More info → Run anyway</b>. That prompt appears because this preview build is not yet code-signed; '
+            windows += ('<div class="note"><b>Unsigned build.</b> If Windows shows <b>Windows protected your PC</b>, choose '
+                        '<b>More info → Run anyway</b>. That prompt appears because this build is not yet code-signed; '
                         'check the SHA-256 below if you want to verify the file. PCs with Smart App Control may refuse unsigned apps entirely.</div>')
     mac = ''
     if 'macos' in has:
@@ -137,10 +137,15 @@ def online_steps(name, slug, game_id, online, site):
             f'<code>{esc(site)}/join/{esc(game_id)}/abc123</code> and contain only the game and room code, never your private seat.</p>')
 
 
+def channel_label(entry):
+    return {"preview": "Early access", "stable": "Stable", None: "—"}[entry["channel"]]
+
+
 def game_page(slug, entry, content, images, site):
     name = entry['name']
     released = bool(entry['packages'])
-    pill = (f'<span class="pill {entry["channel"]}">{entry["channel"]} {esc(entry["version"])}</span>' if released
+    pill = (f'<span class="pill {entry["channel"]}">{channel_label(entry)}</span>'
+            f' <span>Version <b>{esc(entry["version"])}</b></span>' if released
             else '<span class="pill soon">Download coming soon</span>')
     head = (f'<div class="game-head"><div><h1>{esc(name)}</h1><p class="tagline">{esc(content["tagline"])}</p>'
             f'<p>{esc(content["summary"])}</p><p class="meta">{pill}'
@@ -203,7 +208,7 @@ def join_page():
 
 def status_page(catalog):
     rows = ''.join(f'<tr><td><a href="/{slug}/">{esc(entry["name"])}</a></td><td>{esc(entry["version"] or "not published")}</td>'
-                   f'<td>{esc(entry["channel"] or "—")}</td><td>{esc(entry["released"] or "—")}</td></tr>'
+                   f'<td>{channel_label(entry)}</td><td>{esc(entry["released"] or "—")}</td></tr>'
                    for slug, entry in catalog['games'].items())
     return (f'<h1>Service status</h1><p class="status-line" id="service-status"><span class="dot"></span><span class="status-text">Checking the online service…</span></p>'
             f'<p>Games connect to <code>{esc(catalog["server"]["endpoint"])}</code>, a single server in Paris. Rooms have two seats; '

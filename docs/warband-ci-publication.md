@@ -1,5 +1,11 @@
 # Warband CI publication
 
+The short-version rollout is tracked in
+[Warband's versioning acceptance record](../../warband/docs/release-versioning.md).
+New identities use schema 2 and a plain numeric version derived from the
+independently verified native run counter. The prior preview catalog remains a
+valid migration input; immutable historical downloads remain available.
+
 WB-002 completed on main on 2026-09-17. Work began on
 `codex/warband-publishing` at `c33c195`.
 The acceptance criteria and cross-repository decisions are recorded before

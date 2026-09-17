@@ -92,17 +92,24 @@ class GitHub:
 
 
 def verify_source(api, release, identity, run_id):
-    require(identity["schema_version"] == 1 and identity["game"] == "warband", "Wrong release identity")
+    require(identity["schema_version"] == 2 and identity["game"] == "warband", "Wrong release identity")
     commit = identity["source_commit"]
     require(bool(re.fullmatch(r"[0-9a-f]{40}", commit)), "Expected a full source commit")
-    require(identity["run_id"] == run_id and identity["tag"] == release["tag_name"] == "v" + identity["version"]
-            and identity["version"].endswith("." + str(run_id)), "Release/run identity differs")
+    require(identity["run_id"] == run_id and identity["tag"] == release["tag_name"] == "v" + identity["version"],
+            "Release/run identity differs")
+    base = re.fullmatch(r"(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)", identity["base_version"])
+    number, anchor = identity["run_number"], identity["version_run_base"]
+    require(base is not None and type(number) is int and number > 0
+            and type(anchor) is int and 0 <= anchor <= number, "Invalid version counter inputs")
+    require(identity["version"] == f"{base[1]}.{base[2]}.{int(base[3]) + number - anchor}",
+            "Version differs from native counter")
     require(release["target_commitish"] == commit, "Release targets different source")
     tag = api.get("/git/ref/tags/" + quote(identity["tag"], safe=""))["object"]
     require(tag["type"] == "commit" and tag["sha"] == commit,
             "Release tag points at different source")
     run = api.get(f"/actions/runs/{run_id}")
-    require(run["id"] == run_id and run["head_sha"] == commit, "Native build source differs")
+    require(run["id"] == run_id and run["head_sha"] == commit
+            and type(run["run_number"]) is int and run["run_number"] == number, "Native build source differs")
     require(run["repository"]["full_name"] == run["head_repository"]["full_name"] == REPOSITORY
             and run["head_branch"] == "main" and run["event"] in ("push", "workflow_dispatch"),
             "Only this repository's main native builds may be promoted")
@@ -161,14 +168,20 @@ def verify_order(api, catalog, identity, previous, release_id, manifest_sha256):
     comparison = api.get(f"/compare/{before}...{after}")
     require(comparison["status"] == ("identical" if before == after else "ahead"),
             "Candidate source is older than or diverges from the current catalog")
-    require(current["version"] != identity["version"] or before == after, "An accepted version cannot be rebound to different source")
-    if before != after:
+    # The previous catalog can still name an immutable legacy preview. A plain
+    # version sorts after its prerelease; compare numeric components, not text.
+    def version_key(value):
+        match = re.fullmatch(r"(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-preview\.([1-9]\d*))?", value)
+        require(match is not None, "Invalid ordered release version")
+        return (*map(int, match.group(1, 2, 3)), match[4] is None, int(match[4] or 0))
+
+    before_version, after_version = version_key(current["version"]), version_key(identity["version"])
+    require(after_version >= before_version, "An older version cannot replace the current release")
+    if after_version > before_version:
+        if previous is not None:
+            require(identity["run_id"] > previous["build_run_id"], "An older build cannot replace the current release")
         return False
-    version = re.fullmatch(r"(\d+\.\d+\.\d+)-preview\.([1-9][0-9]*)", current["version"])
-    require(version is not None and identity["version"].startswith(version[1] + "-preview."), "Same-source preview versions disagree")
-    require(identity["run_id"] >= int(version[2]), "An older build of this source cannot replace the current release")
-    if identity["run_id"] > int(version[2]):
-        return False
+    require(before == after, "An accepted version cannot be rebound to different source")
     require(previous is not None and previous["release_id"] == release_id and previous["build_run_id"] == identity["run_id"]
             and previous["manifest_sha256"] == manifest_sha256, "An accepted version must retain its original release and manifest receipt")
     return True
@@ -200,9 +213,9 @@ def prepare(args):
     api = GitHub(args.api_url)
     release = api.get(f"/releases/{args.release_id}")
     require(release["id"] == args.release_id and release["draft"] is False and release["immutable"] is True
-            and release["prerelease"] is True, "Expected the requested immutable published preview release")
+            and release["prerelease"] is True, "Expected the requested immutable published early access release")
     tag = release["tag_name"]
-    require(bool(re.fullmatch(r"v\d+\.\d+\.\d+-preview\.[1-9][0-9]*", tag)), "Invalid preview release tag")
+    require(bool(re.fullmatch(r"v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)", tag)), "Invalid release tag")
     records = list(api.pages(f"/releases/{args.release_id}/assets"))
     remote = {item["name"]: item for item in records}
     require(len(remote) == len(records) == 7 and "release.json" in remote, "Expected exactly seven public release assets")

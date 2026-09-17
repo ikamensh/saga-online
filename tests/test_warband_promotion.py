@@ -35,13 +35,15 @@ def archive(files):
     return out.getvalue()
 
 
-def release_data(tmp_path):
+def release_data(tmp_path, *, run_id=123, run_number=26):
     contract = {"schema_version": 1, "registry": "warband.authority:ONLINE", "python": "3.13.2",
                 "packages": {"saga2d": "0.3.2", "pillow": "12.3.0", "pyglet": "2.1.16", "websockets": "17.1"},
                 "files": {"warband/authority.py": sha(b"A reviewed simulation input fixture")}}
     contract["sha256"] = sha(json.dumps(contract, sort_keys=True, separators=(",", ":")).encode())
-    identity = {"schema_version": 1, "game": "warband", "source_commit": "a" * 40,
-                "version": "0.2.0-preview.123", "tag": "v0.2.0-preview.123", "run_id": 123,
+    version = f"0.2.{run_number - 25}"
+    identity = {"schema_version": 2, "game": "warband", "source_commit": "a" * 40,
+                "version": version, "tag": "v" + version, "run_id": run_id,
+                "base_version": "0.2.0", "run_number": run_number, "version_run_base": 25,
                 "saga2d_version": "0.3.2", "lock_sha256": "c" * 64, "sagaforge_commit": "d" * 40,
                 "python": "3.13.2", "uv": "0.12.10", "inno_setup": "6.7.1", "compatibility": contract}
     baseline = {"schema_version": 1, "deployment_release": "e" * 64,
@@ -49,6 +51,10 @@ def release_data(tmp_path):
                 "warband": {"source_commit": "b" * 40, "compatibility": contract}}
     (tmp_path / "baseline.json").write_bytes(encoded(baseline))
     catalog = json.loads((ROOT / "releases/catalog.json").read_text())
+    # Keep the transition fixture independent of whichever version is live today.
+    old = catalog["games"]["warband"]
+    catalog["games"]["warband"] = json.loads(json.dumps(old).replace(old["version"], "0.2.0-preview.122"))
+    catalog["games"]["warband"]["source_commit"] = "b" * 40
     (tmp_path / "catalog.json").write_bytes(encoded(catalog))
     assets, targets = {}, {}
     for target in ("windows-x64", "darwin-arm64"):
@@ -98,7 +104,7 @@ def release_data(tmp_path):
             "release": {"id": 456, "tag_name": identity["tag"], "target_commitish": identity["source_commit"],
                         "draft": False, "immutable": True, "prerelease": True, "published_at": "2026-09-16T10:00:00Z",
                         "assets": records},
-            "run": {"id": 123, "head_sha": identity["source_commit"], "head_branch": "main", "event": "push",
+            "run": {"id": run_id, "run_number": run_number, "head_sha": identity["source_commit"], "head_branch": "main", "event": "push",
                     "path": ".github/workflows/native-packages.yml", "workflow_id": 90, "run_attempt": 1,
                     "status": "completed", "conclusion": "success", "repository": {"full_name": "ikamensh/warband"},
                     "head_repository": {"full_name": "ikamensh/warband"}},
@@ -122,9 +128,9 @@ def service(data):
             if "on_request" in data:
                 data["on_request"](path)
             routes = {REPO + "/releases/456": data["release"], REPO + "/releases/456/assets": data["release"]["assets"],
-                      REPO + "/actions/runs/123": data["run"], REPO + "/actions/workflows/native-packages.yml": {"id": 90},
-                      REPO + "/actions/runs/123/attempts/1/jobs": {"jobs": data["jobs"]},
-                      REPO + "/git/ref/tags/v0.2.0-preview.123": {"object": {"type": "commit", "sha": data["tag_commit"]}},
+                      REPO + f"/actions/runs/{data['run']['id']}": data["run"], REPO + "/actions/workflows/native-packages.yml": {"id": 90},
+                      REPO + f"/actions/runs/{data['run']['id']}/attempts/1/jobs": {"jobs": data["jobs"]},
+                      REPO + "/git/ref/tags/" + data["release"]["tag_name"]: {"object": {"type": "commit", "sha": data["tag_commit"]}},
                       "/server-compatibility.json": data["baseline"]}
             if path.startswith(REPO + "/compare/"):
                 payload = encoded(data["compare"])
@@ -151,7 +157,7 @@ def service(data):
 def prepare(data, *, output="prepared", previous=None):
     root = data["root"]
     with service(data) as url:
-        return subprocess.run([sys.executable, str(CLI), "--build-run-id", "123", "--release-id", "456",
+        return subprocess.run([sys.executable, str(CLI), "--build-run-id", str(data["manifest"]["identity"]["run_id"]), "--release-id", "456",
                                "--manifest-sha256", sha(data["assets"]["release.json"]),
                                "--catalog", str(root / "catalog.json"), "--baseline", str(root / "baseline.json"),
                                "--api-url", url, "--server-attestation", url + "/server-compatibility.json",
@@ -176,7 +182,7 @@ def test_prepare_accepts_exact_downloads_and_preserves_the_rest_of_the_catalog(r
     out = release["root"] / "prepared"
     catalog = json.loads((out / "catalog.json").read_text())
     game = catalog["games"]["warband"]
-    assert game["version"] == "0.2.0-preview.123" and game["source_commit"] == "a" * 40
+    assert game["version"] == "0.2.1" and game["source_commit"] == "a" * 40
     assert len(game["packages"]) == 4
     for package in game["packages"]:
         assert sha((out / "downloads" / package["file"]).read_bytes()) == package["sha256"]
@@ -420,7 +426,7 @@ def test_same_source_retries_cannot_rebind_an_accepted_version(release, problem)
         previous.write_bytes(encoded(value))
     elif problem == "older_build":
         path = release["root"] / "catalog.json"
-        path.write_text(path.read_text().replace("0.2.0-preview.123", "0.2.0-preview.124"))
+        path.write_text(path.read_text().replace("0.2.1", "0.2.2"))
         previous = None
     else:
         path = release["root"] / "catalog.json"
@@ -432,3 +438,43 @@ def test_same_source_retries_cannot_rebind_an_accepted_version(release, problem)
     result = prepare(release, output="retry", previous=previous)
     assert result.returncode != 0, problem
     assert not (release["root"] / "retry").exists()
+
+
+@pytest.mark.parametrize("counter", [0, -1, True, 27])
+def test_manifest_counter_must_match_independent_github_run(release, counter):
+    """An archive cannot choose another run's short version even with valid outer hashes."""
+    release["run"]["run_number"] = counter
+    result = prepare(release)
+    assert result.returncode != 0
+    assert not (release["root"] / "prepared").exists()
+
+
+def test_numeric_version_order_accepts_ten_after_nine(tmp_path):
+    """Version order is numeric, so 0.2.10 is newer than 0.2.9."""
+    data = release_data(tmp_path, run_number=35)
+    path = tmp_path / "catalog.json"
+    path.write_text(path.read_text().replace("0.2.0-preview.122", "0.2.9"))
+    result = prepare(data)
+    assert result.returncode == 0, result.stderr
+    assert json.loads((tmp_path / "prepared/catalog.json").read_text())["games"]["warband"]["version"] == "0.2.10"
+
+
+def test_newer_source_cannot_roll_back_the_public_version(release):
+    """A changed counter anchor must not permit version rollback even on a descendant commit."""
+    path = release["root"] / "catalog.json"
+    path.write_text(path.read_text().replace("0.2.0-preview.122", "0.2.2"))
+    result = prepare(release)
+    assert result.returncode != 0 and "older version" in result.stderr
+    assert not (release["root"] / "prepared").exists()
+
+
+def test_new_build_of_same_source_gets_new_version_without_rebinding_old_release(release):
+    """A later native run can replace the download while preserving the previous immutable identity."""
+    previous = current_release(release)
+    catalog_bytes = (release["root"] / "catalog.json").read_bytes()
+    later = release_data(release["root"], run_id=124, run_number=27)
+    (release["root"] / "catalog.json").write_bytes(catalog_bytes)
+    later["compare"]["status"] = "identical"
+    result = prepare(later, output="next", previous=previous)
+    assert result.returncode == 0, result.stderr
+    assert json.loads((release["root"] / "next/catalog.json").read_text())["games"]["warband"]["version"] == "0.2.2"
