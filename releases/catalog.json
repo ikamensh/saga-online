@@ -100,56 +100,56 @@
         "warband-v2"
       ],
       "name": "Warband",
-      "notes": "https://github.com/ikamensh/warband/releases/tag/v0.2.0-preview.35203328191",
+      "notes": "https://github.com/ikamensh/warband/releases/tag/v0.2.0-preview.35205858055",
       "packages": [
         {
           "arch": "x64",
-          "bytes": 144479584,
-          "file": "Warband-0.2.0-preview.35203328191-windows-x64-portable.zip",
+          "bytes": 144479383,
+          "file": "Warband-0.2.0-preview.35205858055-windows-x64-portable.zip",
           "kind": "portable-zip",
           "min_os": "Windows 10",
           "os": "windows",
-          "sha256": "e4e40e44814d729d31ca9149a9e49c2f0837f3b5a8bc7c68eca10ff2a93fae2c",
+          "sha256": "ccb3f8d3b0e3fa0dd7394783b7d7b2d33d32578f70c935b3836941cce9f196da",
           "signed": false,
-          "url": "https://github.com/ikamensh/warband/releases/download/v0.2.0-preview.35203328191/Warband-0.2.0-preview.35203328191-windows-x64-portable.zip"
+          "url": "https://github.com/ikamensh/warband/releases/download/v0.2.0-preview.35205858055/Warband-0.2.0-preview.35205858055-windows-x64-portable.zip"
         },
         {
           "arch": "x64",
-          "bytes": 136075281,
-          "file": "Warband-0.2.0-preview.35203328191-windows-x64-setup.exe",
+          "bytes": 136071376,
+          "file": "Warband-0.2.0-preview.35205858055-windows-x64-setup.exe",
           "kind": "installer",
           "min_os": "Windows 10",
           "os": "windows",
-          "sha256": "d443ce1bab5c95bdd9ff933743277e1c6fbb39feff6c5fed6c1ae051514f8dba",
+          "sha256": "9c413e17f57a071a1a1060b569c4506ce195af37db400fbe288662b6412bd30a",
           "signed": false,
-          "url": "https://github.com/ikamensh/warband/releases/download/v0.2.0-preview.35203328191/Warband-0.2.0-preview.35203328191-windows-x64-setup.exe"
+          "url": "https://github.com/ikamensh/warband/releases/download/v0.2.0-preview.35205858055/Warband-0.2.0-preview.35205858055-windows-x64-setup.exe"
         },
         {
           "arch": "arm64",
-          "bytes": 139339746,
-          "file": "Warband-0.2.0-preview.35203328191-darwin-arm64-portable.zip",
+          "bytes": 139339073,
+          "file": "Warband-0.2.0-preview.35205858055-darwin-arm64-portable.zip",
           "kind": "portable-zip",
           "min_os": "macOS 14 on Apple Silicon",
           "os": "macos",
-          "sha256": "5084e0f70d8bcc35bf5ad5cd9b6bbaaef67d913480715d857b99d42af315fd5c",
+          "sha256": "ba1dc838eaf816ba8f97dab75743925e168e170d4716ec8e33811860554871da",
           "signed": false,
-          "url": "https://github.com/ikamensh/warband/releases/download/v0.2.0-preview.35203328191/Warband-0.2.0-preview.35203328191-darwin-arm64-portable.zip"
+          "url": "https://github.com/ikamensh/warband/releases/download/v0.2.0-preview.35205858055/Warband-0.2.0-preview.35205858055-darwin-arm64-portable.zip"
         },
         {
           "arch": "arm64",
-          "bytes": 135417704,
-          "file": "Warband-0.2.0-preview.35203328191-darwin-arm64-app.zip",
+          "bytes": 135417032,
+          "file": "Warband-0.2.0-preview.35205858055-darwin-arm64-app.zip",
           "kind": "app-zip",
           "min_os": "macOS 14 on Apple Silicon",
           "os": "macos",
-          "sha256": "00f4358c85a674cb9be31b31ae37d2e07d3dda947b6b873ddac81c3ce238159e",
+          "sha256": "a150b1bdf019134a588ae0395abbfa8eba5f5f34a10b724dfde86e780fd52209",
           "signed": false,
-          "url": "https://github.com/ikamensh/warband/releases/download/v0.2.0-preview.35203328191/Warband-0.2.0-preview.35203328191-darwin-arm64-app.zip"
+          "url": "https://github.com/ikamensh/warband/releases/download/v0.2.0-preview.35205858055/Warband-0.2.0-preview.35205858055-darwin-arm64-app.zip"
         }
       ],
       "released": "2026-09-17",
-      "source_commit": "e38618d9c243582d1ba9a177b88a2cbb87ddc9ac",
-      "version": "0.2.0-preview.35203328191"
+      "source_commit": "1a6def962a83b039602cb59e6f4eb58deea4d6fd",
+      "version": "0.2.0-preview.35205858055"
     }
   },
   "server": {
