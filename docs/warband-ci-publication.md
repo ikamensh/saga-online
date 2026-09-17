@@ -604,3 +604,27 @@ fixed `2026-09-16` footer date; layout/content are otherwise unchanged.
 The workflow has not yet run from main, and no enable flag, live baseline or
 production credential has been installed by this implementation. Those remain
 rollout work, followed by the actual public-download acceptance.
+
+### GitHub acceptance of promotion orchestration
+
+Source `3843a4ed639a6081273a9d161a0614a9a1f2f646` passed
+[Linux server checks 35196347871](https://github.com/ikamensh/saga-online/actions/runs/35196347871):
+**135 tests, zero failures/errors/skips, 96.444 seconds**. The real read-only
+GitHub token accessed Warband's accepted native run and jobs. Root host checks
+then passed the complete real SSH/Git promotion journey, including an upload
+failure after a successful catalog push, identical-byte retry, unchanged
+completed retry, changed-archive/stale-catalog refusal and a competing host
+publication. The downloaded report contains every promotion assertion as true.
+
+[Website checks 35196347793](https://github.com/ikamensh/saga-online/actions/runs/35196347793)
+passed **130 tests, one native Caddy skip and one server-package deselection**,
+then built the site. The full server runner covers both omitted cases.
+
+The independently downloaded Linux server archive has SHA-256
+`1d88668892811b77bb5a2d5c8ea7ca83a72049cd8abd46fbc6c531ea99ac193b`,
+6,674,485 bytes and 314 inventoried files. Its recorded Saga Online source
+matches the accepted commit. Root preparation, three-game orders,
+checkpoint/rejoin and unchanged-package retry also passed. Reports and logs:
+`dist/server-acceptance/github-35196347871/`, the adjacent `.log`, and
+`dist/site-ssh/github-35196347793.log`. This is implementation acceptance;
+main workflow execution, live rollout and public downloads remain outstanding.
