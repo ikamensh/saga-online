@@ -71,8 +71,10 @@ As the unprivileged service account, `check_release.py` then starts the actual
 packaged launcher on an ephemeral loopback port, verifies its live attestation,
 creates and joins **all three actual games**, submits orders, stops the server
 with SIGTERM, and checks authenticated rejoin and exact paused state after
-restart. Its temporary room store and private seat tokens never enter the live
-store or public report. Only success writes `.ready`; a retry verifies the same
+restart. It then uses the actual SQLite backup tool, restores only that backup
+into a fresh private state directory, and verifies the same seats and game state
+in another server process. Its temporary room store and private seat tokens
+never enter the live store or public report. Only success writes `.ready`; a retry verifies the same
 release again and preserves its environment. Preparation does not activate a
 service or change the proxy, and is exercised separately by branch CI.
 

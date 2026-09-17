@@ -6,14 +6,17 @@ in this process and its private temporary directory, never the live store.
 from __future__ import annotations
 
 import argparse
-from contextlib import contextmanager
+from contextlib import contextmanager, redirect_stdout
 import json
 from pathlib import Path
 import select
+import shutil
 import subprocess
+import sys
 import tempfile
 from urllib.request import urlopen
 
+from backup import backup
 from smoke import smoke, resume
 
 
@@ -56,7 +59,17 @@ def verify(release, release_id, endpoint):
                     resume(local + "/play", records)
                 else:
                     records = smoke(local + "/play")
-    return {"passed": True, "baseline": expected, "games": [record["game"] for record in records], "restart_rejoin": True}
+        # Restore only the backup into a fresh directory: the new process must
+        # not recover seats/state from the original database or its WAL files.
+        with redirect_stdout(sys.stderr):
+            saved = backup(state / "rooms.sqlite3", Path(temporary) / "backups")
+        restored = Path(temporary) / "restored"
+        restored.mkdir(mode=0o700)
+        shutil.copy2(saved, restored / "rooms.sqlite3")
+        with running(release, release_id, endpoint, restored) as local:
+            resume(local + "/play", records)
+    return {"passed": True, "baseline": expected, "games": [record["game"] for record in records],
+            "restart_rejoin": True, "backup_restore": True}
 
 
 if __name__ == "__main__":

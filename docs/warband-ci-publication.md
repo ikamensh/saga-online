@@ -651,3 +651,16 @@ database and prior service/proxy configuration, and verify the old service.
 The website pointer must not change during server rollout. Preserve the old
 release and backups after success; verify packaged clients before recording
 the server baseline for automatic website promotion.
+
+The packaged check now reports `backup_restore: true` only after the restored
+database's three real games accept the original seats and exact paused state.
+The targeted package check first failed for the missing restore evidence, then
+passed with the restored-state journey. The pinned stack's complete suite
+passed **135 tests in 86.77 seconds**. Linux preparation and the live rollout
+remain to be verified for this increment.
+
+The preflight off-host backup is retained privately under
+`dist/live-rollout/preflight-rsy1dwxh/`, together with the current systemd unit,
+Caddy configuration and a metadata receipt. It matches the server's SHA-256,
+passes SQLite integrity verification and contains the two retained campaigns.
+No service or website activation occurred during this preflight.

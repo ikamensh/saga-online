@@ -91,6 +91,7 @@ def test_packaged_release_runs_server_entrypoint(tmp_path):
     assert verified.returncode == 0, verified.stderr
     report = json.loads(verified.stdout)
     assert report["passed"] is True and report["restart_rejoin"] is True
+    assert report["backup_restore"] is True
     assert report["games"] == ["tribes-v1", "warband-v2", "shardbound-v1"]
     assert report["baseline"] == baseline
     marker = unpacked / ".venv/retry-marker"
