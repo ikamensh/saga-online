@@ -82,7 +82,8 @@ def release_data(tmp_path, *, run_id=123, run_number=26):
                                             "private_seat_rejoin", "global_production", "automatic_plan_builder",
                                             "cancel_plans", "assembly_point"), True)}
         native = {**common, "backend": "pyglet", "images": ["native.png"], "live_match_menu": True,
-                  "native_clipboard_join": True, "native_multiplayer_input": True, "native_settlement_planning": True}
+                  "native_clipboard_join": True, "native_multiplayer_input": True, "native_settlement_planning": True,
+                  "start_after_resize": True}
         report = {"passed": True, "source_commit": identity["source_commit"], "version": identity["version"],
                   "portable": socket, "installed": socket, "native": native}
         report.update({"install_shortcut_uninstall": True} if windows else {"app_native": native})
