@@ -166,10 +166,22 @@ first site publication requires a server deployment that carries the current
 there is no automatic pruning. An intentional rollback is a new promotion of
 the reviewed previous bytes with a higher generation and the current expected
 head. Do not move the symlink manually while leaving `state.json` unchanged.
-There is no production server baseline recorded yet; the CI runner's
-`games.example.test` acceptance report must not be used as one.
+The accepted production baseline is recorded in
+[`releases/server-baseline.json`](../releases/server-baseline.json), captured
+from the live `c5193bd5…b63dca` release on 2026-09-17 after public client and
+backup/rollback acceptance. CI's `games.example.test` reports are test evidence,
+not production baselines.
 
 ### Restricted CI publisher
+
+Installed on `saga2d-online` on 2026-09-17. The dedicated account's real SSH
+`status` check passed with the pinned host key, reporting the unchanged legacy
+site `43836139…ddfb9`, generation zero, and no pending transaction. GitHub's
+`warband-promotion` environment holds `SAGA_SITE_SSH_KEY`,
+`SAGA_SITE_KNOWN_HOSTS` and the `SAGA_SITE_HOST` variable; only `main` can use it.
+The local Secrets index records the dedicated credential files and rotation
+instructions. See [CI publication status](../docs/warband-ci-publication.md)
+for enablement and the first complete release journey.
 
 Prepare a dedicated Ed25519 key for website CI. Keep the operator's SSH key and
 cloud/DNS credentials local. With the dedicated **public** key, the operator can

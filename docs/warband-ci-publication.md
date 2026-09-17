@@ -10,7 +10,10 @@ preserve other games' downloads and remain independent of room-server activation
 Local test servers and temporary site roots establish the failure/retry behavior;
 the real GitHub and hosted journey is still required before WB-002 can be done.
 
-No production activation or credential change has happened as part of this item.
+The live server and backup/rollback path are accepted. The restricted website
+account and both GitHub publishing environments are configured. Main integration,
+publishing enablement and the complete public release journey remain outstanding.
+Earlier sections below retain the evidence from each implementation milestone.
 
 ## Isolated site checks
 
@@ -739,3 +742,32 @@ This accepts the hosted runtime, including the isolated Shardbound dependency
 alignment; it does not claim to fix its unrelated client-suite failures or
 merge that client candidate to main. Windows public-client acceptance, CI
 credentials/enablement and the actual main-push publication remain outstanding.
+
+### Production CI configuration on 2026-09-17
+
+The named host now has the dedicated `saga2d-site-ci` account and trusted receiver
+revision `b26e654eb878fff38256dd2a5875eb45ea415be1fc4282bc6670d2ee869c5323`.
+Its dedicated Ed25519 key passed the real restricted `status` command using the
+independently pinned host key. The accepted website remains `43836139…ddfb9`,
+generation zero, with no pending transaction. Public health and the committed
+live server baseline still match after setup.
+
+GitHub environments `ikamensh/warband:warband-release` and
+`ikamensh/saga-online:warband-promotion` permit only the `main` branch, with no
+manual reviewer gate under the standing authorization. The former holds
+`SAGA_ONLINE_PROMOTION_TOKEN`; the latter holds `SAGA_SITE_SSH_KEY`,
+`SAGA_SITE_KNOWN_HOSTS` and variable `SAGA_SITE_HOST=51.159.207.49`.
+
+The fine-grained token “Saga Warband promotion” has only Actions read/write and
+required Metadata read access on `ikamensh/saga-online`. It has no expiration
+for unattended publishing. The token passed an authenticated Actions API read;
+the first workflow dispatch remains part of the complete journey. Rotation:
+create a replacement with the same repository/permissions, update Warband's
+environment secret, verify dispatch, then revoke the previous token. Dedicated
+credential files and non-secret rotation metadata live in the local Secrets
+index. The operator SSH key, cloud credentials and local GitHub OAuth token stay
+on the laptop.
+
+Evidence: `dist/live-rollout/site-ci-setup.json`, `site-ci-status.json` and
+`ci-settings.json`. Both publishing enable flags remain unset until main
+integration is ready; configuration alone does not complete WB-002.
