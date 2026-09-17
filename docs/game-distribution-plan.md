@@ -123,7 +123,7 @@ Use integration tests for code changes, following the repository's `tdd` skill. 
 
 Test an obsolete client, server downtime/full capacity, an expired invitation, invalid private-seat recovery, interrupted download, and publication rollback. Restore backed-up campaign state into a replacement server and verify both players resume. Check anonymized/public status and invite pages do not expose resume tokens or private game state. Run a small first-time-player trial: record installation failures, time to first match and points requiring help, then fix them before wider promotion.
 
-Prepare all release artifacts, evidence and deployment changes before requesting publication approval. This planning task does not authorize publishing a website, creating paid resources or changing the live server. No such actions were taken.
+Prepare and verify release artifacts, evidence and deployment changes before rollout. On 2026-09-17 the user designated the whole Saga stack AI-owned, with no users, and granted standing authorization for releases, hosting/VM changes, website publication and CI publishing setup. Proceed after verification without another approval request and record the outcome. The original planning task itself made no live changes.
 
 ## Public discovery and the launcher decision
 
