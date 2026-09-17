@@ -1,150 +1,160 @@
 {
   "catalog_version": 1,
-  "site": "https://games.tachyon-ai.eu",
-  "server": {
-    "endpoint": "wss://games.tachyon-ai.eu/play",
-    "protocol": 1
-  },
   "games": {
-    "warband": {
-      "name": "Warband",
-      "game_ids": [
-        "warband-v2",
-        "warband-v1"
-      ],
-      "channel": "preview",
-      "version": "0.2.0-preview.2",
-      "source_commit": "dd4f3e2563915a6743e6dab14ab1de9b480bdc99",
-      "released": "2026-09-16",
-      "notes": "https://github.com/ikamensh/warband/releases/tag/v0.2.0-preview.2",
-      "packages": [
-        {
-          "os": "windows",
-          "arch": "x64",
-          "kind": "portable-zip",
-          "file": "Warband-0.2.0-preview.2-windows-x64-portable.zip",
-          "url": "https://github.com/ikamensh/warband/releases/download/v0.2.0-preview.2/Warband-0.2.0-preview.2-windows-x64-portable.zip",
-          "bytes": 144426781,
-          "sha256": "b8a7acccb76f7bce83eaa387565e6e12b235028f9b8454a52339bb546f7a3544",
-          "min_os": "Windows 10",
-          "signed": false
-        },
-        {
-          "os": "windows",
-          "arch": "x64",
-          "kind": "installer",
-          "file": "Warband-0.2.0-preview.2-windows-x64-setup.exe",
-          "url": "https://github.com/ikamensh/warband/releases/download/v0.2.0-preview.2/Warband-0.2.0-preview.2-windows-x64-setup.exe",
-          "bytes": 136019494,
-          "sha256": "086a0df1700e836112e328efaff36d3df51d5994309eb81a7579fc1db58f90f5",
-          "min_os": "Windows 10",
-          "signed": false
-        },
-        {
-          "os": "macos",
-          "arch": "arm64",
-          "kind": "app-zip",
-          "file": "Warband-0.2.0-preview.2-darwin-arm64-app.zip",
-          "url": "https://github.com/ikamensh/warband/releases/download/v0.2.0-preview.2/Warband-0.2.0-preview.2-darwin-arm64-app.zip",
-          "bytes": 135437671,
-          "sha256": "9d794deab8bb3b9d8775d995c505d5e97e42f47d1ed2e75e1d3f57aa52a6b5c6",
-          "min_os": "macOS 14 on Apple Silicon",
-          "signed": false
-        }
-      ]
-    },
-    "tribes": {
-      "name": "Tribes",
-      "game_ids": [
-        "tribes-v1"
-      ],
-      "channel": "preview",
-      "version": "0.1.0-preview.1",
-      "source_commit": "ea5a2a2ece444885edb29034ce34f029cce664d9",
-      "released": "2026-09-08",
-      "notes": "https://github.com/ikamensh/saga2d/releases/tag/tribes-v0.1.0-preview.1",
-      "packages": [
-        {
-          "os": "windows",
-          "arch": "x64",
-          "kind": "portable-zip",
-          "file": "Tribes-0.1.0-preview.1-windows-x64-portable.zip",
-          "url": "https://github.com/ikamensh/saga2d/releases/download/tribes-v0.1.0-preview.1/Tribes-0.1.0-preview.1-windows-x64-portable.zip",
-          "bytes": 37192314,
-          "sha256": "61916911c7de4de7620ca13255c367d4afcd638108e63fd17dc9a1acc86befb0",
-          "min_os": "Windows 10",
-          "signed": false
-        },
-        {
-          "os": "windows",
-          "arch": "x64",
-          "kind": "installer",
-          "file": "Tribes-0.1.0-preview.1-windows-x64-setup.exe",
-          "url": "https://github.com/ikamensh/saga2d/releases/download/tribes-v0.1.0-preview.1/Tribes-0.1.0-preview.1-windows-x64-setup.exe",
-          "bytes": 26908559,
-          "sha256": "0c9a62f91945386082e403724ed8c62efd0f79b37949ae7cd62976f70eef741c",
-          "min_os": "Windows 10",
-          "signed": false
-        },
-        {
-          "os": "macos",
-          "arch": "arm64",
-          "kind": "app-zip",
-          "file": "Tribes-0.1.0-preview.1-darwin-arm64-app.zip",
-          "url": "https://github.com/ikamensh/saga2d/releases/download/tribes-v0.1.0-preview.1/Tribes-0.1.0-preview.1-darwin-arm64-app.zip",
-          "bytes": 22206936,
-          "sha256": "ef17781416632574b0f87668dd9057eeca62005394e0cd1a2a6a53b2bd0f8daf",
-          "min_os": "macOS 14 on Apple Silicon",
-          "signed": false
-        }
-      ]
-    },
     "shardbound": {
-      "name": "Shardbound",
+      "channel": "preview",
       "game_ids": [
         "shardbound-v1",
         "shardbound-pvp-v1"
       ],
-      "channel": "preview",
-      "version": "0.1.0-preview.1",
-      "source_commit": "184584007ac3071dcb901e323a16bcd727877c14",
-      "released": "2026-09-08",
+      "name": "Shardbound",
       "notes": "https://github.com/ikamensh/saga2d/releases/tag/shardbound-v0.1.0-preview.1",
       "packages": [
         {
-          "os": "windows",
           "arch": "x64",
-          "kind": "portable-zip",
-          "file": "Shardbound-0.1.0-preview.1-windows-x64-portable.zip",
-          "url": "https://github.com/ikamensh/saga2d/releases/download/shardbound-v0.1.0-preview.1/Shardbound-0.1.0-preview.1-windows-x64-portable.zip",
           "bytes": 64333408,
-          "sha256": "ad9e87ca2fe2591a080380f76050ecca7ab2dd365537cfea11db0eddecaed6a4",
+          "file": "Shardbound-0.1.0-preview.1-windows-x64-portable.zip",
+          "kind": "portable-zip",
           "min_os": "Windows 10",
-          "signed": false
-        },
-        {
           "os": "windows",
-          "arch": "x64",
-          "kind": "installer",
-          "file": "Shardbound-0.1.0-preview.1-windows-x64-setup.exe",
-          "url": "https://github.com/ikamensh/saga2d/releases/download/shardbound-v0.1.0-preview.1/Shardbound-0.1.0-preview.1-windows-x64-setup.exe",
-          "bytes": 50961934,
-          "sha256": "34bf23da4d5be088d6b35a20e93d38320b01dc87cc43dc509574fd36ba8d4fdc",
-          "min_os": "Windows 10",
-          "signed": false
+          "sha256": "ad9e87ca2fe2591a080380f76050ecca7ab2dd365537cfea11db0eddecaed6a4",
+          "signed": false,
+          "url": "https://github.com/ikamensh/saga2d/releases/download/shardbound-v0.1.0-preview.1/Shardbound-0.1.0-preview.1-windows-x64-portable.zip"
         },
         {
-          "os": "macos",
+          "arch": "x64",
+          "bytes": 50961934,
+          "file": "Shardbound-0.1.0-preview.1-windows-x64-setup.exe",
+          "kind": "installer",
+          "min_os": "Windows 10",
+          "os": "windows",
+          "sha256": "34bf23da4d5be088d6b35a20e93d38320b01dc87cc43dc509574fd36ba8d4fdc",
+          "signed": false,
+          "url": "https://github.com/ikamensh/saga2d/releases/download/shardbound-v0.1.0-preview.1/Shardbound-0.1.0-preview.1-windows-x64-setup.exe"
+        },
+        {
           "arch": "arm64",
-          "kind": "app-zip",
-          "file": "Shardbound-0.1.0-preview.1-darwin-arm64-app.zip",
-          "url": "https://github.com/ikamensh/saga2d/releases/download/shardbound-v0.1.0-preview.1/Shardbound-0.1.0-preview.1-darwin-arm64-app.zip",
           "bytes": 49304080,
-          "sha256": "0fcff24640abba882b8ee32b87345809246bf23d51d80c853dab345cd56a6376",
+          "file": "Shardbound-0.1.0-preview.1-darwin-arm64-app.zip",
+          "kind": "app-zip",
           "min_os": "macOS 14 on Apple Silicon",
-          "signed": false
+          "os": "macos",
+          "sha256": "0fcff24640abba882b8ee32b87345809246bf23d51d80c853dab345cd56a6376",
+          "signed": false,
+          "url": "https://github.com/ikamensh/saga2d/releases/download/shardbound-v0.1.0-preview.1/Shardbound-0.1.0-preview.1-darwin-arm64-app.zip"
         }
-      ]
+      ],
+      "released": "2026-09-08",
+      "source_commit": "184584007ac3071dcb901e323a16bcd727877c14",
+      "version": "0.1.0-preview.1"
+    },
+    "tribes": {
+      "channel": "preview",
+      "game_ids": [
+        "tribes-v1"
+      ],
+      "name": "Tribes",
+      "notes": "https://github.com/ikamensh/saga2d/releases/tag/tribes-v0.1.0-preview.1",
+      "packages": [
+        {
+          "arch": "x64",
+          "bytes": 37192314,
+          "file": "Tribes-0.1.0-preview.1-windows-x64-portable.zip",
+          "kind": "portable-zip",
+          "min_os": "Windows 10",
+          "os": "windows",
+          "sha256": "61916911c7de4de7620ca13255c367d4afcd638108e63fd17dc9a1acc86befb0",
+          "signed": false,
+          "url": "https://github.com/ikamensh/saga2d/releases/download/tribes-v0.1.0-preview.1/Tribes-0.1.0-preview.1-windows-x64-portable.zip"
+        },
+        {
+          "arch": "x64",
+          "bytes": 26908559,
+          "file": "Tribes-0.1.0-preview.1-windows-x64-setup.exe",
+          "kind": "installer",
+          "min_os": "Windows 10",
+          "os": "windows",
+          "sha256": "0c9a62f91945386082e403724ed8c62efd0f79b37949ae7cd62976f70eef741c",
+          "signed": false,
+          "url": "https://github.com/ikamensh/saga2d/releases/download/tribes-v0.1.0-preview.1/Tribes-0.1.0-preview.1-windows-x64-setup.exe"
+        },
+        {
+          "arch": "arm64",
+          "bytes": 22206936,
+          "file": "Tribes-0.1.0-preview.1-darwin-arm64-app.zip",
+          "kind": "app-zip",
+          "min_os": "macOS 14 on Apple Silicon",
+          "os": "macos",
+          "sha256": "ef17781416632574b0f87668dd9057eeca62005394e0cd1a2a6a53b2bd0f8daf",
+          "signed": false,
+          "url": "https://github.com/ikamensh/saga2d/releases/download/tribes-v0.1.0-preview.1/Tribes-0.1.0-preview.1-darwin-arm64-app.zip"
+        }
+      ],
+      "released": "2026-09-08",
+      "source_commit": "ea5a2a2ece444885edb29034ce34f029cce664d9",
+      "version": "0.1.0-preview.1"
+    },
+    "warband": {
+      "channel": "preview",
+      "game_ids": [
+        "warband-v2"
+      ],
+      "name": "Warband",
+      "notes": "https://github.com/ikamensh/warband/releases/tag/v0.2.0-preview.35201502611",
+      "packages": [
+        {
+          "arch": "x64",
+          "bytes": 144479027,
+          "file": "Warband-0.2.0-preview.35201502611-windows-x64-portable.zip",
+          "kind": "portable-zip",
+          "min_os": "Windows 10",
+          "os": "windows",
+          "sha256": "4471f0c0cdf40a10670b0ef28570c4450055e806df4410c6917dd98e206325d3",
+          "signed": false,
+          "url": "https://github.com/ikamensh/warband/releases/download/v0.2.0-preview.35201502611/Warband-0.2.0-preview.35201502611-windows-x64-portable.zip"
+        },
+        {
+          "arch": "x64",
+          "bytes": 136074937,
+          "file": "Warband-0.2.0-preview.35201502611-windows-x64-setup.exe",
+          "kind": "installer",
+          "min_os": "Windows 10",
+          "os": "windows",
+          "sha256": "3138988fedd7719646ac11cae0db98dff56b86b9227ad08d5a7dbb5212787c60",
+          "signed": false,
+          "url": "https://github.com/ikamensh/warband/releases/download/v0.2.0-preview.35201502611/Warband-0.2.0-preview.35201502611-windows-x64-setup.exe"
+        },
+        {
+          "arch": "arm64",
+          "bytes": 139339976,
+          "file": "Warband-0.2.0-preview.35201502611-darwin-arm64-portable.zip",
+          "kind": "portable-zip",
+          "min_os": "macOS 14 on Apple Silicon",
+          "os": "macos",
+          "sha256": "70aa2b4db3b3bbd740e766f650fbf894b60f866f58f58ab4e43290c94e6775bc",
+          "signed": false,
+          "url": "https://github.com/ikamensh/warband/releases/download/v0.2.0-preview.35201502611/Warband-0.2.0-preview.35201502611-darwin-arm64-portable.zip"
+        },
+        {
+          "arch": "arm64",
+          "bytes": 135417934,
+          "file": "Warband-0.2.0-preview.35201502611-darwin-arm64-app.zip",
+          "kind": "app-zip",
+          "min_os": "macOS 14 on Apple Silicon",
+          "os": "macos",
+          "sha256": "185745a0e8e297c5a1ee6dcf875f5659a439c77b26ad6c151df094e05d5f3bf3",
+          "signed": false,
+          "url": "https://github.com/ikamensh/warband/releases/download/v0.2.0-preview.35201502611/Warband-0.2.0-preview.35201502611-darwin-arm64-app.zip"
+        }
+      ],
+      "released": "2026-09-17",
+      "source_commit": "8e5e06bfc0058fb135b8e08cccb073f70f52833d",
+      "version": "0.2.0-preview.35201502611"
     }
-  }
+  },
+  "server": {
+    "endpoint": "wss://games.tachyon-ai.eu/play",
+    "protocol": 1
+  },
+  "site": "https://games.tachyon-ai.eu"
 }
