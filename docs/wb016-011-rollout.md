@@ -96,3 +96,12 @@ corner, the rival's fogged. The served attestation is the new
 [`releases/server-baseline.json`](../releases/server-baseline.json). The
 publication of `89a6587` was still running when the baseline moved, so its
 promotion meets the new server directly.
+
+**Promotion accepted, public downloads checked, 2026-09-18 20:10 UTC.**
+[Promotion 35389432103](https://github.com/ikamensh/saga-online/actions/runs/35389432103),
+dispatched by Warband's [publication 35388573813](https://github.com/ikamensh/warband/actions/runs/35388573813)
+of native run 35386809594 after the baseline moved, was accepted at once and
+published the catalog for Warband 0.2.32; the site offers the 0.2.32
+downloads. [Public download checks 35389690968](https://github.com/ikamensh/saga-online/actions/runs/35389690968)
+passed on Windows and macOS, the guest's online smoke now also checking that
+it is not sent the creator's worker. This completes the rollout.
