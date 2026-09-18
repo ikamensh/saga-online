@@ -60,3 +60,39 @@ the previous client ran its network scene over the candidate's snapshots of
 both seats (the footman in sight sent without its orders, nothing at the
 rival's home), and a checkpoint from the previous server restored and played
 on with each seat's snapshot filtered.
+
+**Accepted live server, 2026-09-18 20:00 UTC.** The contract of Warband
+`89a6587` differs from the live one in `warband/authority.py` and
+`warband/model.py` and in nothing else (packages unchanged); its main runs are
+[Tests 35386809507](https://github.com/ikamensh/warband/actions/runs/35386809507)
+and [native package checks 35386809594](https://github.com/ikamensh/warband/actions/runs/35386809594)
+(run number 57, Windows and Mac). Saga Online `9b60f84` passed
+[Tests 35388619395](https://github.com/ikamensh/saga-online/actions/runs/35388619395)
+and [Website checks 35388619409](https://github.com/ikamensh/saga-online/actions/runs/35388619409);
+the archive CI built and prepared as the service account is the one activated,
+identical to the local one:
+`90a73f0ea3e364c06bff7a24d61f8e986f33a23a6d116f4bcd0d774825f8cc59` (323
+files; the five more than before are the campaign's modules).
+
+Before activation: the off-host backups `rooms-20260918T194901Z.sqlite3` and
+`rooms-20260918T195933Z.sqlite3` (11 rooms, SHA-256 `eb96ec26…`, identical)
+and the private rehearsal on both: all 21 seats of the 11 retained Shardbound
+campaigns resumed on the candidate, none failed. `deploy_online.py deploy`
+prepared the archive as the service account and activated it at 20:00 UTC;
+the previous release `a38f8889…` stays at the `previous` pointer with its
+backups.
+
+After activation: public health `ok`; the served attestation names deployment
+`90a73f0e…`, Warband `89a6587` and the compatibility contract
+`6d5ed3362729e68a30658281973f33871e28c3990de52e68eb42b44b7128d954`, the digest
+`tools/ci_compatibility.py` computes on the candidate checkout;
+`deploy/smoke.py` passed create, join and order for all three games;
+`permessage-deflate` is negotiated through the public proxy; every retained
+seat resumed on the live server with its own token (11 rooms, 21 seats, none
+failed); the native Warband journey (create, room-code join, accepted
+gameplay, restart and rejoin against the public server) passed, its frames
+under `docs/evidence/wb016-011-rollout/public/` looked at: each seat's own
+corner, the rival's fogged. The served attestation is the new
+[`releases/server-baseline.json`](../releases/server-baseline.json). The
+publication of `89a6587` was still running when the baseline moved, so its
+promotion meets the new server directly.
