@@ -76,3 +76,11 @@ the native Warband journey (create, room-code join, accepted gameplay,
 restart and rejoin against the public server) passed, its frames under
 `docs/evidence/balance-rollout/public/` looked at. The served attestation is
 the new [`releases/server-baseline.json`](../releases/server-baseline.json).
+
+**Promotion accepted, public downloads checked, 2026-09-18 17:55 UTC.**
+[Promotion 35376046307](https://github.com/ikamensh/saga-online/actions/runs/35376046307),
+dispatched again from native run 35372085715 (release 391657733, manifest
+`c494fb9b…`), was accepted against the new baseline and published the catalog
+for Warband 0.2.30; the site offers the 0.2.30 downloads.
+[Public download checks 35376176691](https://github.com/ikamensh/saga-online/actions/runs/35376176691)
+passed on Windows and macOS. This completes the rollout.
