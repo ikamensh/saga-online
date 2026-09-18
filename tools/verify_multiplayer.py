@@ -19,11 +19,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 
 def definitions(name):
+    """``(authoritative match factory, network scene, game id)`` for a game package."""
     module = importlib.import_module(name + '.multiplayer')
     if name == 'tribes':
         return module.TribesMatch, module.NetworkMapScene, 'tribes-v1'
     if name == 'warband':
-        return module.WarbandMatch, module.NetworkGameScene, 'warband-v2'
+        # The authoritative match lives beside the ONLINE registration, not with the scenes.
+        return importlib.import_module('warband.authority').WarbandMatch, module.NetworkGameScene, 'warband-v2'
     return module.ShardboundMatch, module.NetworkShardScene, 'shardbound-v1'
 
 
