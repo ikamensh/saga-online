@@ -64,7 +64,7 @@ def server_files(root: Path) -> dict[str, bytes]:
     """Bind allowlisted source bytes to clean game commits and one exact locked runtime."""
     root = root.resolve()
     pins = json.loads((root / ".github/server-pins.json").read_text())
-    require(set(pins) == {"python", "uv", "warband_run_id", "sources"}
+    require(set(pins) == {"python", "uv", "warband_run_id", "warband_run_number", "sources"}
             and set(pins["sources"]) == {"sagaforge", "tribes", "warband", "shardbound"}
             and all(re.fullmatch(r"[0-9a-f]{40}", commit) for commit in pins["sources"].values()), "Invalid server source pins")
     require(platform.python_version() == pins["python"], "Server packaging requires its pinned Python")
@@ -82,12 +82,15 @@ def server_files(root: Path) -> dict[str, bytes]:
     warband = root.parent / "warband"
     with tempfile.TemporaryDirectory(prefix="server-identity-") as temporary:
         path = Path(temporary) / "identity.json"
+        # The run number gives the identity its release version; the pinned pair is checked
+        # against the actual run where the network is allowed (CI's provenance step, promotion).
         subprocess.run([sys.executable, str(warband / "tools/ci_release.py"), "prepare",
-                        "--run-id", str(pins["warband_run_id"]), "--output", str(path)], cwd=warband,
-                       check=True, capture_output=True)
+                        "--run-id", str(pins["warband_run_id"]), "--run-number", str(pins["warband_run_number"]),
+                        "--output", str(path)], cwd=warband, check=True, capture_output=True)
         identity = json.loads(path.read_bytes())
     require(identity["source_commit"] == sources["warband"] and identity["python"] == pins["python"] and identity["uv"] == pins["uv"]
-            and identity["sagaforge_commit"] == sources["sagaforge"], "Warband identity differs from the server pins")
+            and identity["sagaforge_commit"] == sources["sagaforge"] and identity["run_id"] == pins["warband_run_id"]
+            and identity["run_number"] == pins["warband_run_number"], "Warband identity differs from the server pins")
     contract = identity["compatibility"]
     require(all(packages[name] == version for name, version in contract["packages"].items()),
             "Server lock differs from Warband's native compatibility runtime")

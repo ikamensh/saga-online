@@ -88,6 +88,7 @@ jobs:
           api = GitHub('https://api.github.com')
           run = api.get(f"/actions/runs/{pins['warband_run_id']}")
           assert run['head_sha'] == pins['sources']['warband']
+          assert run['run_number'] == pins['warband_run_number']
           jobs = list(api.pages(f"/actions/runs/{run['id']}/attempts/{run['run_attempt']}/jobs", 'jobs'))
           assert jobs and all(job['conclusion'] == 'success' for job in jobs)
           print('Read-only public provenance access passed')

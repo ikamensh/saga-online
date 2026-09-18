@@ -2,6 +2,7 @@
   "python": "3.13.2",
   "uv": "0.12.10",
   "warband_run_id": 35295716718,
+  "warband_run_number": 36,
   "sources": {
     "sagaforge": "10f4d87ccf44a392ef634436ac653a9521ca6fb8",
     "tribes": "ddb91695a1e70a39a1daa153a6f3c4393358a690",
