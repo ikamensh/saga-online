@@ -110,3 +110,17 @@ The served attestation is recorded as the new
 [`releases/server-baseline.json`](../releases/server-baseline.json). The
 refused promotion is dispatched again from its accepted native run; the
 public download checks and the look at the published Windows build follow.
+
+**Promotion accepted, public downloads checked, the Windows build looked at,
+2026-09-18 16:40 UTC.**
+[Promotion 35368756806](https://github.com/ikamensh/saga-online/actions/runs/35368756806),
+dispatched again from native run 35366638004 (release 391619651, manifest
+`113b7290…`), was accepted against the new baseline and published the catalog
+for Warband 0.2.26; the site offers the 0.2.26 downloads.
+[Public download checks 35368903585](https://github.com/ikamensh/saga-online/actions/runs/35368903585)
+passed on Windows and macOS. The published Windows build was run on the
+3840×2160 test desktop at 200 % through `tools/win_desktop.py`: the window is
+centred above the taskbar, the title fills it, the menu and the HUD are as
+large as the desktop's own text, and the title bar and taskbar show Warband's
+icon (frames in Warband's `docs/evidence/win4k/published-0.2.26-200/`). This
+completes the rollout; the review session pushes again from here.
