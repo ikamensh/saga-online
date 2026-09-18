@@ -1,11 +1,11 @@
 {
   "python": "3.13.2",
   "uv": "0.12.10",
-  "warband_run_id": 35241590924,
+  "warband_run_id": 35295716718,
   "sources": {
-    "sagaforge": "2fa6fadfd28e2457f2f264b7b071cac7f7566ee5",
+    "sagaforge": "10f4d87ccf44a392ef634436ac653a9521ca6fb8",
     "tribes": "ddb91695a1e70a39a1daa153a6f3c4393358a690",
-    "warband": "cac35b7a908f0526aaa9a3117c5e36a8d415dc90",
+    "warband": "0bbe4aee1136dd7ba493656c86d92253b06b39d1",
     "shardbound": "68a5fac50ef2a2cc79a02bbc0762a3025ca7aebc"
   }
 }
