@@ -96,3 +96,12 @@ game client to play it." The served attestation is the new
 [`releases/server-baseline.json`](../releases/server-baseline.json). The
 promotion of `4e092a0`'s publication ran at 20:55, before the activation, and
 was refused as designed: the candidate needed the new baseline.
+
+**Promotion accepted, public downloads checked, 2026-09-18 21:06 UTC.**
+[Promotion 35394864959](https://github.com/ikamensh/saga-online/actions/runs/35394864959),
+dispatched again for release `391779414` (native run 35391932264, manifest
+`28c8018e…`) once the baseline had moved, was accepted and published the
+catalog for Warband 0.2.34 (`5549988`); the site offers the 0.2.34 downloads.
+[Public download checks 35395000096](https://github.com/ikamensh/saga-online/actions/runs/35395000096)
+passed on Windows and macOS: each downloaded client ran its packaged online
+checks against the live server over TLS. This completes the rollout.
