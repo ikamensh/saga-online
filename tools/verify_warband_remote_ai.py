@@ -229,23 +229,17 @@ def verify(output: Path, server: str, room: str, timeout: float, visible: bool) 
             report['harvest_result'] = {'unit': received('units', worker_id),
                                         'initial_lumber': initial_lumber,
                                         'final_lumber': scene.world.players[human].lumber}
-            # Remote progression is independently observable in snapshots without running a local Brain.
+            # A seat is sent only what it sees (Warband WB-011): the remote seat's orders never travel, and its
+            # progress shows in what scouting finds, buildings beyond the starting hall or more than the starting peasants.
             final = opponent_summary()
-            original_units = {u['id']: u for u in baseline['units']}
-            moved = [u['id'] for u in final['units'] if u['id'] in original_units
-                     and math.dist((u['x'], u['y']), (original_units[u['id']]['x'], original_units[u['id']]['y'])) > .5]
-            new_units = [u['id'] for u in final['units'] if u['id'] not in original_units]
-            old_buildings = {b['id']: b for b in baseline['buildings']}
-            construction = [b['id'] for b in final['buildings']
-                            if b['id'] not in old_buildings or b['progress'] > old_buildings[b['id']]['progress']]
-            active_orders = [{'unit': u['id'], 'orders': u['orders']} for u in final['units'] if u['orders']]
-            assert final['tick'] > baseline['tick'] and active_orders, 'Remote seat did not issue orders'
-            assert moved or new_units or construction, 'Remote seat did not progress'
+            grown = [b['id'] for b in final['buildings'] if b['type'] != 'town_hall']
+            army = [u['id'] for u in final['units']]
+            assert final['tick'] > baseline['tick'], 'The match did not advance'
+            assert grown or len(army) > 3, 'Scouting found no progress of the remote seat'
             assert scene.match is None and not scene.brains and scene.session.ready
             report.update(status='passed', final_tick=scene.world.tick, opponent_after=final,
                           trained_units=sorted({u.id for u in scene.world.player_units(human)} - initial_local_ids),
-                          remote_progress={'moved_units': moved, 'new_units': new_units,
-                                           'construction': construction, 'active_orders': active_orders})
+                          remote_progress={'buildings_seen': grown, 'units_seen': army})
             shot('06-remote-ai-progression')
             press(key.HOME)
             frames(12)
