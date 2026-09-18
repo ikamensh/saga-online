@@ -69,6 +69,9 @@ uv run python tools/load_online.py wss://games.tachyon-ai.eu/play warband --room
 - `website/` — copy, curated screenshots (`website/media/`), templates and
   static files; `tools/build_site.py` renders it. `.claude/launch.json` serves
   `dist/site` for a browser preview.
+- `tools/win_desktop.py` and `tools/win_box/` — an interactive Windows desktop
+  of any size and scaling on a throwaway Scaleway box, opened, used and closed
+  from this laptop with no typed login (`docs/windows-test-box.md`).
 - `tools/remote_warband_ai.py` — a headless Warband AI client on a separate VM
   as a real remote opponent (`docs/warband-remote-ai.md`).
 - `docs/game-distribution-plan.md` — the distribution plan and its status.
