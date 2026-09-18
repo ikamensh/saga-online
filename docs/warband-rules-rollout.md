@@ -43,4 +43,17 @@ The stack's standing authorization applies; the
 
 ## Status
 
-Preparation in progress.
+**Backup and rehearsal, 2026-09-18 00:57 UTC.** `deploy_online.py backup` took a
+fresh consistent backup on the server and verified the off-host copy
+`rooms-20260918T005725Z.sqlite3` (SHA-256
+`e90e42adff5dea3a94c379625c2499d681ffc57fabd61f9e9d81de4a1d3cf116`,
+integrity ok). `tools/rehearse_retained.py` (new: a reusable rehearsal that
+starts the real room server for all three games over a private copy of a
+backup and resumes every seat with its own token, at the production room and
+connection limits) resumed all **9 seats of the 5 retained Shardbound
+campaigns** on the candidate code, none failed; the report is in
+`docs/evidence/rules-rollout/rehearsal.log`. The live server was not touched
+beyond the backup unit.
+
+Server pins, CI acceptance, activation and the public checks follow once the
+Warband main commit carrying both items has its native run.
