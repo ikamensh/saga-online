@@ -68,5 +68,13 @@ copy with the sibling Warband checkout at `0bbe4ae`: all **9 seats of the 5
 retained campaigns** resumed, none failed
 (`docs/evidence/rules-rollout/rehearsal-0bbe4ae.log`).
 
-CI acceptance, activation and the public checks follow once the candidate's
-Linux suite and native run are green.
+**Candidate green, its promotion refused as designed, 2026-09-18 01:50 UTC.**
+Warband `0bbe4ae` passed [Tests 35295716669](https://github.com/ikamensh/warband/actions/runs/35295716669)
+and [native package checks 35295716718](https://github.com/ikamensh/warband/actions/runs/35295716718)
+on Windows and Mac; main's automatic
+[publish 35296736779](https://github.com/ikamensh/warband/actions/runs/35296736779)
+produced its immutable release, and Saga Online's
+[promotion 35296870787](https://github.com/ikamensh/saga-online/actions/runs/35296870787)
+refused it with "Candidate requires a different server compatibility
+baseline": the live site keeps 0.2.10 until the server runs the new rules.
+The `rules-server` branch with the pins is pushed for CI acceptance.
