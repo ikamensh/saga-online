@@ -67,3 +67,52 @@ few sines, cosines and arctangents differently in the last bit, the source's
 as well as the compiled simulation's. `6744934` holds the compiled simulation
 to the source on the machine that runs the test. Its simulation sources are
 `d4e2e19`'s, so the compatibility check above stands.
+
+**Accepted live server, 2026-09-18 22:33 UTC.** Warband `6744934` passed
+[Tests 35400377943](https://github.com/ikamensh/warband/actions/runs/35400377943)
+and [native package checks 35400377983](https://github.com/ikamensh/warband/actions/runs/35400377983)
+(run number 61, Windows and Mac; the Windows job runs the whole suite, so the
+compiled simulation matched the source there too). Its contract differs from
+the live one in the seven simulation sources and in nothing else (packages
+unchanged). Saga Online `736153b` passed
+[Tests 35401750400](https://github.com/ikamensh/saga-online/actions/runs/35401750400)
+and [Website checks 35401750395](https://github.com/ikamensh/saga-online/actions/runs/35401750395).
+The archive CI built and prepared as the service account is the one
+activated, identical to the local one:
+`f3302078bb5359cbf3b2881188533bbab3d5791642258c67c7954ace7b18c33c` (324
+files; the one more than before is `warband/fastsim.py`, which nothing on the
+server imports).
+
+Before activation: the off-host backup `rooms-20260918T215216Z.sqlite3` (13
+rooms, SHA-256 `749e626b…`) and its private rehearsal (all 25 retained seats
+resumed on the candidate). A fresh backup just before activation,
+`rooms-20260918T223315Z.sqlite3`, had the same bytes, and its 25 seats all
+resumed too. `deploy_online.py deploy` prepared the archive as the service
+account and activated it at 22:33:47 UTC. The previous release `3bf61237…`
+stays at the `previous` pointer with its backups, and the website pointer did
+not move.
+
+After activation:
+- Public health is `ok`.
+- The served attestation names deployment `f3302078…`, Warband `6744934` and
+  the compatibility contract
+  `fcdc63e6d7c4dad60fbe0cd3f4369778342c4d6d762c69918c105e131033e4b1`, the
+  digest `tools/ci_compatibility.py` computes on the candidate checkout.
+- `deploy/smoke.py` passed create, join and order for all three games.
+- `permessage-deflate` is negotiated through the public proxy.
+- Every retained seat resumed on the live server with its own token (13
+  rooms, 25 seats, none failed).
+- A three-seat Warband room filled in order, started with 3 of 3, and refused
+  a client that says nothing of seats.
+- The native Warband journey (create, room-code join, accepted gameplay,
+  restart and rejoin against the public server) passed. Its frames are under
+  `docs/evidence/fastsim-rollout/public/`, and I looked at them: the seat's
+  own corner with the rest fogged, and after the rejoin the gatherers inside
+  the mine, as in the earlier rollouts' frames. The first attempt met the
+  server's four-rooms-a-minute limit, right after the other checks.
+
+The served attestation is the new
+[`releases/server-baseline.json`](../releases/server-baseline.json). The
+promotion of `6744934`'s publication ran at 22:30, before the activation, and
+was refused as designed ("Candidate requires a different server compatibility
+baseline").
