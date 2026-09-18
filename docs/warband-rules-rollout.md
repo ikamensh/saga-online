@@ -78,3 +78,15 @@ produced its immutable release, and Saga Online's
 refused it with "Candidate requires a different server compatibility
 baseline": the live site keeps 0.2.10 until the server runs the new rules.
 The `rules-server` branch with the pins is pushed for CI acceptance.
+
+**Server packaging repaired, 2026-09-18 03:25 UTC.** The branch's first CI run
+([35296943073](https://github.com/ikamensh/saga-online/actions/runs/35296943073))
+failed in `test_packaged_release_runs_server_entrypoint`: Warband `42dc02d`
+numbers releases from the native run number and its `ci_release.py prepare`
+has required `--run-number` since, while server packaging still called it
+with the run id alone. This candidate is the first server pin at or after
+that commit, so the live server's pin never met it. `05fc9e5` records
+`warband_run_number` (36) beside the run id in the pins, passes it through,
+checks the identity echoes both, and makes CI's provenance step assert the
+pinned number is the run's. Local packaging with the pinned uv 0.12.10 then
+produced release `58f75c42…` (314 files); CI acceptance runs again.
