@@ -1,5 +1,5 @@
 {
-  "deployment_release": "8b1877852198f763384f933888e219380e7498994972f7b54167fc6a7834ef85",
+  "deployment_release": "443319e92ded10c9e25a6114520ba4be27bb8b4292af20b43273b2860f6ae497",
   "endpoint": "wss://games.tachyon-ai.eu/play",
   "protocol": 1,
   "schema_version": 1,
@@ -7,27 +7,27 @@
     "compatibility": {
       "files": {
         "warband/__init__.py": "f8235541f7a2761d6a20034d3630ff64084330823eef1df3001c20c8aecb5e21",
-        "warband/authority.py": "e807b4d64677d1b47c93467e093f14e707fb7517c07a8f76b69dafdae0c0b2de",
+        "warband/authority.py": "c5cdc63e9b1fdb67d49b779937bd57450e6670a4f9c323bccc131c8815910b9c",
         "warband/mapgen.py": "50755ae7b0466d697f86ade9660e78ac61291c303560d4ac3bb4c6b4e8ec9109",
-        "warband/model.py": "8cc7ff96374dd0c2e8d197daffcfa485e73961ca19bb5ac8bda97894f4b5a382",
+        "warband/model.py": "3c028a1b3c389f7d3c9d6b9f618b87ecb6193fe86348b1261b8d4290a24a6f2e",
         "warband/path.py": "cee349f7360513e41c416f677d03d8e7a9ddbc1c1d062ab7711e83fde3c2b8e1",
         "warband/races.py": "efeefcc9f5bb2990c6e24da587a9a64b0290b2663746d045b7ac66f51325b7ed",
-        "warband/rules.py": "76c860d4f5ece83864585749799c19221b6b486e2924192450af191a1c5d4068",
-        "warband/settlement.py": "b158f7d0b501658463aac5f20ed2bc002499f84142345a4866fbf4c6864838a2",
+        "warband/rules.py": "09ac6d41ddcbfac3220a4c0466c6de9a342ee52d08b6da027560b7c3b63db48d",
+        "warband/settlement.py": "5729c0824fede8896291e48eb7175239e519bfdb0f52110d899c7f9bd787c2ac",
         "warband/worker_ai.py": "0096e0d87aa1e6611f62d61bbaec86f7c7d9156d3cf1bfce65634f2b8063d7d7",
         "warband/worker_knowledge.py": "9508e59d6d7a13dde8b609e71150a1c1799874962df7a8e816e4b91adf5eab33"
       },
       "packages": {
         "pillow": "12.3.0",
         "pyglet": "2.1.16",
-        "saga2d": "0.3.5",
+        "saga2d": "0.3.7",
         "websockets": "17.1"
       },
       "python": "3.13.2",
       "registry": "warband.authority:ONLINE",
       "schema_version": 1,
-      "sha256": "68d01092abf96568791c974de727622969f1683c52e0ecdef7cca5436e49b08f"
+      "sha256": "9ab6e7ac51507f488b02ce24bc1c156ed7be532b1985c4ebb2fd8a8eca183595"
     },
-    "source_commit": "dbd8beddb1e2f773769c7ff9a06ab27675542d08"
+    "source_commit": "2e2dd88068af0aaf6c646cc9831c39ba8a29a603"
   }
 }

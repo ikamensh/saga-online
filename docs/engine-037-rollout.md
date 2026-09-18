@@ -54,3 +54,59 @@ The stack's standing authorization applies; the
 [deployment runbook](../deploy/README.md) gives the procedure.
 
 ## Status
+
+**Cohort prepared, 2026-09-18 16:10 UTC.** Saga2D 0.3.7 is on PyPI (wheel
+SHA-256 `31c93847cb9268e8fd22a0a20d9f16e135aec905291dbfde103301715c1c7d21`,
+tag `v0.3.7` = engine `76cb7cb`; 0.3.6, wheel `c7b4139f…`, is its ancestor)
+and passes the installed-distribution check from a fresh environment.
+Tribes `8ff249c`: 189 passed. Shardbound `f857599`: 1,078 passed, 19 failed,
+the failed node IDs identical to the recorded baseline. Warband on 0.3.7:
+1,242 passed, the simulation fingerprint matches the recorded one. The
+contract differs from the live one in `warband/authority.py`, `model.py`,
+`rules.py`, `settlement.py` and `packages.saga2d` (0.3.5 to 0.3.7), nothing
+else.
+
+**Candidate green, its promotion refused as designed, 2026-09-18 16:25 UTC.**
+Warband main `2e2dd88` passed [Tests 35366637939](https://github.com/ikamensh/warband/actions/runs/35366637939)
+and [native package checks 35366638004](https://github.com/ikamensh/warband/actions/runs/35366638004)
+(run number 51) on Windows and Mac; the display change had passed the native
+checks on its branch before (35364770056). Main's
+[publish 35368085005](https://github.com/ikamensh/warband/actions/runs/35368085005)
+produced the immutable release and
+[promotion 35368383355](https://github.com/ikamensh/saga-online/actions/runs/35368383355)
+refused it with "Candidate requires a different server compatibility
+baseline".
+
+## Accepted live server — 2026-09-18
+
+Saga Online `6f60434` passed [Tests 35368158377](https://github.com/ikamensh/saga-online/actions/runs/35368158377)
+and [Website checks 35368158174](https://github.com/ikamensh/saga-online/actions/runs/35368158174).
+The archive CI built is the one activated: local packaging at the same
+commit with the pinned uv gives the identical release
+`443319e92ded10c9e25a6114520ba4be27bb8b4292af20b43273b2860f6ae497` (315
+files).
+
+Before activation: the off-host backups `rooms-20260918T161127Z.sqlite3` and
+`rooms-20260918T162728Z.sqlite3` (9 rooms, SHA-256 `c4ccd3f3…`, identical) and
+the private rehearsal on both: all **17 seats of the 9 retained Shardbound
+campaigns** resumed on the candidate, none failed. `deploy_online.py deploy`
+prepared the archive as the service account and activated it at 16:27 UTC;
+the previous release `8b187785…` stays at the `previous` pointer with its
+backups.
+
+After activation: public health `ok`; the served attestation names deployment
+`443319e9…`, Warband `2e2dd88` and the compatibility contract
+`9ab6e7ac51507f488b02ce24bc1c156ed7be532b1985c4ebb2fd8a8eca183595`, the same
+digest `tools/ci_compatibility.py` computes on the candidate checkout;
+`deploy/smoke.py` passed create, join and order for all three games;
+`permessage-deflate` is negotiated through the public proxy; every retained
+seat resumed on the live server with its own token (9 rooms, none failed:
+`docs/evidence/engine-037-rollout/live-rejoin.log`); the native Warband
+journey (create, room-code join, accepted gameplay, restart and rejoin
+against the public server) passed, its frames under
+`docs/evidence/engine-037-rollout/public/` looked at.
+
+The served attestation is recorded as the new
+[`releases/server-baseline.json`](../releases/server-baseline.json). The
+refused promotion is dispatched again from its accepted native run; the
+public download checks and the look at the published Windows build follow.
