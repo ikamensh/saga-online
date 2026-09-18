@@ -45,3 +45,34 @@ The stack's standing authorization applies; the
 [deployment runbook](../deploy/README.md) gives the procedure.
 
 ## Status
+
+**Accepted live server, 2026-09-18 17:42 UTC.** The contract of Warband
+`faed307` differs from the live one in `warband/model.py`, `races.py`,
+`rules.py` and `worker_ai.py` and in nothing else (packages unchanged);
+its main runs are [Tests 35372085656](https://github.com/ikamensh/warband/actions/runs/35372085656)
+and [native package checks 35372085715](https://github.com/ikamensh/warband/actions/runs/35372085715)
+(run number 55). Saga Online `cbcb714` passed
+[Tests 35375486704](https://github.com/ikamensh/saga-online/actions/runs/35375486704)
+and [Website checks 35375486700](https://github.com/ikamensh/saga-online/actions/runs/35375486700);
+the archive CI built is the one activated, identical to the local one:
+`a38f8889ea07d31987ae0417ed62d10a27e4eb1ac09b760d874dc5dd78e41d3f` (318
+files).
+
+Before activation: the off-host backups `rooms-20260918T173800Z.sqlite3` and
+`rooms-20260918T174207Z.sqlite3` (10 rooms, SHA-256 `9ddeb91c…`, identical)
+and the private rehearsal on both: every retained seat of the 10 retained
+Shardbound campaigns resumed on the candidate, none failed.
+`deploy_online.py deploy` activated the archive at 17:42 UTC; the previous
+release `443319e9…` stays at the `previous` pointer with its backups.
+
+After activation: public health `ok`; the served attestation names deployment
+`a38f8889…`, Warband `faed307` and the compatibility contract
+`3892c8b2e76cd698bc9ce42639a9ac4313ccdcb1f2ab0ee42e54cf8a1eeda47e`, the
+digest `tools/ci_compatibility.py` computes on the candidate checkout;
+`deploy/smoke.py` passed create, join and order for all three games;
+`permessage-deflate` is negotiated through the public proxy; every retained
+seat resumed on the live server with its own token (10 rooms, none failed);
+the native Warband journey (create, room-code join, accepted gameplay,
+restart and rejoin against the public server) passed, its frames under
+`docs/evidence/balance-rollout/public/` looked at. The served attestation is
+the new [`releases/server-baseline.json`](../releases/server-baseline.json).
