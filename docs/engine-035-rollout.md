@@ -52,3 +52,52 @@ passed, 19 failed, the failed node IDs identical to the recorded baseline
 (`docs/evidence/engine-0.3.5/failed-ids.json` in that checkout against
 `engine-0.3.3/baseline-failed-ids.json`). Warband on 0.3.5: 1,192 passed, the
 simulation fingerprint matches the recorded one.
+
+**Candidate green, its promotion refused as designed, 2026-09-18 11:14 UTC.**
+Warband main `dbd8bed` passed [Tests 35337133332](https://github.com/ikamensh/warband/actions/runs/35337133332)
+and [native package checks 35337133223](https://github.com/ikamensh/warband/actions/runs/35337133223)
+(run number 46) on Windows and Mac: the first builds whose `verify` requires
+the executable and the bundle to carry the converted icon. The same commit
+had passed both on its branch first (35334774625, 35334774501), and the
+Windows artifact was inspected: the executable and the Inno Setup installer
+hold all seven images of the converted `.ico` byte for byte, and the
+conversion on the Windows runner equals the one on the reference Mac. Main's
+[publish 35338448502](https://github.com/ikamensh/warband/actions/runs/35338448502)
+produced the immutable release and
+[promotion 35338620671](https://github.com/ikamensh/saga-online/actions/runs/35338620671)
+refused it with "Candidate requires a different server compatibility
+baseline". The contract differs from the live one in `packages.saga2d` alone
+(0.3.3 to 0.3.5); the authoritative file hashes are identical.
+
+## Accepted live server — 2026-09-18
+
+Saga Online `0885642` passed [Tests 35338500304](https://github.com/ikamensh/saga-online/actions/runs/35338500304)
+and [Website checks 35338500334](https://github.com/ikamensh/saga-online/actions/runs/35338500334).
+The archive CI built is the one activated: local packaging at the same
+commit with the pinned uv gives the identical release
+`8b1877852198f763384f933888e219380e7498994972f7b54167fc6a7834ef85` (315
+files; the one new file is `saga2d/packaging/icon.py`).
+
+Before activation: the off-host backups `rooms-20260918T102915Z.sqlite3` and
+`rooms-20260918T111751Z.sqlite3` (8 rooms, SHA-256 `7a102a4e…`, identical, so
+the store had not changed) and the private rehearsal on both: all **15 seats
+of the 8 retained Shardbound campaigns** resumed on the candidate, none
+failed. `deploy_online.py deploy` prepared the archive as the service account
+and activated it at 11:18 UTC; the previous release `58f75c42…` stays at the
+`previous` pointer with its backups.
+
+After activation: public health `ok`; the served attestation names deployment
+`8b187785…`, Warband `dbd8bed` and the compatibility contract
+`68d01092abf96568791c974de727622969f1683c52e0ecdef7cca5436e49b08f`, the same
+digest `tools/ci_compatibility.py` computes on the candidate checkout;
+`deploy/smoke.py` passed create, join and order for all three games; every
+retained seat resumed on the live server with its own token (8 rooms, none
+failed: `docs/evidence/engine-035-rollout/live-rejoin.log`); the native
+Warband journey (create, room-code join, accepted gameplay, restart and
+rejoin against the public server) passed, its frames under
+`docs/evidence/engine-035-rollout/public/` looked at.
+
+The served attestation is recorded as the new
+[`releases/server-baseline.json`](../releases/server-baseline.json). The
+refused promotion is dispatched again from its accepted native run; the
+public download checks follow.
