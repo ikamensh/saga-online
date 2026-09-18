@@ -90,3 +90,44 @@ that commit, so the live server's pin never met it. `05fc9e5` records
 checks the identity echoes both, and makes CI's provenance step assert the
 pinned number is the run's. Local packaging with the pinned uv 0.12.10 then
 produced release `58f75c42…` (314 files); CI acceptance runs again.
+
+## Accepted live server — 2026-09-18
+
+Saga Online `05fc9e5` passed [Tests 35297328393](https://github.com/ikamensh/saga-online/actions/runs/35297328393)
+(the suite with the repaired packaging, host exclusion, restricted SSH, the
+archive built and reverified as the service account) and
+[Website checks 35297328394](https://github.com/ikamensh/saga-online/actions/runs/35297328394).
+The archive CI built is the one activated: local packaging at the same
+commit with the pinned uv gives the identical release
+`58f75c4244f2a88333972b1eb6ec6d70a2849bcc883faa7e3b4d42ffd901991d`
+(314 files).
+
+Before activation a fresh backup, `rooms-20260918T020105Z.sqlite3`, was
+taken and verified off host: 5 rooms, SHA-256 `e90e42ad…` — byte-identical
+to the 00:57 backup the rehearsals used, so nothing had changed in the store.
+`deploy_online.py deploy` uploaded the archive, prepared it as the service
+account (hashed runtime, the packaged release check over a private copy of
+the live rooms, Caddy validation) and activated it at 02:01:33 UTC; the
+previous release `acb8cef2…` stays at the `previous` pointer with its backups.
+
+After activation: public health `ok`; the served attestation names
+deployment `58f75c42…`, Warband `0bbe4ae` and the compatibility contract
+`6b33fd3829a5ddccaa0d4bd37ca5df8046a59cc4d265cca0d29c013098a8f8e3`, the same
+digest `tools/ci_compatibility.py` computes on the candidate checkout;
+`deploy/smoke.py` passed create, join and order for all three games; every
+retained seat resumed on the live server with its own token (5 rooms, 9
+seats, none failed: `docs/evidence/rules-rollout/live-rejoin.log`); the
+native Tribes journey (create, room-code join, gameplay, restart and rejoin)
+passed against the public server. The Warband journey first failed inside
+`tools/verify_multiplayer.py`, which still imported `WarbandMatch` from
+`warband.multiplayer` after Warband `2361f79` moved it to
+`warband.authority`; `d55b3a1` repairs the tool and adds the test, and the
+Warband journey (native create, room-code join, accepted gameplay, restart
+and rejoin against the public server) then passed, and so did Shardbound's
+(its first attempt found no display: the Mac's screen had slept between
+runs); the frames are under `docs/evidence/rules-rollout/public/`.
+
+The served attestation is recorded as the new
+[`releases/server-baseline.json`](../releases/server-baseline.json). This
+accepts the shared-server dependency of WB-017 and WB-007; the client's
+promotion follows from the already published, immutable release 0.2.11.
