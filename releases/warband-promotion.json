@@ -1,7 +1,7 @@
 {
   "already_current": false,
   "baseline": {
-    "deployment_release": "acb8cef212b94daad035a604dc6319fd9e9d025703f131e39202f213de53e082",
+    "deployment_release": "58f75c4244f2a88333972b1eb6ec6d70a2849bcc883faa7e3b4d42ffd901991d",
     "endpoint": "wss://games.tachyon-ai.eu/play",
     "protocol": 1,
     "schema_version": 1,
@@ -11,7 +11,7 @@
           "warband/__init__.py": "f8235541f7a2761d6a20034d3630ff64084330823eef1df3001c20c8aecb5e21",
           "warband/authority.py": "e807b4d64677d1b47c93467e093f14e707fb7517c07a8f76b69dafdae0c0b2de",
           "warband/mapgen.py": "50755ae7b0466d697f86ade9660e78ac61291c303560d4ac3bb4c6b4e8ec9109",
-          "warband/model.py": "1bfe4f73a81e5ee243da25409b0dd0c5c28140dd4b98763f234151d7ad14cba7",
+          "warband/model.py": "8cc7ff96374dd0c2e8d197daffcfa485e73961ca19bb5ac8bda97894f4b5a382",
           "warband/path.py": "cee349f7360513e41c416f677d03d8e7a9ddbc1c1d062ab7711e83fde3c2b8e1",
           "warband/races.py": "efeefcc9f5bb2990c6e24da587a9a64b0290b2663746d045b7ac66f51325b7ed",
           "warband/rules.py": "76c860d4f5ece83864585749799c19221b6b486e2924192450af191a1c5d4068",
@@ -28,17 +28,17 @@
         "python": "3.13.2",
         "registry": "warband.authority:ONLINE",
         "schema_version": 1,
-        "sha256": "99dac00a423c6660f2c30d604136c2f46dc2b463a95046026884de074d4333ce"
+        "sha256": "6b33fd3829a5ddccaa0d4bd37ca5df8046a59cc4d265cca0d29c013098a8f8e3"
       },
-      "source_commit": "cac35b7a908f0526aaa9a3117c5e36a8d415dc90"
+      "source_commit": "0bbe4aee1136dd7ba493656c86d92253b06b39d1"
     }
   },
-  "before_catalog_sha256": "5e8931aac15a4486bc714c09a6d45c3f59595c70b6d3adae598916b9b0a6c21e",
-  "build_run_id": 35292659985,
-  "catalog_sha256": "c23f1a1f7b2bc51c4219a9dd9dcba2fdc7d6f40b0c49b56575ee4c65da277b15",
-  "game_sha256": "cd0335803af0b2877f49afdfb38999f9ac07b3768c670c61986df6e95010faf6",
-  "manifest_sha256": "bfaab70671b8b6d1f1c0217c8ab05cd52004194500f782ace5df3667727ffdf6",
-  "release_id": 391149467,
+  "before_catalog_sha256": "c23f1a1f7b2bc51c4219a9dd9dcba2fdc7d6f40b0c49b56575ee4c65da277b15",
+  "build_run_id": 35295716718,
+  "catalog_sha256": "589d74e756efcfbddee2721869a856382d2055b13d50f0c3f919763c3e0a52d5",
+  "game_sha256": "8e7a58b12b806af9e8fe2a9e99917d6011a8e43fdb3d4d179b8855f475856b02",
+  "manifest_sha256": "282a0b401c409ebbd811ad77fe8f0c0c458cceda5a966e92bc525b84f1a60e53",
+  "release_id": 391162165,
   "schema_version": 1,
-  "source_commit": "fb94a0be6c5f73c82a3cb4ec5f7b7c66acc698ed"
+  "source_commit": "0bbe4aee1136dd7ba493656c86d92253b06b39d1"
 }
