@@ -101,3 +101,16 @@ The served attestation is recorded as the new
 [`releases/server-baseline.json`](../releases/server-baseline.json). The
 refused promotion is dispatched again from its accepted native run; the
 public download checks follow.
+
+**Promotion accepted, public downloads checked, 2026-09-18 11:22 UTC.**
+[Promotion 35339144196](https://github.com/ikamensh/saga-online/actions/runs/35339144196),
+dispatched again from native run 35337133223 (release 391412408, manifest
+`e7891120…`), was accepted against the new baseline and published the catalog
+for Warband 0.2.21 (`dd2f496`); the site offers the 0.2.21 downloads.
+[Public download checks 35339235957](https://github.com/ikamensh/saga-online/actions/runs/35339235957)
+passed on Windows and macOS. The Mac app downloaded from the public link names
+`icon.icns` in `CFBundleIconFile`, holds the converted file (SHA-256
+`dc6b816b…`, the one the local build produced) and shows Warband's shield in
+Finder. This completes the rollout; Tribes' and Shardbound's published
+clients are unchanged and keep working against the shared server (the smoke
+and the retained seats above).
