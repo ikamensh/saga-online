@@ -24,6 +24,7 @@ uv run --project publishing --locked python -m pytest -q tests/test_release_cata
 uv run python tools/deploy_online.py plan --name saga2d-online       # offline; deploy / site / backup perform the named operation
 SAGA2D_SILENT=1 uv run python tools/verify_online.py /tmp/online     # native create/join/rejoin journeys for every game
 uv run python tools/load_online.py wss://games.tachyon-ai.eu/play warband --rooms 4
+uv run python tools/verify_room_seats.py wss://games.tachyon-ai.eu/play  # a three-seat Warband room fills, starts, refuses a client without seats
 ```
 
 ## Layout

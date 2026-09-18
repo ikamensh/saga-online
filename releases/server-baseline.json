@@ -1,5 +1,5 @@
 {
-  "deployment_release": "90a73f0ea3e364c06bff7a24d61f8e986f33a23a6d116f4bcd0d774825f8cc59",
+  "deployment_release": "3bf61237afe1b40257df294658710858b281ac50971cc0fc403270bbbb0488e7",
   "endpoint": "wss://games.tachyon-ai.eu/play",
   "protocol": 1,
   "schema_version": 1,
@@ -7,8 +7,8 @@
     "compatibility": {
       "files": {
         "warband/__init__.py": "f8235541f7a2761d6a20034d3630ff64084330823eef1df3001c20c8aecb5e21",
-        "warband/authority.py": "edd4d7140a6bbd37b36ae8f5180f12cf4521edbb2bb0b697344d8f219c5f762e",
-        "warband/mapgen.py": "50755ae7b0466d697f86ade9660e78ac61291c303560d4ac3bb4c6b4e8ec9109",
+        "warband/authority.py": "b51afe3e2a406c9f76a4255266212c93dba4f8710742aae82995de8c2ce68212",
+        "warband/mapgen.py": "186713943d4cc66655e394535e7396fbbf220eac855f39e670a8224d8d33a77e",
         "warband/model.py": "d58fdfd21206bc9314a88827551b6d8b409f722c98220cbfb0e10cc225e162af",
         "warband/path.py": "cee349f7360513e41c416f677d03d8e7a9ddbc1c1d062ab7711e83fde3c2b8e1",
         "warband/races.py": "6bab25891a8d9a4c36f13780e71361ddde94940f54816e463e446ed2cbb5e3dd",
@@ -20,14 +20,14 @@
       "packages": {
         "pillow": "12.3.0",
         "pyglet": "2.1.16",
-        "saga2d": "0.3.7",
+        "saga2d": "0.3.8",
         "websockets": "17.1"
       },
       "python": "3.13.2",
       "registry": "warband.authority:ONLINE",
       "schema_version": 1,
-      "sha256": "6d5ed3362729e68a30658281973f33871e28c3990de52e68eb42b44b7128d954"
+      "sha256": "3e1deac86b3ae8dfc738d16e2cf35e7df0207fb84769c23272235e73d148c264"
     },
-    "source_commit": "89a6587720e8f41490dac48a6e8a87e9d3c4e307"
+    "source_commit": "4e092a08351467466804ebf88809a65b6ae3248e"
   }
 }
