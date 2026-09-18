@@ -16,6 +16,9 @@ TARGETS = ("windows-x64", "darwin-arm64")
 SOCKET_CHECKS = ("create_join", "authoritative_movement", "foreign_order_rejected", "private_seat_rejoin",
                  "global_production", "automatic_plan_builder", "cancel_plans", "assembly_point")
 NATIVE_CHECKS = ("native_multiplayer_input", "native_clipboard_join", "live_match_menu", "native_settlement_planning", "start_after_resize")
+#: Warband's whole suite, both its tiers (the producer's ``REGRESSION`` in ``tools/ci_package.py``); a bare
+#: ``pytest -q`` runs only the fast tier since Warband's WB-040.
+FULL_REGRESSION = ["-m", "pytest", "-q", "--slow"]
 
 
 def require(condition, message):
@@ -75,7 +78,7 @@ def verify_native_release(directory: Path, manifest: dict) -> None:
                     "Installer compiler differs from release pin")
         regression = json.loads(evidence["regression.json"])
         require(regression["identity"] == identity and regression["exit_code"] == 0
-                and regression["command"] == ["-m", "pytest", "-q"]
+                and regression["command"] == FULL_REGRESSION
                 and regression["log_sha256"] == hashlib.sha256(evidence["regression.log"]).hexdigest()
                 and re.search(rb"\b[1-9][0-9]* passed\b", evidence["regression.log"]), "Missing passing full regression evidence")
         build = json.loads(evidence["build-manifest.json"])

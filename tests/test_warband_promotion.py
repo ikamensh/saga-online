@@ -90,7 +90,7 @@ def release_data(tmp_path, *, run_id=123, run_number=26):
         log = b"901 passed, 12 skipped\n"
         evidence = {"build-inputs.json": encoded(inputs), "build-manifest.json": encoded(manifest),
                     "verification.json": encoded(report), "regression.log": log,
-                    "regression.json": encoded({"identity": identity, "exit_code": 0, "command": ["-m", "pytest", "-q"], "log_sha256": sha(log)}),
+                    "regression.json": encoded({"identity": identity, "exit_code": 0, "command": ["-m", "pytest", "-q", "--slow"], "log_sha256": sha(log)}),
                     "SHA256SUMS": "".join(f"{x['sha256']}  {x['file']}\n" for x in artifacts).encode(),
                     "verification/native.png": b"\x89PNG\r\n\x1a\nFixture"}
         assets[f"evidence-{target}.zip"] = archive(evidence)
@@ -283,7 +283,8 @@ def test_promotion_requires_the_reviewed_and_live_server_to_match_the_candidate(
 
 
 @pytest.mark.parametrize("problem", ["failed_native", "failed_socket", "missing_app", "stale_receipt",
-                                    "failed_regression", "dirty_build", "changed_runtime", "changed_executable", "extra_evidence"])
+                                    "failed_regression", "fast_tier_only", "dirty_build", "changed_runtime", "changed_executable",
+                                    "extra_evidence"])
 def test_valid_outer_digests_cannot_hide_invalid_native_evidence(release, problem):
     """The consumer reads native receipts and the archived executable even after all outer hashes are refreshed."""
     target = release["manifest"]["targets"]["darwin-arm64"]
@@ -303,6 +304,10 @@ def test_valid_outer_digests_cannot_hide_invalid_native_evidence(release, proble
     elif problem == "failed_regression":
         regression = json.loads(evidence["regression.json"])
         regression["exit_code"] = 1
+        evidence["regression.json"] = encoded(regression)
+    elif problem == "fast_tier_only":
+        regression = json.loads(evidence["regression.json"])
+        regression["command"] = ["-m", "pytest", "-q"]
         evidence["regression.json"] = encoded(regression)
     elif problem == "dirty_build":
         build["working_tree_dirty"] = True
