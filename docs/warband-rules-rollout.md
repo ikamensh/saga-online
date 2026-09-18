@@ -2,12 +2,16 @@
 
 Started 2026-09-18 on Saga Online `b4ef8fb`, from Warband's `rules` branch
 (WB-017 `bd60932`: a walk keeps its pace through waypoints; WB-007 `0ea2c1f`:
-a resignation among three or more leaves abandoned buildings). Both change
-`warband/model.py`, so the authoritative compatibility contract moves and the
-publication gate refuses the client until the shared server runs the same
-rules. Sagaforge moves to `10f4d87` (the painted-sheet cleaners of WB-019 and
-WB-023; the server uses none of them, but the identity must match). Tribes,
-Shardbound, Saga2D 0.3.3, Python 3.13.2 and uv 0.12.10 stay at their pins.
+a resignation among three or more leaves abandoned buildings; `2974699`: a
+worker shoved beside a building corner plans again instead of bouncing, an
+older deadlock WB-017's fuzz exposed). All change `warband/model.py`, so the
+authoritative compatibility contract moves and the publication gate refuses
+the client until the shared server runs the same rules. The candidate is
+Warband main `0bbe4ae` (the branch merged, with the backlog's done entries),
+native run 35295716718. Sagaforge moves to `10f4d87` (the painted-sheet
+cleaners of WB-019 and WB-023; the server uses none of them, but the identity
+must match). Tribes, Shardbound, Saga2D 0.3.3, Python 3.13.2 and uv 0.12.10
+stay at their pins.
 
 ## Acceptance defined before rollout
 
@@ -55,5 +59,14 @@ campaigns** on the candidate code, none failed; the report is in
 `docs/evidence/rules-rollout/rehearsal.log`. The live server was not touched
 beyond the backup unit.
 
-Server pins, CI acceptance, activation and the public checks follow once the
-Warband main commit carrying both items has its native run.
+**Candidate pinned, rehearsal repeated, 2026-09-18 02:40 UTC.** The branch
+gained `2974699` (the corner-bounce fix its fuzz found) before merging; main
+`0bbe4ae` is the candidate, with its Tests run 35295716669 and native run
+35295716718 pinned in `.github/server-pins.json` together with sagaforge
+`10f4d87`. The retained-seat rehearsal was run again over the same backup
+copy with the sibling Warband checkout at `0bbe4ae`: all **9 seats of the 5
+retained campaigns** resumed, none failed
+(`docs/evidence/rules-rollout/rehearsal-0bbe4ae.log`).
+
+CI acceptance, activation and the public checks follow once the candidate's
+Linux suite and native run are green.
