@@ -116,3 +116,12 @@ The served attestation is the new
 promotion of `6744934`'s publication ran at 22:30, before the activation, and
 was refused as designed ("Candidate requires a different server compatibility
 baseline").
+
+**Promotion accepted, public downloads checked, 2026-09-18 22:40 UTC.**
+[Promotion 35402342589](https://github.com/ikamensh/saga-online/actions/runs/35402342589),
+dispatched again for release `391820579` (native run 35400377983, manifest
+`a7d9dee2…`) once the baseline had moved, was accepted and published the
+catalog for Warband 0.2.36 (`caab9dd`); the site offers the 0.2.36 downloads.
+[Public download checks 35402446379](https://github.com/ikamensh/saga-online/actions/runs/35402446379)
+passed on Windows and macOS: each downloaded client ran its packaged online
+checks against the live server over TLS. This completes the rollout.
