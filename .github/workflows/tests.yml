@@ -5,18 +5,25 @@ on:
     branches: ['**']
   pull_request:
     branches: [main]
+  # The server rollout runs this suite, and builds its one archive, on the candidate commit.
+  workflow_call:
+    inputs:
+      ref:
+        description: Full commit to test and package
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: server-checks-${{ github.ref }}
+  group: server-checks-${{ inputs.ref || github.ref }}
   cancel-in-progress: true
 
 jobs:
   test:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: saga-online
@@ -26,6 +33,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.ref || github.sha }}
           persist-credentials: false
           path: saga-online
       - name: Read reviewed server inputs
@@ -116,16 +124,31 @@ jobs:
           sudo test -f "$runtime/.venv/retry-marker"
           sudo cmp dist/server-acceptance.json "$runtime/.ready"
           sudo -u saga2d-online test ! -w "$runtime/warband/online/authority.py"
+      - name: Build two probe archives, the second with a host change
+        run: |
+          git config user.name 'Server CI probe'
+          git config user.email 'probe@example.invalid'
+          git commit --quiet --allow-empty -m 'probe: another release of the same sources'
+          uv run --locked python tools/deploy_online.py package --name saga2d-online --output dist/probe > dist/probe-release.json
+          echo '# probe: a host change' >> deploy/Caddyfile
+          git commit --quiet -am 'probe: a changed proxy configuration'
+          uv run --locked python tools/deploy_online.py package --name saga2d-online --output dist/probe > dist/probe-host-change.json
+          git reset --quiet --hard HEAD~2
+      - name: Install, roll back and refuse through the restricted server-CI account over real SSH
+        run: >-
+          sudo env GITHUB_ACTIONS=true .venv/bin/python -B tests/host_server_ci.py
+          dist/server-package.json dist/probe-release.json dist/probe-host-change.json > dist/server-ci-acceptance.json
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
-          name: server-acceptance-${{ github.sha }}-${{ github.run_attempt }}
+          name: server-acceptance-${{ inputs.ref || github.sha }}-${{ github.run_attempt }}
           path: |
             saga-online/dist/server-tests.xml
             saga-online/dist/server-package.json
             saga-online/dist/server-acceptance.json
             saga-online/dist/deployment-exclusion.json
             saga-online/dist/site-ssh-acceptance.json
+            saga-online/dist/server-ci-acceptance.json
             saga-online/dist/online/*.tar.gz
           if-no-files-found: error
           retention-days: 14

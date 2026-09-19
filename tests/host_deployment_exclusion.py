@@ -37,7 +37,7 @@ def verify():
             installer = ["bash", str(ROOT / "deploy/install.sh"), str(root / "absent-upload"),
                          "a" * 64, "saga2d-ci", "games.example.test"]
             control = subprocess.run(installer, capture_output=True, text=True, timeout=10)
-            assert control.returncode != 0 and "absent-upload/deploy/prepare_release.sh" in control.stderr
+            assert control.returncode != 0 and "absent-upload/release.tar.gz" in control.stderr
             entered, resume = threading.Event(), threading.Event()
             faults = {"block": "/index.html", "entered": entered, "resume": resume}
             with public_site(base, faults) as endpoint:
@@ -60,7 +60,7 @@ def verify():
                                 faults.clear()
                                 resume.set()
                             _, error = server.communicate(timeout=10)
-                            assert server.returncode != 0 and b"absent-upload/deploy/prepare_release.sh" in error
+                            assert server.returncode != 0 and b"absent-upload/release.tar.gz" in error
                         _, error = publisher.communicate(timeout=10)
                         assert publisher.returncode == 0, error
                     finally:
@@ -95,7 +95,7 @@ def verify():
                 assert not (base / "pending.json").exists()
                 assert (base / "previous").resolve().name == "b" * 64
                 control = subprocess.run(installer, capture_output=True, text=True, timeout=10)
-                assert control.returncode != 0 and "absent-upload/deploy/prepare_release.sh" in control.stderr
+                assert control.returncode != 0 and "absent-upload/release.tar.gz" in control.stderr
     finally:
         marker.unlink()
         if base.exists():

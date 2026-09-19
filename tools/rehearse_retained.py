@@ -1,11 +1,12 @@
 """Rejoin every retained seat of a room backup on a private copy, with the candidate server code.
 
     uv run python tools/rehearse_retained.py dist/online/backups/rooms-<UTC>.sqlite3
+    uv run python tools/rehearse_retained.py BACKUP --endpoint wss://games.tachyon-ai.eu/play   # after activation
 
 Starts the real room server for all three games on a loopback port over a copy of the backup (the
 original is never opened for writing), then resumes each seat of each retained room with its own
-token and waits for the room's state. Prints one line per seat and a JSON summary; exits non-zero
-when any retained seat fails to resume. Nothing reaches the live server or store.
+token and waits for the room's state. Prints one line per seat (stderr) and a JSON summary; exits
+non-zero when any retained seat fails to resume. Without --endpoint nothing reaches the live server or store.
 """
 from __future__ import annotations
 
@@ -52,39 +53,54 @@ def resume(endpoint: str, room: dict, seat: int, token: str, timeout: float = 20
         client.close()
 
 
+def resume_all(endpoint: str, retained: list[dict], report: dict) -> None:
+    for room in retained:
+        for seat, token in enumerate(room["tokens"]):
+            if token is None:
+                continue
+            outcome = resume(endpoint, room, seat, token)
+            report["seats"].append({"room": room["code"], "game": room["game"], "suspended": room["suspended"], **outcome})
+            print(f"{room['game']:12s} {room['code']} seat {seat}: {'resumed' if outcome['resumed'] else 'FAILED'}"
+                  f" {outcome.get('error', '')} tick {outcome.get('tick')}", file=sys.stderr, flush=True)
+
+
+def rehearse(backup: Path, endpoint: str | None = None) -> dict:
+    """Resume every retained seat: on a private copy with this checkout's server, or on ``endpoint`` itself."""
+    retained = [room for room in rooms(backup) if room["expires_at"] > time.time()]
+    report = {"backup": backup.name, "rooms": len(rooms(backup)), "retained": len(retained), "seats": [],
+              "endpoint": endpoint or "private copy"}
+    if endpoint is not None:
+        resume_all(endpoint, retained, report)
+    else:
+        with tempfile.TemporaryDirectory(prefix="saga2d-rehearsal-") as temporary:
+            state = Path(temporary) / "state"
+            state.mkdir(mode=0o700)
+            shutil.copy2(backup, state / "rooms.sqlite3")
+            from saga2d.server import RoomServer
+            original = RoomServer.__init__
+
+            def with_state(self, games, **kwargs):  # the helper starts a bare server; the rehearsal needs the copied store
+                original(self, games, **{**kwargs, "state_dir": state, "room_ttl": 900, "max_rooms": 64, "max_connections": 128})  # the production limits
+            RoomServer.__init__ = with_state
+            try:
+                with local_server(*GAMES) as local:
+                    resume_all(local, retained, report)
+            finally:
+                RoomServer.__init__ = original
+    report["failed"] = sum(not seat["resumed"] for seat in report["seats"])
+    if retained and not report["seats"]:
+        report["failed"] = len(retained)  # retained rooms without a single seat token cannot be resumed
+    return report
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("backup", type=Path)
+    parser.add_argument("--endpoint", help="Resume on this server (the live one after activation) instead of a private copy")
     args = parser.parse_args()
-    retained = [room for room in rooms(args.backup) if room["expires_at"] > time.time()]
-    report = {"backup": str(args.backup), "rooms": len(rooms(args.backup)), "retained": len(retained), "seats": []}
-    with tempfile.TemporaryDirectory(prefix="saga2d-rehearsal-") as temporary:
-        state = Path(temporary) / "state"
-        state.mkdir(mode=0o700)
-        shutil.copy2(args.backup, state / "rooms.sqlite3")
-        import saga2d.packaging.verify as verify
-        from saga2d.server import MAX_MESSAGE, RoomServer, load_games  # noqa: F401
-        original = RoomServer.__init__
-
-        def with_state(self, games, **kwargs):  # the helper starts a bare server; the rehearsal needs the copied store
-            original(self, games, **{**kwargs, "state_dir": state, "room_ttl": 900, "max_rooms": 64, "max_connections": 128})  # the production limits
-        RoomServer.__init__ = with_state
-        try:
-            with local_server(*GAMES) as endpoint:
-                for room in retained:
-                    for seat, token in enumerate(room["tokens"]):
-                        if token is None:
-                            continue
-                        outcome = resume(endpoint, room, seat, token)
-                        report["seats"].append({"room": room["code"], "game": room["game"], "suspended": room["suspended"], **outcome})
-                        print(f"{room['game']:12s} {room['code']} seat {seat}: {'resumed' if outcome['resumed'] else 'FAILED'}"
-                              f" {outcome.get('error', '')} tick {outcome.get('tick')}", flush=True)
-        finally:
-            RoomServer.__init__ = original
-    failed = [s for s in report["seats"] if not s["resumed"]]
-    report["failed"] = len(failed)
+    report = rehearse(args.backup, args.endpoint)
     print(json.dumps(report, indent=1))
-    return 1 if failed or not report["seats"] and retained else 0
+    return 1 if report["failed"] else 0
 
 
 if __name__ == "__main__":

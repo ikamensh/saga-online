@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Prepare and deploy the dedicated online server; cloud credentials stay local.
 
-``plan``, ``package``, ``package-site`` and ``package-site-ci`` are offline. The other subcommands
-change the explicitly named Saga2D infrastructure. See deploy/README.md for the
-first deployment; ``site`` publishes a built website without touching the server.
+``plan`` and the ``package*`` commands are offline. The other subcommands change the
+explicitly named Saga2D infrastructure. ``deploy`` is for the first deployment and
+for host changes; routine server rollouts run from CI (.github/workflows/server-rollout.yml)
+through the account ``setup-server-ci`` installs. ``site`` publishes a built website
+without touching the server. See deploy/README.md.
 """
 from __future__ import annotations
 
@@ -165,7 +167,8 @@ def bootstrap_project(args):
 def arguments(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=["plan", "package", "bootstrap-project", "provision", "deploy", "status",
-                                            "package-site", "site", "package-site-ci", "setup-site-ci", "backup"])
+                                            "package-site", "site", "package-site-ci", "setup-site-ci",
+                                            "package-server-ci", "setup-server-ci"])
     parser.add_argument("--name", required=True, help="Dedicated resource name, starting saga2d-")
     parser.add_argument("--project-name", default="saga2d")
     parser.add_argument("--project-id")
@@ -181,6 +184,7 @@ def arguments(argv=None):
     parser.add_argument("--expected-site", help="Expected current site SHA-256, or none for first publication")
     parser.add_argument("--promotion-receipt", type=Path, help="Verified Warband receipt; enables compatibility-gated site promotion")
     parser.add_argument("--site-public-key", type=Path, help="Dedicated CI Ed25519 public key for host setup (never the private key)")
+    parser.add_argument("--server-public-key", type=Path, help="Dedicated server-CI Ed25519 public key (never the private key)")
     args = parser.parse_args(argv)
     if not re.fullmatch(r"saga2d-[a-z0-9-]{1,40}", args.name):
         parser.error("--name must start with saga2d- and contain only lowercase letters, digits or hyphens")
@@ -194,6 +198,8 @@ def arguments(argv=None):
         parser.error("--promotion-receipt is only valid for package-site or site")
     if args.command in ("package-site-ci", "setup-site-ci") and args.site_public_key is None:
         parser.error("Site CI setup requires --site-public-key")
+    if args.command in ("package-server-ci", "setup-server-ci") and args.server_public_key is None:
+        parser.error("Server CI setup requires --server-public-key")
     if args.command == "site":
         if args.site_generation is None or args.site_generation <= 0:
             parser.error("site requires a positive --site-generation")
@@ -264,20 +270,31 @@ def package_site(site_dir: Path, output: Path, promotion: Path | None = None):
             "mode": "warband-promotion" if promotion is not None else "operator"}
 
 
-def package_site_ci(public_key: Path, output: Path):
-    """Prepare trusted receiver code for operator installation, separately from CI website uploads."""
+def _tools_package(kind: str, names, public_key: Path, output: Path):
+    """Bundle trusted host tools with a dedicated CI public key for the operator's setup command."""
     key = public_key.read_text().strip()
     if not re.fullmatch(r"ssh-ed25519 [A-Za-z0-9+/=]+(?: [^\r\n]+)?", key):
-        raise ValueError("Site CI setup accepts only a plain Ed25519 public key")
-    files = {name: (ROOT / "deploy" / name).read_bytes()
-             for name in ("install_site_ci.py", "site_receiver.py", "activate_site.py", "install_site.sh")}
-    files["site-ci.pub"] = (key + "\n").encode()
+        raise ValueError(f"{kind} setup accepts only a plain Ed25519 public key")
+    files = {name: (ROOT / "deploy" / name).read_bytes() for name in names}
+    files[f"{kind}.pub"] = (key + "\n").encode()
     payload = _stable_tar(files)
     digest = hashlib.sha256(payload).hexdigest()
     output.mkdir(parents=True, exist_ok=True)
-    path = output / f"site-ci-{digest}.tar.gz"
+    path = output / f"{kind}-{digest}.tar.gz"
     path.write_bytes(payload)
     return {"release": digest, "archive": str(path.resolve()), "files": len(files)}
+
+
+def package_site_ci(public_key: Path, output: Path):
+    """Prepare trusted receiver code for operator installation, separately from CI website uploads."""
+    return _tools_package("site-ci", ("install_site_ci.py", "site_receiver.py", "activate_site.py", "install_site.sh"),
+                          public_key, output)
+
+
+def package_server_ci(public_key: Path, output: Path):
+    """Prepare the server-CI account's trusted entry points and every host file root runs for a rollout."""
+    from deploy.install_server_ci import HOST_FILES
+    return _tools_package("server-ci", ("install_server_ci.py", "install_site_ci.py", *HOST_FILES), public_key, output)
 
 
 def deployment_api(args):
@@ -497,30 +514,17 @@ def setup_site_ci(args):
     return {**target, **package, "receiver": installed, "ssh_reloaded": True}
 
 
-def pull_backup(args):
-    """Take a fresh consistent backup on the server and keep a verified copy on this laptop."""
-    import sqlite3
+def setup_server_ci(args):
+    """Install/update the restricted server-CI account and its host tools, then reload validated SSH configuration."""
+    package = package_server_ci(args.server_public_key, args.output)
     target = running_target(args)
-    ssh(args, target, ["sudo", "systemctl", "start", "saga2d-backup.service"])
-    listing = ssh(args, target, ["sudo", "ls", "-1", "/var/backups/saga2d-online"], capture=True).stdout.split()
-    names = sorted(name for name in listing if re.fullmatch(r"rooms-\d{8}T\d{6}Z\.sqlite3", name))
-    if not names:
-        raise RuntimeError("The server holds no room backup")
-    folder = args.output / "backups"
-    folder.mkdir(parents=True, exist_ok=True)
-    local = folder / names[-1]
-    ssh(args, target, ["sudo", "install", "-m", "644", "-o", "deploy", f"/var/backups/saga2d-online/{names[-1]}", f"/tmp/{names[-1]}"])
-    subprocess.run(["scp", *ssh_options(args), f"deploy@{target['ip']}:/tmp/{names[-1]}", str(local)], check=True)
-    ssh(args, target, ["rm", "-f", f"/tmp/{names[-1]}"])
-    local.chmod(0o600)
-    db = sqlite3.connect(f"file:{local}?mode=ro", uri=True)
-    try:
-        if db.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
-            raise RuntimeError(f"Downloaded backup failed its integrity check: {local}")
-        rooms = db.execute("SELECT count(*) FROM rooms").fetchone()[0]
-    finally:
-        db.close()
-    return {"backup": str(local), "rooms": rooms, "server_backups": names, "sha256": hashlib.sha256(local.read_bytes()).hexdigest()}
+    staging = upload(args, target, package)
+    result = ssh(args, target, ["sudo", "python3", staging + "/install_server_ci.py", "--instance", args.name,
+                               "--domain", args.domain, "--public-key", staging + "/server-ci.pub"], capture=True)
+    installed = json.loads(result.stdout)
+    ssh(args, target, ["sudo", "systemctl", "reload", "ssh"])
+    ssh(args, target, ["rm", "-rf", "--", staging])
+    return {**target, **package, "server_ci": installed, "ssh_reloaded": True}
 
 
 def status(args):
@@ -555,8 +559,10 @@ def main(argv=None):
         result = package_site_ci(args.site_public_key, args.output)
     elif args.command == "setup-site-ci":
         result = setup_site_ci(args)
-    elif args.command == "backup":
-        result = pull_backup(args)
+    elif args.command == "package-server-ci":
+        result = package_server_ci(args.server_public_key, args.output)
+    elif args.command == "setup-server-ci":
+        result = setup_server_ci(args)
     else:
         result = status(args)
     print(json.dumps(result, indent=2))

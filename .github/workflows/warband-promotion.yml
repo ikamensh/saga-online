@@ -28,6 +28,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     outputs:
+      refused: ${{ steps.verify.outputs.refused }}
       expected_head: ${{ steps.inputs.outputs.expected_head }}
       python: ${{ steps.inputs.outputs.python }}
       uv: ${{ steps.inputs.outputs.uv }}
@@ -56,6 +57,7 @@ jobs:
           python-version: ${{ steps.inputs.outputs.python }}
           enable-cache: false
       - name: Independently verify the public release and live compatibility
+        id: verify
         env:
           GH_TOKEN: ${{ github.token }}
           BUILD_RUN_ID: ${{ inputs.build_run_id }}
@@ -66,10 +68,22 @@ jobs:
           if [[ -f releases/warband-promotion.json ]]; then
             previous=(--previous-promotion releases/warband-promotion.json)
           fi
+          # Exit 3: the candidate needs a server the live one is not; the next step asks for a rollout.
+          status=0
           uv run --project publishing --locked python tools/warband_promotion.py \
             --build-run-id "$BUILD_RUN_ID" --release-id "$RELEASE_ID" --manifest-sha256 "$MANIFEST_SHA256" \
             --catalog releases/catalog.json --baseline releases/server-baseline.json \
-            "${previous[@]}" --output dist/promotion/native
+            "${previous[@]}" --output dist/promotion/native || status=$?
+          if [[ $status == 3 ]]; then
+            echo 'refused=server-baseline' >> "$GITHUB_OUTPUT"
+          elif [[ $status != 0 ]]; then
+            exit "$status"
+          fi
+      - name: Refuse until the server rollout serves this candidate
+        if: steps.verify.outputs.refused == 'server-baseline'
+        run: |
+          echo '::error::The live server or its recorded baseline differs from this candidate; the server rollout was requested and dispatches this promotion again.'
+          exit 1
       - name: Build the immutable site with recorded inputs and release date
         run: >-
           uv run --project publishing --locked python tools/prepare_warband_site.py
@@ -82,6 +96,19 @@ jobs:
           if-no-files-found: error
           compression-level: 0
           retention-days: 30
+
+  request-rollout:
+    needs: prepare
+    if: always() && needs.prepare.outputs.refused == 'server-baseline'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+      - name: Dispatch the automatic server rollout
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run server-rollout.yml --repo "$GITHUB_REPOSITORY" --ref main
 
   publish:
     needs: prepare

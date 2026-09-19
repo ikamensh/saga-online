@@ -1,0 +1,424 @@
+name: Server rollout
+
+# Puts the newest published Warband on the live room server, unattended, then
+# promotes it. A promotion refused because the candidate needs another server
+# dispatches this workflow; so can an operator or agent. One run at a time, and
+# a newer request waits in place of an older one: each run deploys whatever
+# Warband last published, every rules change merged since the last baseline.
+on:
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Rebuild and activate even when the live server already serves the newest Warband's contract
+        type: boolean
+        default: false
+      fail_after_activation:
+        description: Fail the public checks after activation on purpose, to exercise the automatic rollback
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: saga-server-rollout
+  cancel-in-progress: false
+
+env:
+  ENDPOINT: wss://games.tachyon-ai.eu/play
+
+jobs:
+  resolve:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write # pushes the candidate's pins to a server-rollout/<run> branch, never to main
+    defaults:
+      run:
+        working-directory: saga-online
+    outputs:
+      action: ${{ steps.plan.outputs.action }}
+      promote: ${{ steps.plan.outputs.promote }}
+      ref: ${{ steps.commit.outputs.ref }}
+      tag: ${{ steps.plan.outputs.tag }}
+      manifest_sha256: ${{ steps.plan.outputs.manifest_sha256 }}
+      build_run_id: ${{ steps.plan.outputs.build_run_id }}
+      release_id: ${{ steps.plan.outputs.release_id }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          path: saga-online
+      - name: Read the current pins
+        id: current
+        run: python3 -c "import json; p = json.load(open('.github/server-pins.json')); print(f\"python={p['python']}\nuv={p['uv']}\")" >> "$GITHUB_OUTPUT"
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: ${{ steps.current.outputs.uv }}
+          python-version: ${{ steps.current.outputs.python }}
+          enable-cache: false
+      - name: Resolve the newest Warband release against the live baseline
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FORCE: ${{ inputs.force && '--force' || '' }}
+        run: |
+          mkdir -p dist/rollout
+          uv run --project publishing --locked python tools/server_rollout.py resolve $FORCE > dist/rollout/plan.json
+          cat dist/rollout/plan.json
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          plan = json.load(open('dist/rollout/plan.json'))
+          candidate = plan['candidate']
+          print(f"action={plan['action']}\npromote={str(plan['promote']).lower()}")
+          for key in ('tag', 'manifest_sha256', 'build_run_id', 'release_id'):
+              print(f'{key}={candidate[key]}')
+          for name, commit in plan['pins']['sources'].items():
+              print(f'{name}={commit}')
+          PY
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: steps.plan.outputs.action == 'deploy'
+        with: {repository: ikamensh/sagaforge, ref: '${{ steps.plan.outputs.sagaforge }}', persist-credentials: false, path: sagaforge}
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: steps.plan.outputs.action == 'deploy'
+        with: {repository: ikamensh/tribes, ref: '${{ steps.plan.outputs.tribes }}', persist-credentials: false, path: tribes}
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: steps.plan.outputs.action == 'deploy'
+        with: {repository: ikamensh/warband, ref: '${{ steps.plan.outputs.warband }}', persist-credentials: false, path: warband}
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: steps.plan.outputs.action == 'deploy'
+        with: {repository: ikamensh/shardbound, ref: '${{ steps.plan.outputs.shardbound }}', persist-credentials: false, path: shardbound}
+      - name: Commit the moved pins, and the lock when the games' metadata moved it
+        id: commit
+        if: steps.plan.outputs.action == 'deploy'
+        run: |
+          uv lock --check || uv lock
+          if git diff --quiet; then
+            echo "ref=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git config user.name 'Saga release automation'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit --quiet -am "Server rollout: pin Warband ${{ steps.plan.outputs.warband }} (release ${{ steps.plan.outputs.tag }})"
+          git push --quiet origin "HEAD:refs/heads/server-rollout/$GITHUB_RUN_ID"
+          echo "ref=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: rollout-plan-${{ github.run_id }}-${{ github.run_attempt }}
+          path: saga-online/dist/rollout/plan.json
+          if-no-files-found: error
+          retention-days: 90
+
+  promote-current:
+    needs: resolve
+    if: needs.resolve.outputs.action == 'current' && needs.resolve.outputs.promote == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+      - name: The live server already serves this build's contract; promote it
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh workflow run warband-promotion.yml --repo "$GITHUB_REPOSITORY" --ref main
+          -f build_run_id=${{ needs.resolve.outputs.build_run_id }} -f release_id=${{ needs.resolve.outputs.release_id }}
+          -f manifest_sha256=${{ needs.resolve.outputs.manifest_sha256 }}
+
+  candidate:
+    needs: resolve
+    if: needs.resolve.outputs.action == 'deploy'
+    uses: ./.github/workflows/tests.yml
+    with:
+      ref: ${{ needs.resolve.outputs.ref }}
+
+  deploy:
+    needs: [resolve, candidate]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    environment: server-rollout
+    defaults:
+      run:
+        working-directory: saga-online
+    env:
+      UV_PYTHON_PREFERENCE: only-managed
+      SAGA2D_SILENT: '1'
+      FRAGMENTS: dist/rollout/deploy
+    outputs:
+      activated: ${{ steps.install.outputs.release }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.resolve.outputs.ref }}
+          persist-credentials: false
+          path: saga-online
+      - name: Read the candidate's pins
+        id: pins
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          pins = json.load(open('.github/server-pins.json'))
+          for name, value in {**pins['sources'], 'python': pins['python'], 'uv': pins['uv']}.items():
+              print(f'{name}={value}')
+          PY
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: {repository: ikamensh/sagaforge, ref: '${{ steps.pins.outputs.sagaforge }}', persist-credentials: false, path: sagaforge}
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: {repository: ikamensh/tribes, ref: '${{ steps.pins.outputs.tribes }}', persist-credentials: false, path: tribes}
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: {repository: ikamensh/warband, ref: '${{ steps.pins.outputs.warband }}', persist-credentials: false, path: warband}
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: {repository: ikamensh/shardbound, ref: '${{ steps.pins.outputs.shardbound }}', persist-credentials: false, path: shardbound}
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: ${{ steps.pins.outputs.uv }}
+          python-version: ${{ steps.pins.outputs.python }}
+          enable-cache: false
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: server-acceptance-${{ needs.resolve.outputs.ref }}-${{ github.run_attempt }}
+          path: saga-online/dist/candidate
+      - name: Install the candidate environment and the backup encryption tool
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q age
+          uv sync --locked --extra dev
+      - name: Write the server-CI credentials
+        env:
+          HOST: ${{ vars.SAGA_SERVER_HOST }}
+          KEY: ${{ secrets.SAGA_SERVER_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.SAGA_SERVER_KNOWN_HOSTS }}
+          RECIPIENT: ${{ vars.SAGA_BACKUP_AGE_RECIPIENT }}
+        run: |
+          for name in HOST KEY KNOWN_HOSTS RECIPIENT; do
+            [[ -n ${!name} ]] || { echo "::error::Missing server rollout configuration: $name"; exit 1; }
+          done
+          install -m 700 -d "$RUNNER_TEMP/server-ci"
+          printf '%s\n' "$KEY" > "$RUNNER_TEMP/server-ci/identity"
+          chmod 600 "$RUNNER_TEMP/server-ci/identity"
+          printf '%s\n' "$KNOWN_HOSTS" > "$RUNNER_TEMP/server-ci/known_hosts"
+          echo "HOST_ARGS=--host $HOST --identity $RUNNER_TEMP/server-ci/identity --known-hosts $RUNNER_TEMP/server-ci/known_hosts" >> "$GITHUB_ENV"
+      - name: Read the live server's state
+        id: status
+        run: |
+          mkdir -p "$FRAGMENTS"
+          uv run --locked python tools/server_rollout.py host $HOST_ARGS status > "$FRAGMENTS/status_before.json"
+          python3 -c "import json; s = json.load(open('$FRAGMENTS/status_before.json')); assert s['service'] == 'active' and not s['site_pending'], s; print('current=' + (s['current'] or 'none'))" >> "$GITHUB_OUTPUT"
+      - name: Name the archive and the attestation it must serve
+        id: archive
+        run: |
+          release=$(python3 -c 'import json; print(json.load(open("dist/candidate/server-package.json"))["release"])')
+          test -f "dist/candidate/online/$release.tar.gz"
+          echo "path=dist/candidate/online/$release.tar.gz" >> "$GITHUB_OUTPUT"
+          uv run --locked python tools/server_rollout.py expected --archive "dist/candidate/online/$release.tar.gz" --endpoint "$ENDPOINT" > "$FRAGMENTS/expected.json"
+      - name: Take a fresh backup and keep an encrypted copy off the host
+        id: backup
+        env:
+          RECIPIENT: ${{ vars.SAGA_BACKUP_AGE_RECIPIENT }}
+        run: |
+          uv run --locked python tools/server_rollout.py host $HOST_ARGS backup --output "$RUNNER_TEMP/backup" > "$RUNNER_TEMP/backup.json"
+          path=$(python3 -c "import json; print(json.load(open('$RUNNER_TEMP/backup.json'))['path'])")
+          mkdir -p dist/encrypted-backup
+          age -r "$RECIPIENT" -o "dist/encrypted-backup/$(basename "$path").age" "$path"
+          python3 -c "import json; b = json.load(open('$RUNNER_TEMP/backup.json')); b.pop('path'); b['encrypted_artifact'] = 'server-backup-${{ github.run_id }}'; json.dump(b, open('$FRAGMENTS/backup.json', 'w'))"
+          echo "path=$path" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: server-backup-${{ github.run_id }}
+          path: saga-online/dist/encrypted-backup/
+          if-no-files-found: error
+          retention-days: 90
+      - name: Resume every retained seat on a private copy with the candidate's server
+        run: |
+          uv run --locked python tools/rehearse_retained.py "${{ steps.backup.outputs.path }}" > "$RUNNER_TEMP/rehearsal.json"
+          python3 -c "import json; r = json.load(open('$RUNNER_TEMP/rehearsal.json')); json.dump({k: r[k] for k in ('rooms', 'retained', 'failed')} | {'seats': len(r['seats'])}, open('$FRAGMENTS/rehearsal.json', 'w'))"
+      - name: Activate through the host's installer
+        id: install
+        run: |
+          uv run --locked python tools/server_rollout.py host $HOST_ARGS install --archive "${{ steps.archive.outputs.path }}" \
+            --expected-current "${{ steps.status.outputs.current }}" > "$FRAGMENTS/install.json" \
+            || { echo '{"passed": false}' > "$FRAGMENTS/install_failed.json"; rm -f "$FRAGMENTS/install.json"; exit 1; }
+          python3 -c "import json; print('release=' + json.load(open('$FRAGMENTS/install.json'))['current'])" >> "$GITHUB_OUTPUT"
+      - name: Check the public server
+        env:
+          FAIL: ${{ inputs.fail_after_activation && '--fail' || '' }}
+        run: >-
+          uv run --locked python tools/server_rollout.py accept --expected "$FRAGMENTS/expected.json"
+          --backup "${{ steps.backup.outputs.path }}" --report "$FRAGMENTS/acceptance.json" $FAIL
+      - name: Roll back to the previous release
+        if: failure() && steps.install.outcome == 'success'
+        run: >-
+          uv run --locked python tools/server_rollout.py host $HOST_ARGS rollback
+          --from "${{ steps.install.outputs.release }}" > "$FRAGMENTS/rollback.json"
+      - name: Collect this job's record
+        if: always()
+        run: |
+          mkdir -p dist/rollout/fragments
+          python3 - <<'PY'
+          import json, pathlib
+          parts = {p.stem: json.loads(p.read_text()) for p in sorted(pathlib.Path('dist/rollout/deploy').glob('*.json'))}
+          pathlib.Path('dist/rollout/fragments/deploy.json').write_text(json.dumps(parts, indent=2))
+          PY
+          cp "$FRAGMENTS/expected.json" dist/rollout/expected.json || true
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: rollout-fragment-deploy-${{ github.run_id }}
+          path: saga-online/dist/rollout/fragments/deploy.json
+          if-no-files-found: error
+          retention-days: 90
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: rollout-expected-${{ github.run_id }}
+          path: saga-online/dist/rollout/expected.json
+          if-no-files-found: ignore
+          retention-days: 90
+
+  native:
+    needs: [resolve, deploy]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-2025
+            name: windows
+          - runner: macos-15
+            name: macos
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.resolve.outputs.ref }}
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: '0.12.10'
+          python-version: '3.13.2'
+          enable-cache: false
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: rollout-expected-${{ github.run_id }}
+          path: dist/rollout
+      - name: The candidate's own frozen client against the activated public server
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/rollout/fragments | Out-Null
+          uv run --project publishing --locked python tools/check_public_warband.py `
+            --candidate-tag "${{ needs.resolve.outputs.tag }}" --manifest-sha256 "${{ needs.resolve.outputs.manifest_sha256 }}" `
+            --expected-baseline dist/rollout/expected.json --output dist/native-client
+          $code = $LASTEXITCODE
+          if ($code -eq 0) { Copy-Item dist/native-client/acceptance.json "dist/rollout/fragments/native-${{ matrix.name }}.json" }
+          else { '{"passed": false}' | Set-Content "dist/rollout/fragments/native-${{ matrix.name }}.json" }
+          exit $code
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: rollout-fragment-native-${{ matrix.name }}-${{ github.run_id }}
+          path: dist/rollout/fragments/
+          if-no-files-found: warn
+          retention-days: 90
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: native-client-${{ matrix.name }}-${{ github.run_id }}
+          path: dist/native-client/
+          if-no-files-found: warn
+          retention-days: 30
+
+  rollback:
+    needs: [resolve, deploy, native]
+    if: always() && needs.deploy.result == 'success' && needs.native.result != 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: server-rollout
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.resolve.outputs.ref }}
+          persist-credentials: false
+      - name: Roll back to the previous release after the native journey failed
+        env:
+          HOST: ${{ vars.SAGA_SERVER_HOST }}
+          KEY: ${{ secrets.SAGA_SERVER_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.SAGA_SERVER_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d "$RUNNER_TEMP/server-ci" dist/rollout/fragments
+          printf '%s\n' "$KEY" > "$RUNNER_TEMP/server-ci/identity"
+          chmod 600 "$RUNNER_TEMP/server-ci/identity"
+          printf '%s\n' "$KNOWN_HOSTS" > "$RUNNER_TEMP/server-ci/known_hosts"
+          python3 tools/server_rollout.py host --host "$HOST" --identity "$RUNNER_TEMP/server-ci/identity" \
+            --known-hosts "$RUNNER_TEMP/server-ci/known_hosts" rollback --from "${{ needs.deploy.outputs.activated }}" \
+            > dist/rollout/fragments/rollback.json
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: rollout-fragment-rollback-${{ github.run_id }}
+          path: dist/rollout/fragments/rollback.json
+          if-no-files-found: warn
+          retention-days: 90
+
+  record:
+    needs: [resolve, deploy, native, rollback]
+    if: always() && needs.resolve.outputs.action == 'deploy' && needs.deploy.result != 'skipped'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write # the record, and on acceptance the pins and baseline, onto main
+      actions: write # dispatch the promotion again
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: rollout-*-${{ github.run_id }}*
+          path: dist/rollout
+          merge-multiple: true
+      - name: Write the record; on acceptance also the pins and the served attestation as the baseline
+        id: record
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          CANDIDATE: ${{ needs.resolve.outputs.ref }}
+        run: |
+          git config user.name 'Saga release automation'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          mkdir -p dist/rollout/fragments
+          mv dist/rollout/deploy.json dist/rollout/native-*.json dist/rollout/rollback.json dist/rollout/fragments/ 2>/dev/null || true
+          outcome=$(python3 tools/server_rollout.py record --plan dist/rollout/plan.json --fragments dist/rollout/fragments \
+            --run-url "$RUN_URL" --records "$RUNNER_TEMP/records" --baseline "$RUNNER_TEMP/baseline.json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["outcome"])')
+          echo "outcome=$outcome" >> "$GITHUB_OUTPUT"
+          for attempt in 1 2 3; do
+            git fetch --quiet origin main
+            git reset --quiet --hard origin/main
+            if [[ $outcome == accepted ]]; then
+              git fetch --quiet origin "$CANDIDATE"
+              git merge --quiet --no-edit "$CANDIDATE"
+              cp "$RUNNER_TEMP/baseline.json" releases/server-baseline.json
+            fi
+            mkdir -p releases/rollouts
+            cp "$RUNNER_TEMP"/records/*.json releases/rollouts/
+            git add releases/rollouts releases/server-baseline.json
+            git commit --quiet -m "Server rollout $outcome: Warband ${{ needs.resolve.outputs.tag }} [skip ci]"
+            if git push --quiet origin HEAD:main; then
+              break
+            fi
+            [[ $attempt != 3 ]] || exit 1
+          done
+          git push --quiet origin --delete "server-rollout/$GITHUB_RUN_ID" 2>/dev/null || true
+      - name: Dispatch the promotion again
+        if: steps.record.outputs.outcome == 'accepted'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh workflow run warband-promotion.yml --repo "$GITHUB_REPOSITORY" --ref main
+          -f build_run_id=${{ needs.resolve.outputs.build_run_id }} -f release_id=${{ needs.resolve.outputs.release_id }}
+          -f manifest_sha256=${{ needs.resolve.outputs.manifest_sha256 }}
+      - name: A rollout that was not accepted fails its run
+        if: steps.record.outputs.outcome != 'accepted'
+        run: |
+          echo "::error::Rollout outcome: ${{ steps.record.outputs.outcome }}; see releases/rollouts/ and this run's jobs."
+          exit 1

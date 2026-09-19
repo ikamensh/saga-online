@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import re
+import sys
 import tempfile
 from urllib.parse import quote, urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
@@ -19,9 +20,16 @@ REPOSITORY = "ikamensh/warband"
 JOBS = {"inputs", "native (windows-2025, windows-x64)", "native (macos-15, darwin-arm64)", "validate"}
 
 
-def require(condition, message):
+def require(condition, message, error=ValueError):
     if not condition:
-        raise ValueError(message)
+        raise error(message)
+
+
+class ServerBaseline(ValueError):
+    """The candidate needs a server the live one is not (yet): the automatic server rollout's cue."""
+
+
+SERVER_BASELINE_EXIT = 3
 
 
 def encoded(value):
@@ -144,7 +152,7 @@ def verify_baseline(baseline, catalog, identity):
     require(contract["files"] and all(re.fullmatch(r"warband/(?:[A-Za-z_]\w*/)*[A-Za-z_]\w*\.py", name)
             and re.fullmatch(r"[0-9a-f]{64}", digest) for name, digest in contract["files"].items()),
             "Invalid authoritative source inventory")
-    require(contract == baseline["warband"]["compatibility"], "Candidate requires a different server compatibility baseline")
+    require(contract == baseline["warband"]["compatibility"], "Candidate requires a different server compatibility baseline", ServerBaseline)
 
 
 def verify_live_baseline(api, url, baseline, site):
@@ -156,7 +164,7 @@ def verify_live_baseline(api, url, baseline, site):
     request = Request(url + "?deployment=" + baseline["deployment_release"], headers={"Cache-Control": "no-cache"})
     with api.opener.open(request, timeout=30) as response:
         require(response.geturl().split("?")[0] == url, "Server attestation must not redirect elsewhere")
-        require(json.load(response) == baseline, "Live server differs from the reviewed compatibility baseline")
+        require(json.load(response) == baseline, "Live server differs from the reviewed compatibility baseline", ServerBaseline)
 
 
 def verify_order(api, catalog, identity, previous, release_id, manifest_sha256):
@@ -285,4 +293,9 @@ if __name__ == "__main__":
     parser.add_argument("--server-attestation", default="https://games.tachyon-ai.eu/server-compatibility.json")
     parser.add_argument("--api-url", default="https://api.github.com")
     parser.add_argument("--output", type=Path, required=True)
-    print(json.dumps(prepare(parser.parse_args()), sort_keys=True, indent=2))
+    try:
+        receipt = prepare(parser.parse_args())
+    except ServerBaseline as refusal:
+        print(f"Refused until the server serves this candidate: {refusal}", file=sys.stderr)
+        sys.exit(SERVER_BASELINE_EXIT)
+    print(json.dumps(receipt, sort_keys=True, indent=2))
