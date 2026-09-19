@@ -32,7 +32,7 @@ def main() -> None:
     parser.add_argument("--ssh-key", type=Path, default=Path.home() / ".ssh/id_ed25519.pub")
     parser.add_argument("--server", default="wss://games.tachyon-ai.eu/play")
     parser.add_argument("--room")
-    parser.add_argument("--difficulty", choices=("easy", "normal", "hard"), default="normal")
+    parser.add_argument("--difficulty", choices=("easy", "medium", "hard", "master"), default="medium")  # warband.online.online_ai's own
     parser.add_argument("--duration", type=float, default=1800)
     args = parser.parse_args()
     if args.command == "join" and not args.room:
