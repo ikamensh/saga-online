@@ -100,56 +100,56 @@
         "warband-v2"
       ],
       "name": "Warband",
-      "notes": "https://github.com/ikamensh/warband/releases/tag/v0.2.63",
+      "notes": "https://github.com/ikamensh/warband/releases/tag/v0.2.65",
       "packages": [
         {
           "arch": "x64",
-          "bytes": 116821938,
-          "file": "Warband-0.2.63-windows-x64-portable.zip",
+          "bytes": 116823216,
+          "file": "Warband-0.2.65-windows-x64-portable.zip",
           "kind": "portable-zip",
           "min_os": "Windows 10",
           "os": "windows",
-          "sha256": "e2cafe985be804e1ea35da431bdaf0d9f83731ac01bf630172ff1aeff50d0bab",
+          "sha256": "c512b56d461d0e4a3608e17e0d9c1876370adc626532b155973932bbada5624c",
           "signed": false,
-          "url": "https://github.com/ikamensh/warband/releases/download/v0.2.63/Warband-0.2.63-windows-x64-portable.zip"
+          "url": "https://github.com/ikamensh/warband/releases/download/v0.2.65/Warband-0.2.65-windows-x64-portable.zip"
         },
         {
           "arch": "x64",
-          "bytes": 108835414,
-          "file": "Warband-0.2.63-windows-x64-setup.exe",
+          "bytes": 108831458,
+          "file": "Warband-0.2.65-windows-x64-setup.exe",
           "kind": "installer",
           "min_os": "Windows 10",
           "os": "windows",
-          "sha256": "059e52cb01e9aa9a79950f0cb8e39518168a43acaca78af61a6c2b9ea59377e1",
+          "sha256": "98ffc74ccfb5097a8c05ea965440a1e2f5b0a039d9120b407d782bf43004bcf8",
           "signed": false,
-          "url": "https://github.com/ikamensh/warband/releases/download/v0.2.63/Warband-0.2.63-windows-x64-setup.exe"
+          "url": "https://github.com/ikamensh/warband/releases/download/v0.2.65/Warband-0.2.65-windows-x64-setup.exe"
         },
         {
           "arch": "arm64",
-          "bytes": 111547241,
-          "file": "Warband-0.2.63-darwin-arm64-portable.zip",
+          "bytes": 111549284,
+          "file": "Warband-0.2.65-darwin-arm64-portable.zip",
           "kind": "portable-zip",
           "min_os": "macOS 14 on Apple Silicon",
           "os": "macos",
-          "sha256": "ea7ac8dfc7913b5e651f8056958f72a7340c8878d1fea8e2d2dcf59adf224455",
+          "sha256": "f4732dda5362a0be9b72372c1098b69c6ba39725d4dd688e7943885612a7e208",
           "signed": false,
-          "url": "https://github.com/ikamensh/warband/releases/download/v0.2.63/Warband-0.2.63-darwin-arm64-portable.zip"
+          "url": "https://github.com/ikamensh/warband/releases/download/v0.2.65/Warband-0.2.65-darwin-arm64-portable.zip"
         },
         {
           "arch": "arm64",
-          "bytes": 109180399,
-          "file": "Warband-0.2.63-darwin-arm64-app.zip",
+          "bytes": 109182444,
+          "file": "Warband-0.2.65-darwin-arm64-app.zip",
           "kind": "app-zip",
           "min_os": "macOS 14 on Apple Silicon",
           "os": "macos",
-          "sha256": "295f928524e8f6e6bcd105510f242de045c766cbc0dc587751a116b18fe996c7",
+          "sha256": "850351296f6166d8cda5bdcb8f4ad45437fc670bf122fdc0fcaae22e73a006b2",
           "signed": false,
-          "url": "https://github.com/ikamensh/warband/releases/download/v0.2.63/Warband-0.2.63-darwin-arm64-app.zip"
+          "url": "https://github.com/ikamensh/warband/releases/download/v0.2.65/Warband-0.2.65-darwin-arm64-app.zip"
         }
       ],
       "released": "2026-09-19",
-      "source_commit": "13db6002da556adc882f0bc761b626dd601c89a2",
-      "version": "0.2.63"
+      "source_commit": "59455cc5e8cc07ced91a3f93b0683750d65786b6",
+      "version": "0.2.65"
     }
   },
   "server": {
