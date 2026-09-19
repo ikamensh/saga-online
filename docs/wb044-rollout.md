@@ -46,3 +46,30 @@ it. Saga2D 0.3.8, Tribes `4c13383`, Shardbound `b2cdcbe`, Sagaforge
 
 The stack's standing authorization applies; the
 [deployment runbook](../deploy/README.md) gives the procedure.
+
+## Status
+
+Warband `f8ba0eb` failed its fast tier: WB-039's new selection test took
+7.92 s against the 3 s budget
+([Tests 35428559762](https://github.com/ikamensh/warband/actions/runs/35428559762)).
+The rollout stopped there. The promotion of `f8ba0eb`'s publication
+([35428998314](https://github.com/ikamensh/saga-online/actions/runs/35428998314))
+was refused as designed, since its contract is not the live one. Warband
+`dc45c0b` changes that test file alone and passed
+[Tests 35429071580](https://github.com/ikamensh/warband/actions/runs/35429071580)
+and [native package checks 35429071696](https://github.com/ikamensh/warband/actions/runs/35429071696)
+(run number 94, Windows and Mac). Its contract,
+`471b8f18058857e698d0d467a4e2bbf1bc6c3acfe35f5c01709e6f3ef05584e8`, differs
+from the live one in `warband/sim/model.py` and `warband/sim/rules.py` and in
+nothing else (packages, Python and registry unchanged). The saga-online lock
+needed no change.
+
+Checkpoints across the change (criterion 2): a two-seat match (seed 7,
+64×48, a Medium brain on each seat) played 3,000 steps by the live release's
+authority (`62e4970`), its checkpoint restored by the candidate and played
+4,800 steps more, and the other way round. Both held. Each checkpoint held a
+farm still going up (`done` false, progress 2.15, 70 of 400 hp). On restore,
+both seats' snapshots and the checkpoint itself hashed the same as the ones
+written, and the frame wore the armour of the release that restored it: 2 on
+the live release, 0 on the candidate. Each release also restored its own
+checkpoint to the same world.
