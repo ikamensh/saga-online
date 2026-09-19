@@ -73,3 +73,44 @@ both seats' snapshots and the checkpoint itself hashed the same as the ones
 written, and the frame wore the armour of the release that restored it: 2 on
 the live release, 0 on the candidate. Each release also restored its own
 checkpoint to the same world.
+
+**Accepted live server, 2026-09-19 07:50 UTC.** Saga Online `bccc21e`
+passed its suite locally at the new pins (149 tests) and in CI:
+[Tests 35429626339](https://github.com/ikamensh/saga-online/actions/runs/35429626339)
+and [Website checks 35429626341](https://github.com/ikamensh/saga-online/actions/runs/35429626341).
+The archive CI built and prepared as the service account is the one
+activated, identical to the local one:
+`2457e36b2a705908deff91d24530798d7c967850702b0d99af249032ed70a2f3` (333
+files).
+
+Before activation: the off-host backup `rooms-20260919T073645Z.sqlite3` (17
+rooms, SHA-256 `72780615…`) and its private rehearsal. All 34 retained
+seats, in 17 Shardbound rooms, resumed on the candidate.
+`deploy_online.py deploy` prepared the archive as the service account and
+activated it at 07:37 UTC. The previous release `3e3dfda8…` stays at the
+`previous` pointer with its backups, and the website pointer
+(`112b0d7f…`, set at 05:14) did not move.
+
+After activation:
+- `/healthz` is `ok`.
+- The served attestation names deployment `2457e36b…`, Warband `dc45c0b`,
+  the registry `warband.online.authority:ONLINE` and the candidate's
+  contract `471b8f18…`.
+- `deploy/smoke.py` passed create, join and order for all three games.
+- `permessage-deflate` is negotiated through the public proxy.
+- All 34 retained seats resumed on the live server with their own tokens.
+- A three-seat Warband room filled in order, started with 3 of 3, and
+  refused a client from before 0.3.8.
+- The native Warband journey (create, room-code join, accepted gameplay,
+  restart and rejoin against the public server) passed. Its first two tries,
+  straight after the other checks, met the server's "Too many new rooms"
+  limit; the third, a few minutes later, passed. Its frames are under
+  `docs/evidence/wb044-rollout/public/`, and I looked at them: the elf
+  seat's own corner with its hall, gatherers and the painted mine, the rest
+  fogged, and the same match after the rejoin.
+
+The served attestation is the new
+[`releases/server-baseline.json`](../releases/server-baseline.json). The
+promotion of `dc45c0b`'s publication
+([35429605384](https://github.com/ikamensh/saga-online/actions/runs/35429605384))
+ran at 07:32, before the activation, and was refused as designed.
