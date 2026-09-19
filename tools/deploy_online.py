@@ -519,7 +519,7 @@ def setup_server_ci(args):
     package = package_server_ci(args.server_public_key, args.output)
     target = running_target(args)
     staging = upload(args, target, package)
-    result = ssh(args, target, ["sudo", "python3", staging + "/install_server_ci.py", "--instance", args.name,
+    result = ssh(args, target, ["sudo", "python3", "-B", staging + "/install_server_ci.py", "--instance", args.name,
                                "--domain", args.domain, "--public-key", staging + "/server-ci.pub"], capture=True)
     installed = json.loads(result.stdout)
     ssh(args, target, ["sudo", "systemctl", "reload", "ssh"])
