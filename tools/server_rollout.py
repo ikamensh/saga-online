@@ -238,12 +238,11 @@ def accept_command(args):
 def outcome(fragments):
     deploy = fragments.get("deploy", {})
     natives = [value for key, value in fragments.items() if key.startswith("native-")]
-    rollback = fragments.get("rollback") or deploy.get("rollback")
     if "install_failed" in deploy:
         return "activation_failed_installer_restored_previous"
     if "install" not in deploy:
         return "stopped_before_activation"
-    if rollback:
+    if "rollback" in fragments or "rollback" in deploy:
         return "rolled_back"
     if deploy.get("acceptance", {}).get("passed") and natives and all(item.get("passed") for item in natives):
         return "accepted"
