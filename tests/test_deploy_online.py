@@ -57,8 +57,8 @@ def test_packaged_release_runs_server_entrypoint(tmp_path):
     subprocess.run([server_python, "-B", str(unpacked / "deploy/server.py"), "--help"],
                    cwd=tmp_path, check=True, capture_output=True)
     subprocess.run(["bash", "-n", str(unpacked / "deploy/install.sh")], check=True)
-    assert all((unpacked / game / "multiplayer.py").exists()
-               for game in ["tribes", "warband", "eador"])
+    assert all((unpacked / registry).exists()  # the module each game's server registry names
+               for registry in ["tribes/multiplayer.py", "warband/online/authority.py", "eador/multiplayer.py"])
     # Warband counts its committed death and wreckage pieces when imported.
     assert list((unpacked / "warband/assets/deaths").glob("*.wav")) and list((unpacked / "warband/assets/wreckage").glob("*.wav"))
     assert not [path for path in unpacked.rglob("*.png") if ".venv" not in path.parts]  # Game art stays out.
