@@ -17,7 +17,7 @@ and runtime inputs before serving game sockets and `/server-compatibility.json`.
 ```bash
 uv sync --locked --extra dev                                # exact pinned Python/uv and sibling checkouts required
 uv run --locked pytest -q                                   # packaging, catalog, site and load checks (spawns real servers)
-uv run python -m saga2d.server --games tribes.multiplayer:ONLINE warband.authority:ONLINE eador.multiplayer:ONLINE
+uv run python -m saga2d.server --games tribes.multiplayer:ONLINE warband.online.authority:ONLINE eador.multiplayer:ONLINE
 uv run --project publishing --locked python tools/release_catalog.py releases/catalog.json # validate the catalog
 uv run --project publishing --locked python tools/build_site.py --output dist/site # render the website from the catalog and website/content.py
 uv run --project publishing --locked python -m pytest -q tests/test_release_catalog.py tests/test_build_site.py # static-site checks without the hosted games

@@ -90,7 +90,7 @@ a branch check with read-only permissions; it did not publish the site.
 ## Authoritative runtime integration prerequisites
 
 Warband candidate `2361f79cecf5a584562847bdc25e2be4d2f353c8` moves its server
-entry point to `warband.authority:ONLINE` and embeds a static simulation-input
+entry point to `warband.online.authority:ONLINE` and embeds a static simulation-input
 contract in every native release identity. Its compatibility digest is
 `ffdfe856c27cf2c9d7f507d9e1caa54e631d41cdb283e367c2e08b954bd49524`:
 ten authoritative game source files, Python 3.13.2, Saga2D 0.3.2, Pillow 12.3.0,

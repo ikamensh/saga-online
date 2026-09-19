@@ -21,7 +21,7 @@ from pathlib import Path
 from saga2d.online import OnlineClient
 from saga2d.packaging.verify import local_server
 
-GAMES = ("tribes.multiplayer:ONLINE", "warband.authority:ONLINE", "eador.multiplayer:ONLINE")
+GAMES = ("tribes.multiplayer:ONLINE", "warband.online.authority:ONLINE", "eador.multiplayer:ONLINE")
 
 
 def rooms(path: Path) -> list[dict]:

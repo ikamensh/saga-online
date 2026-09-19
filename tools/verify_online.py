@@ -27,7 +27,7 @@ def dedicated_server(endpoint=None):
     if endpoint:
         yield endpoint
         return
-    process = subprocess.Popen([sys.executable, '-m', 'saga2d.server', '--port', '0', '--games', *'tribes.multiplayer:ONLINE warband.authority:ONLINE eador.multiplayer:ONLINE'.split()],
+    process = subprocess.Popen([sys.executable, '-m', 'saga2d.server', '--port', '0', '--games', *'tribes.multiplayer:ONLINE warband.online.authority:ONLINE eador.multiplayer:ONLINE'.split()],
                                cwd=Path(__file__).resolve().parent.parent,
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     try:

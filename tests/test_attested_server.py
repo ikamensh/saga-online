@@ -45,13 +45,14 @@ def release(tmp_path):
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(path, target)
     for package, module, game in (("tribes", "multiplayer", "tribes-v1"),
-                                  ("warband", "authority", "warband-v2"),
+                                  ("warband", "online/authority", "warband-v2"),
                                   ("eador", "multiplayer", "shardbound-v1")):
-        folder = root / package
-        folder.mkdir()
-        (folder / "__init__.py").write_text("")
-        (folder / f"{module}.py").write_text("from saga2d.testing.online import GAMES\n"
-                                           f"ONLINE = {{{game!r}: GAMES['counter-realtime-v1']}}\n")
+        path = root / package / f"{module}.py"
+        path.parent.mkdir(parents=True)
+        for init in {root / package / "__init__.py", path.parent / "__init__.py"}:
+            init.write_text("")
+        path.write_text("from saga2d.testing.online import GAMES\n"
+                        f"ONLINE = {{{game!r}: GAMES['counter-realtime-v1']}}\n")
     (root / "sagaforge").mkdir()
     (root / "sagaforge/__init__.py").write_text("")
     (root / "deploy").mkdir()
@@ -60,7 +61,7 @@ def release(tmp_path):
     files = {p.relative_to(root).as_posix(): sha(p.read_bytes()) for p in root.rglob("*") if p.is_file()}
     packages = {name: importlib.metadata.version(name) for name in ("pillow", "pyglet", "websockets")}
     packages["saga2d"] = saga2d.__version__
-    contract = {"schema_version": 1, "registry": "warband.authority:ONLINE", "python": platform.python_version(),
+    contract = {"schema_version": 1, "registry": "warband.online.authority:ONLINE", "python": platform.python_version(),
                 "packages": packages, "files": {name: digest for name, digest in files.items() if name.startswith("warband/")}}
     contract["sha256"] = sha(json.dumps(contract, sort_keys=True, separators=(",", ":")).encode())
     inputs = {"schema_version": 1, "sources": dict.fromkeys(("saga-online", "sagaforge", "tribes", "warband", "shardbound"), "a" * 40),
@@ -121,9 +122,9 @@ def test_unverified_inputs_refuse_startup_before_opening_the_room_store(release,
     """A process cannot attest desired metadata when its actual code or runtime disagrees."""
     root, inputs = release
     if changed == "changed_source":
-        (root / "warband/authority.py").write_text("raise AssertionError('This changed game must not import')\n")
+        (root / "warband/online/authority.py").write_text("raise AssertionError('This changed game must not import')\n")
     elif changed == "missing_source":
-        (root / "warband/authority.py").unlink()
+        (root / "warband/online/authority.py").unlink()
     elif changed == "extra_source":
         (root / "warband/unrecorded.py").write_text("VALUE = 1\n")
     elif changed == "root_source":
@@ -222,7 +223,7 @@ def test_staging_refuses_unverified_archives_and_never_overwrites_a_changed_rele
     """The installer stages only the named immutable bytes and cannot replace an existing release in place."""
     root, _ = release
     if fault == "changed_inventory":
-        (root / "warband/authority.py").write_text("Unexpected source\n")
+        (root / "warband/online/authority.py").write_text("Unexpected source\n")
     archive = tmp_path / "upload.tar.gz"
     with tarfile.open(archive, "w:gz") as bundle:
         for path in sorted(root.rglob("*")):
@@ -238,11 +239,11 @@ def test_staging_refuses_unverified_archives_and_never_overwrites_a_changed_rele
     if fault == "changed_existing":
         result = subprocess.run(command, capture_output=True, text=True)
         assert result.returncode == 0, result.stderr
-        (destination / "warband/authority.py").write_text("Changed after staging\n")
+        (destination / "warband/online/authority.py").write_text("Changed after staging\n")
     result = subprocess.run(command, capture_output=True, text=True)
     assert result.returncode != 0, fault
     if fault == "changed_existing":
-        assert (destination / "warband/authority.py").read_text() == "Changed after staging\n"
+        assert (destination / "warband/online/authority.py").read_text() == "Changed after staging\n"
     else:
         assert not destination.exists()
     assert not (tmp_path / "escaped").exists()

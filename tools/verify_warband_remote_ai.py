@@ -27,9 +27,9 @@ def verify(output: Path, server: str, room: str, timeout: float, visible: bool) 
     from pyglet.window import key, mouse
     from saga2d import Game, MatchMenu, fonts
     from saga2d.testing.native_frames import tick
-    from warband.model import Harvest, Move, tile_center
-    from warband.multiplayer import NetworkGameScene
-    from warband.rules import BuildingType, Resource, Terrain, UnitType
+    from warband.sim.model import Harvest, Move, tile_center
+    from warband.ui.multiplayer import NetworkGameScene
+    from warband.sim.rules import BuildingType, Resource, Terrain, UnitType
     from warband.style import build_theme
     from warband.textures import TILE
     from warband.title import TitleScene

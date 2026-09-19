@@ -134,7 +134,7 @@ def verify_baseline(baseline, catalog, identity):
             and bool(re.fullmatch(r"[0-9a-f]{40}", baseline["warband"]["source_commit"])), "Invalid baseline source")
     contract = identity["compatibility"]
     require(set(contract) == {"schema_version", "registry", "python", "packages", "files", "sha256"}
-            and contract["schema_version"] == 1 and contract["registry"] == "warband.authority:ONLINE",
+            and contract["schema_version"] == 1 and contract["registry"] == "warband.online.authority:ONLINE",
             "Unsupported compatibility contract")
     contents = {key: value for key, value in contract.items() if key != "sha256"}
     require(sha(json.dumps(contents, sort_keys=True, separators=(",", ":")).encode()) == contract["sha256"],

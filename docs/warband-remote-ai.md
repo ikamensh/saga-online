@@ -27,8 +27,8 @@ AI compute, disk or IPv4 to bill.
 ## Run a client anywhere
 
 ```sh
-uv run python -m warband.online_ai --create --difficulty normal --duration 1800
-uv run python -m warband.online_ai --room ROOMCODE --difficulty hard --duration 1800
+uv run python -m warband.online.online_ai --create --difficulty normal --duration 1800
+uv run python -m warband.online.online_ai --room ROOMCODE --difficulty hard --duration 1800
 ```
 
 The first JSON line reports the shareable room code and assigned player.

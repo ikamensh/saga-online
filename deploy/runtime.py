@@ -10,7 +10,7 @@ import re
 from urllib.parse import urlsplit
 
 SOURCE_ROOTS = ("saga2d", "sagaforge", "tribes", "warband", "eador", "deploy")
-REGISTRIES = ("tribes.multiplayer:ONLINE", "warband.authority:ONLINE", "eador.multiplayer:ONLINE")
+REGISTRIES = ("tribes.multiplayer:ONLINE", "warband.online.authority:ONLINE", "eador.multiplayer:ONLINE")
 
 
 def require(condition, message):
@@ -59,7 +59,7 @@ def attestation(root: Path, release_id: str, endpoint: str) -> dict:
     require(packages == inputs["packages"], "Server dependencies differ from the recorded runtime")
     contract = inputs["warband_compatibility"]
     require(set(contract) == {"schema_version", "registry", "python", "packages", "files", "sha256"}
-            and contract["schema_version"] == 1 and contract["registry"] == "warband.authority:ONLINE",
+            and contract["schema_version"] == 1 and contract["registry"] == "warband.online.authority:ONLINE",
             "Unsupported Warband compatibility contract")
     body = {key: value for key, value in contract.items() if key != "sha256"}
     require(hashlib.sha256(json.dumps(body, sort_keys=True, separators=(",", ":")).encode()).hexdigest() == contract["sha256"],

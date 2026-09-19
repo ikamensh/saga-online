@@ -36,9 +36,9 @@ def archive(files):
 
 
 def release_data(tmp_path, *, run_id=123, run_number=26):
-    contract = {"schema_version": 1, "registry": "warband.authority:ONLINE", "python": "3.13.2",
+    contract = {"schema_version": 1, "registry": "warband.online.authority:ONLINE", "python": "3.13.2",
                 "packages": {"saga2d": "0.3.2", "pillow": "12.3.0", "pyglet": "2.1.16", "websockets": "17.1"},
-                "files": {"warband/authority.py": sha(b"A reviewed simulation input fixture")}}
+                "files": {"warband/online/authority.py": sha(b"A reviewed simulation input fixture")}}
     contract["sha256"] = sha(json.dumps(contract, sort_keys=True, separators=(",", ":")).encode())
     version = f"0.2.{run_number - 25}"
     identity = {"schema_version": 2, "game": "warband", "source_commit": "a" * 40,
@@ -263,7 +263,7 @@ def test_promotion_requires_the_reviewed_and_live_server_to_match_the_candidate(
     path = release["root"] / "baseline.json"
     baseline = json.loads(path.read_text())
     if problem == "changed_rules":
-        baseline["warband"]["compatibility"]["files"]["warband/authority.py"] = "9" * 64
+        baseline["warband"]["compatibility"]["files"]["warband/online/authority.py"] = "9" * 64
     elif problem == "changed_runtime":
         baseline["warband"]["compatibility"]["python"] = "3.12.9"
     elif problem == "different_live_deployment":

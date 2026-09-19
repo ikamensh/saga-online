@@ -15,7 +15,7 @@ if [[ ! -f "$release/.ready" ]]; then
     chmod -R u+rwX,go+rX,go-w "$release"
     python3 -m venv "$release/.venv"
     "$release/.venv/bin/pip" install --require-hashes -r "$release/deploy/requirements.txt"
-    (cd "$release" && "$release/.venv/bin/python" -m warband.online_ai --help)
+    (cd "$release" && "$release/.venv/bin/python" -m warband.online.online_ai --help)
     touch "$release/.ready"
 fi
 ln -sfn "$release" "$base/current.next"

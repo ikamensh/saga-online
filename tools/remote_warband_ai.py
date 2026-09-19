@@ -65,7 +65,7 @@ def main() -> None:
             "--property=CPUQuota=25%", "--property=MemoryMax=256M",
             "--property=NoNewPrivileges=yes", "--property=ProtectSystem=strict",
             "--property=ProtectHome=yes", "--property=PrivateTmp=yes",
-            f"{RUNTIME}/.venv/bin/python", "-u", "-m", "warband.online_ai",
+            f"{RUNTIME}/.venv/bin/python", "-u", "-m", "warband.online.online_ai",
             *client_args, "--server", args.server, "--difficulty", args.difficulty,
             "--duration", str(args.duration)])
         print("AI started. Use the status command to read its room code and progress.")

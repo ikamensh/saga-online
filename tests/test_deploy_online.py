@@ -46,7 +46,7 @@ def test_packaged_release_runs_server_entrypoint(tmp_path):
     assert staged.returncode == 0, staged.stderr
     assert not (unpacked / "release.tar.gz").exists()
     inputs = json.loads((unpacked / "deploy/server-inputs.json").read_text())
-    assert inputs["warband_compatibility"]["registry"] == "warband.authority:ONLINE"
+    assert inputs["warband_compatibility"]["registry"] == "warband.online.authority:ONLINE"
     # Install only the exported hashed runtime. The server must not borrow
     # editable game imports or dependencies from the build environment.
     subprocess.run(["uv", "venv", "--python", inputs["python"], str(unpacked / ".venv")],
