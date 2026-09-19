@@ -21,6 +21,8 @@ import time
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from tools.verify_multiplayer import scenes  # noqa: E402
+
 
 @contextmanager
 def dedicated_server(endpoint=None):
@@ -63,7 +65,7 @@ def verify(name, output, endpoint):
             if name == 'eador':
                 from eador.app import create_game
                 return create_game(visible=False, save_dir=Path(profile) / 'saves', resolution=(1280, 800))
-            style = importlib.import_module(name + '.style')
+            style = importlib.import_module(scenes(name) + '.style')
             window = Game(name, visible=False, resolution=(1280, 800), theme=style.build_theme(), save_dir=Path(profile) / 'saves')
             fonts.load(window)
             return window
@@ -109,7 +111,7 @@ def verify(name, output, endpoint):
             print(path, flush=True)
 
         def title(*, about=False):
-            TitleScene = importlib.import_module(name + ('.scene' if name == 'eador' else '.title')).TitleScene
+            TitleScene = importlib.import_module(scenes(name) + ('.scene' if name == 'eador' else '.title')).TitleScene
             game.push(TitleScene())
             frame()
             if about:

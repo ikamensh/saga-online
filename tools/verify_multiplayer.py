@@ -18,6 +18,11 @@ import time
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 
+def scenes(name):
+    """The package that holds a game's scenes and style: Warband keeps them in a folder of their own."""
+    return 'warband.ui' if name == 'warband' else name
+
+
 def definitions(name):
     """``(authoritative match factory, network scene, game id)`` for a game package."""
     if name == 'warband':
@@ -75,13 +80,13 @@ def verify(name, output):
     game = None
     try:
         with tempfile.TemporaryDirectory() as profile:
-            style = importlib.import_module(name + '.style')
+            style = importlib.import_module(scenes(name) + '.style')
             if name == 'eador':
                 from eador.app import create_game
                 from eador.scene import TitleScene, BattleScene
                 game = create_game(visible=False, save_dir=Path(profile) / 'saves', resolution=(1280, 800))
             else:
-                TitleScene = importlib.import_module(name + '.title').TitleScene
+                TitleScene = importlib.import_module(scenes(name) + '.title').TitleScene
                 game = Game(name, visible=False, resolution=(1280, 800), theme=style.build_theme(), save_dir=Path(profile) / 'saves')
                 fonts.load(game)
             from pyglet.window import key, mouse
