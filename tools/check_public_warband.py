@@ -37,8 +37,12 @@ def target():
             ("Darwin", "arm64"): ("macos", "arm64", "app-zip")}[platform.system(), platform.machine().lower()]
 
 
-def exercise(package: dict, url: str, game: dict, endpoint: str, output: Path) -> dict:
-    """Download exact bytes, unpack the frozen client and run its online acceptance against ``endpoint``."""
+def exercise(package: dict, url: str, game: dict, endpoint: str, output: Path, *, native: bool = False) -> dict:
+    """Download exact bytes, unpack the frozen client and run its online acceptance against ``endpoint``.
+
+    ``native`` also plays the rendered journey (a real window, input and frames in ``output``); on
+    macOS only, since Windows runners draw through a separately installed Mesa.
+    """
     assert Path(package["file"]).name == package["file"]
     output.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="public-warband-") as temporary:
@@ -57,6 +61,8 @@ def exercise(package: dict, url: str, game: dict, endpoint: str, output: Path) -
             subprocess.run(["codesign", "--verify", "--deep", "--strict", str(app)], check=True)
             executable = app / "Contents/MacOS/Warband"
         receipt = executable_smoke(executable, endpoint, output / "client.json", game)
+        if native:
+            receipt["native"] = executable_smoke(executable, endpoint, output / "native.json", game, native=True)
     assert receipt["frozen"] is True and receipt["bundled_fonts"] is True
     assert all(receipt["online"][name] is True for name in REQUIRED), "Incomplete public online acceptance"
     return receipt
@@ -96,12 +102,14 @@ def candidate(args):
     assert public_json("/server-compatibility.json") == expected, "The public server does not serve the candidate"
     receipt = exercise(package, f"{DOWNLOADS}/{args.candidate_tag}/{package['file']}",
                        {"source_commit": identity["source_commit"], "version": identity["version"]},
-                       expected["endpoint"], args.output.resolve())
+                       expected["endpoint"], args.output.resolve(), native=target()[0] == "macos")
     assert public_json("/server-compatibility.json") == expected, "Live runtime changed during acceptance"
     print(f"{identity['version']}: candidate {target()[0]} client passed its online checks against the activated server")
     return {"passed": True, "version": identity["version"], "source_commit": identity["source_commit"],
             "package": package["file"], "server_release": expected["deployment_release"],
-            "online": {name: receipt["online"][name] for name in sorted(REQUIRED)}}
+            "online": {name: receipt["online"][name] for name in sorted(REQUIRED)},
+            **({"native": {key: value for key, value in receipt["native"].items() if isinstance(value, bool)}}
+               if "native" in receipt else {})}
 
 
 def main():
