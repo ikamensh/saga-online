@@ -64,11 +64,28 @@ def resume_all(endpoint: str, retained: list[dict], report: dict) -> None:
                   f" {outcome.get('error', '')} tick {outcome.get('tick')}", file=sys.stderr, flush=True)
 
 
-def rehearse(backup: Path, endpoint: str | None = None) -> dict:
-    """Resume every retained seat: on a private copy with this checkout's server, or on ``endpoint`` itself."""
+def newest_per_game(retained: list[dict]) -> list[dict]:
+    """The most recently active retained room of each game."""
+    newest = {}
+    for room in retained:
+        if room["game"] not in newest or room["expires_at"] > newest[room["game"]]["expires_at"]:
+            newest[room["game"]] = room
+    return sorted(newest.values(), key=lambda room: room["game"])
+
+
+def rehearse(backup: Path, endpoint: str | None = None, *, per_game: bool = False) -> dict:
+    """Resume every retained seat: on a private copy with this checkout's server, or on ``endpoint`` itself.
+
+    ``per_game`` resumes only the newest retained room of each game. On the live server every
+    resumed room holds one of its 32 slots for the room TTL, so a live check samples while the
+    private rehearsal covers every seat.
+    """
     retained = [room for room in rooms(backup) if room["expires_at"] > time.time()]
     report = {"backup": backup.name, "rooms": len(rooms(backup)), "retained": len(retained), "seats": [],
               "endpoint": endpoint or "private copy"}
+    if per_game:
+        retained = newest_per_game(retained)
+        report["resumed_rooms"] = [room["code"] for room in retained]
     if endpoint is not None:
         resume_all(endpoint, retained, report)
     else:
@@ -97,8 +114,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("backup", type=Path)
     parser.add_argument("--endpoint", help="Resume on this server (the live one after activation) instead of a private copy")
+    parser.add_argument("--per-game", action="store_true", help="Only the newest retained room of each game")
     args = parser.parse_args()
-    report = rehearse(args.backup, args.endpoint)
+    report = rehearse(args.backup, args.endpoint, per_game=args.per_game)
     print(json.dumps(report, indent=1))
     return 1 if report["failed"] else 0
 

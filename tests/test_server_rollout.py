@@ -330,4 +330,13 @@ def test_public_checks_pass_on_the_activated_release_and_a_deliberate_failure_fo
     assert [name for name, check in checks.items() if check["passed"]] == [
         "health", "attestation", "smoke", "permessage_deflate", "retained_seats", "three_seat_room"]
     assert checks["deliberate_failure"] == {"passed": False} and report["passed"] is False
-    assert checks["retained_seats"]["detail"] == {"rooms": 3, "retained": 3, "failed": 0, "seats": 2 * len(seeded)}
+    newest_of_each_game = [record["room"] for record in sorted(seeded, key=lambda record: record["game"])]
+    assert checks["retained_seats"]["detail"] == {"rooms": 3, "retained": 3, "failed": 0, "seats": 6,
+                                                  "resumed_rooms": newest_of_each_game}
+
+
+def test_a_live_check_samples_the_newest_retained_room_of_each_game():
+    from tools.rehearse_retained import newest_per_game
+    rooms = [{"code": code, "game": game, "expires_at": expires} for code, game, expires in
+             [("a", "tribes-v1", 5), ("b", "tribes-v1", 9), ("c", "shardbound-v1", 1), ("d", "shardbound-v1", 3), ("e", "warband-v2", 2)]]
+    assert [room["code"] for room in newest_per_game(rooms)] == ["d", "b", "e"]
