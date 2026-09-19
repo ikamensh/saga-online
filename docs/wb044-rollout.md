@@ -114,3 +114,19 @@ The served attestation is the new
 promotion of `dc45c0b`'s publication
 ([35429605384](https://github.com/ikamensh/saga-online/actions/runs/35429605384))
 ran at 07:32, before the activation, and was refused as designed.
+
+**Promotion accepted, public downloads checked, 2026-09-19 07:52 UTC.**
+[Promotion 35430041515](https://github.com/ikamensh/saga-online/actions/runs/35430041515),
+dispatched again for release `391983618` (native run 35429071696, manifest
+`fbd40ada…`) once the baseline had moved, was accepted and published the
+catalog for Warband 0.2.69 (`0850984`). Warband `75dc68f` (WB-038, the
+painted gold mine, art only) had meanwhile published release `391985632`
+(native run 35429309561) with the same contract, `471b8f18…`; its promotion
+ran at 07:40, two minutes before the baseline moved, and was refused. Dispatched
+again, [35430108549](https://github.com/ikamensh/saga-online/actions/runs/35430108549)
+first failed on a GitHub artifact upload timeout, then passed on rerun and
+published the catalog for Warband 0.2.70 (`391a0f0`).
+[Public download checks 35430293396](https://github.com/ikamensh/saga-online/actions/runs/35430293396)
+passed on Windows and macOS for 0.2.70. This completes the rollout. Warband's
+next main, `a2212f5` (WB-052), changes `warband/sim/model.py` and `rules.py`
+again (contract `c51d9e27…`) and needs its own rollout.
