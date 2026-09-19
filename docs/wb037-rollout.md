@@ -18,9 +18,12 @@ These change play, so the live release and the candidate do not play a match
 alike; a checkpoint written by either restores on the other. The brains' part
 of WB-037 (`warband/pro_ai.py`, `ai.py`) is outside the authority's import
 closure. Warband's `dev` extra gained `pytest-xdist` with WB-040, which the lock
-records; the exported server runtime is unchanged. Saga2D 0.3.8, Tribes
-`4c13383`, Shardbound `b2cdcbe`, Sagaforge `10f4d87`, Python 3.13.2 and uv
-0.12.10 stay at their pins.
+records; the exported server runtime is unchanged. Sagaforge moves from
+`10f4d87` to `e099051`, the commit Warband's release pins have named since its
+WB-040: `restyle.recolor` converts back from HSV only the pixels that move, with
+bit-identical output, and nothing on the server imports `restyle`. Saga2D
+0.3.8, Tribes `4c13383`, Shardbound `b2cdcbe`, Python 3.13.2 and uv 0.12.10
+stay at their pins.
 
 ## Acceptance defined before rollout
 
