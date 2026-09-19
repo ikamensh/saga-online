@@ -118,7 +118,7 @@ jobs:
     environment: warband-promotion
     permissions:
       contents: write
-      actions: read
+      actions: write # dispatches the public download checks
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -162,6 +162,12 @@ jobs:
               with (Path(os.environ['RUNNER_TEMP']) / 'publication.json').open('w') as output:
                   subprocess.run(command, check=True, stdout=output)
           PY
+      - name: Check the public downloads on Windows and macOS
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(python3 -c "import json; print(json.load(open('dist/promotion/native/catalog.json'))['games']['warband']['version'])")
+          gh workflow run public-warband-checks.yml --repo "$GITHUB_REPOSITORY" --ref main -f version="$version"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:

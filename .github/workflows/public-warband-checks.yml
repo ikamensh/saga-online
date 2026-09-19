@@ -1,11 +1,6 @@
 name: Public Warband download checks
 
 on:
-  # Every accepted promotion is checked with the bytes the public now downloads.
-  workflow_run:
-    workflows: [Promote verified Warband]
-    types: [completed]
-    branches: [main]
   workflow_dispatch:
     inputs:
       version:
@@ -18,7 +13,6 @@ permissions:
 
 jobs:
   check:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     strategy:
       fail-fast: false
       matrix:
@@ -28,7 +22,6 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: main
           persist-credentials: false
       - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
@@ -40,9 +33,6 @@ jobs:
         env:
           EXPECTED_VERSION: ${{ inputs.version }}
         run: |
-          if (-not $env:EXPECTED_VERSION) {
-            $env:EXPECTED_VERSION = (Get-Content releases/catalog.json -Raw | ConvertFrom-Json).games.warband.version
-          }
           uv run --project publishing --locked python tools/check_public_warband.py --version $env:EXPECTED_VERSION --output dist/public-client
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
