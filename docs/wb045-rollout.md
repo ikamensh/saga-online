@@ -92,3 +92,11 @@ The served attestation is the new
 [`releases/server-baseline.json`](../releases/server-baseline.json). The
 promotion of `6ad2779`'s publication ran at 03:00, before the activation,
 and was refused as designed.
+
+**Promotion accepted, public downloads checked, 2026-09-19 03:12 UTC.**
+[Promotion 35417766159](https://github.com/ikamensh/saga-online/actions/runs/35417766159),
+dispatched again for release `391893498` (native run 35416900239, manifest
+`51e92fcb…`) once the baseline had moved, was accepted and published the
+catalog for Warband 0.2.61 (`7094715`).
+[Public download checks 35417815920](https://github.com/ikamensh/saga-online/actions/runs/35417815920)
+passed on Windows and macOS. This completes the rollout.
