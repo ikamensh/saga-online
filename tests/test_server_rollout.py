@@ -82,6 +82,8 @@ def decide(data, *, pins=PINS, served=None, releases=None, force=False):
 
 
 def changed_contract(data):
+    """The live baseline's contract differs from the published candidate's (a rules change)."""
+    data["baseline"] = deepcopy(data["baseline"])
     contract = data["baseline"]["warband"]["compatibility"]
     contract["files"]["warband/online/authority.py"] = "9" * 64
     contract["sha256"] = sha(json.dumps({k: v for k, v in contract.items() if k != "sha256"}, sort_keys=True, separators=(",", ":")).encode())
@@ -168,11 +170,11 @@ def test_forced_command_passes_exactly_four_words_to_sudo(tmp_path):
     command = tmp_path / "command"
     command.write_text(install_server_ci.COMMAND)
     for original in ("status", "backup", "install", "rollback"):
-        result = subprocess.run(["sh", str(command)], env={"PATH": str(fake), "SSH_ORIGINAL_COMMAND": original},
+        result = subprocess.run(["/bin/sh", str(command)], env={"PATH": str(fake), "SSH_ORIGINAL_COMMAND": original},
                                 capture_output=True, text=True)
         assert result.returncode == 0 and result.stdout == f"-n|{install_server_ci.TOOLS}/run|{original}|"
     for original in ("", "status ", "status; id", "$(id)", "install x", "run status", "sh"):
-        result = subprocess.run(["sh", str(command)], env={"PATH": str(fake), "SSH_ORIGINAL_COMMAND": original},
+        result = subprocess.run(["/bin/sh", str(command)], env={"PATH": str(fake), "SSH_ORIGINAL_COMMAND": original},
                                 capture_output=True, text=True)
         assert result.returncode == 64 and result.stdout == "" and "Only status, backup, install and rollback" in result.stderr
     assert install_server_ci.SUDO_RULE.splitlines()[-1] == (
@@ -264,13 +266,14 @@ EXPECTED = {"schema_version": 1, "deployment_release": "f" * 64, "warband": {}}
     ({"deploy": {"expected": EXPECTED, "install": {}, "acceptance": {"passed": True}}}, "failed_without_rollback"),
 ])
 def test_record_names_the_outcome_and_only_acceptance_moves_the_baseline(tmp_path, fragments, outcome):
+    (tmp_path / "fragments").mkdir()
     for name, value in fragments.items():
-        (tmp_path / f"{name}.json").write_text(json.dumps(value))
+        (tmp_path / "fragments" / f"{name}.json").write_text(json.dumps(value))
     (tmp_path / "plan.json").write_text(json.dumps(PLAN))
     records, baseline = tmp_path / "records", tmp_path / "baseline.json"
     baseline.write_text("previous")
     result = subprocess.run([sys.executable, str(ROOT / "tools/server_rollout.py"), "record", "--plan", str(tmp_path / "plan.json"),
-                             "--fragments", str(tmp_path), "--run-url", "https://example.test/run/1", "--records", str(records),
+                             "--fragments", str(tmp_path / "fragments"), "--run-url", "https://example.test/run/1", "--records", str(records),
                              "--baseline", str(baseline)], check=True, capture_output=True, text=True)
     assert json.loads(result.stdout)["outcome"] == outcome
     entry, = [json.loads(path.read_text()) for path in records.glob("*-aaaaaaaa.json")]
