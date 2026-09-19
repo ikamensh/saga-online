@@ -24,7 +24,10 @@ uv run python deploy/smoke.py wss://games.tachyon-ai.eu/play
 ```
 
 `plan` and `package` operate offline. The remaining commands perform the named
-operation; they do not prompt again. `bootstrap-project` creates a dedicated
+operation; they do not prompt again. `deploy` is the operator's path for the
+first deployment and for changes to the host itself (service units, proxy
+configuration, installer); routine releases go out through the
+[automatic server rollout](#automatic-server-rollout). `bootstrap-project` creates a dedicated
 `saga2d` project, `saga2d-deploy` IAM application and a new policy granting only
 `InstancesFullAccess` and `BlockStorageFullAccess` in that project. It reads the `Personal admin key` heading
 in `~/secrets/scaleway.md` and atomically appends the new key under
@@ -62,9 +65,13 @@ source commits, runtime versions and file hashes. Credentials, saves, caches,
 untracked source and working-tree metadata are excluded.
 
 After checking the managed-instance marker, the installer calls
-`prepare_release.sh`. Preparation verifies and extracts the uploaded archive
+`prepare_release.sh` from its own directory. Preparation verifies and extracts the uploaded archive
 into `/opt/saga2d-online/releases/<sha256>`, rejecting unsafe archives or changes
-to existing release bytes. It bootstraps a hash-pinned uv wheel with Ubuntu's
+to existing release bytes. It then refuses a release whose copies of the host
+files (the installer, preparation scripts, `uv-bootstrap.txt`, the systemd units
+and the `Caddyfile`) differ from the ones it runs with: root runs only those, and
+the release's own code runs only as the service account. Runtime wheels install
+with `--no-build`, so no source build runs as root. It bootstraps a hash-pinned uv wheel with Ubuntu's
 Python, installs the exact managed Python under `/opt/saga2d-online/python`
 (accessible with `ProtectHome=true`), and installs a dedicated hashed runtime.
 As the unprivileged service account, `check_release.py` then starts the actual
@@ -84,9 +91,10 @@ atomically, followed by a systemd restart and health check. An activation failur
 restores the previous release's service and proxy configuration. First-time
 activation failure stops the failed service and reports the error.
 The process's compatibility response must match the accepted candidate before
-the proxy is reloaded. This startup gate does not replace rollout acceptance:
-room draining, reviewed backup/restore, restricted CI access and public
-packaged-client checks still need to be completed for unattended publication.
+the proxy is reloaded. Re-activating the running release keeps the distinct
+release behind it at `previous`. `install.sh --rollback FROM` reactivates
+`previous` while `FROM` is current, under the same lock and checks, and swaps
+the two pointers.
 
 The systemd service has `MemoryMax=1200M`, `CPUQuota=150%`, `TasksMax=128`,
 `LimitNOFILE=4096`, 32 rooms and 96 connections. Rooms expire 15 minutes after
@@ -94,7 +102,7 @@ both seats leave, so automated checks and abandoned rooms occupy slots for that
 long; suspended campaigns do not count. It runs without root privileges,
 with a read-only filesystem except its private state directory. Runtime logs
 go to journald, capped at 200 MB for the instance. Releases are retained for
-manual rollback; monitor disk usage and remove obsolete releases after review.
+rollback; monitor disk usage and remove obsolete releases after review.
 
 Persistent room checkpoints are stored in `/var/lib/saga2d-online`. Releasing
 code preserves that directory; a code rollback does not roll back the database.
@@ -102,12 +110,92 @@ Clients use their private resume tokens to reconnect after a restart. A single
 VM is an initial capacity choice, not high availability: host or zone failures
 interrupt play until service is restored.
 
+## Automatic server rollout
+
+`.github/workflows/server-rollout.yml` puts the newest published Warband on the
+live server and promotes it, with nobody at the laptop. Warband's "Publish
+verified Warband" dispatches "Promote verified Warband"; when that promotion is
+refused because the candidate needs a server the live one is not (its contract
+differs from `releases/server-baseline.json`, or the live attestation differs
+from that file), `tools/warband_promotion.py` exits 3 and the promotion's
+`request-rollout` job dispatches the rollout. An operator or agent can dispatch
+it too (`gh workflow run server-rollout.yml -R ikamensh/saga-online`), with
+`force` to rebuild and re-activate the current contract and
+`fail_after_activation` to exercise the rollback. There is no schedule: every
+published build already asks, and a schedule would only retry a failing
+rollout against the live server.
+
+One run at a time (`concurrency: saga-server-rollout`); a newer request waits
+in place of an older one. Each run deploys the newest Warband release, not the
+one that asked, so a batch of rules changes goes out together.
+
+| Job | Runs on | What it does |
+|-----|---------|--------------|
+| `resolve` | Ubuntu | `server_rollout.py resolve`: the newest immutable Warband release, its native run verified as the promotion does. The same contract as the baseline, served live, is `current`: a clean exit that dispatches the promotion only if the catalog names another build. Otherwise `deploy`: moves the Warband, run and Sagaforge pins, relocks if the games' metadata moved, and pushes the commit to `server-rollout/<run>` (never main). A candidate behind the pins, or one needing another Python or uv, is refused. |
+| `candidate` | Ubuntu | The whole `tests.yml` on that commit: the suite at the new pins, the host-entry-point checks, the one archive built and prepared as the service account, and `tests/host_server_ci.py` (install, rollback and refusals through the real CI account on the runner's systemd). |
+| `deploy` | Ubuntu, `server-rollout` environment | Status; a fresh backup through the CI account, kept off the host as an age-encrypted artifact (`server-backup-<run>`, 90 days); every retained seat resumed on a private copy with the candidate's server (`rehearse_retained.py`); activation through the host's installer; then `server_rollout.py accept`: public health, the served attestation equal to the archive's, the three-game smoke, `permessage-deflate` through the proxy, every retained seat resumed live and a three-seat Warband room. A failure after activation rolls back to `previous`. |
+| `native` | Windows and macOS | The candidate's own frozen client, downloaded from its immutable release, plays its online journey against the activated public server (`check_public_warband.py --candidate-tag`). |
+| `rollback` | Ubuntu, `server-rollout` environment | Only when a native journey failed: back to `previous`. |
+| `record` | Ubuntu | Writes `releases/rollouts/<UTC>-<warband>.json` (candidate, previous baseline, pins, backup, rehearsal, activation, every check, native receipts, rollback) for every run that reached the host. Accepted: merges the pin commit, writes the served attestation as the baseline, pushes to main and dispatches the promotion again. Anything else fails the run. |
+
+The accepted promotion then triggers "Public Warband download checks", the
+public bytes on Windows and macOS against the public server. The records under
+`releases/rollouts/` replace a rollout document per change. A change the
+automation cannot take (saga-online code that must move with Warband, an engine
+or runtime upgrade, a host change) fails in `resolve`, `candidate` or at
+preparation, before activation; fix it on main and dispatch the rollout.
+
+### Restricted server-CI account
+
+Prepare a dedicated Ed25519 key. With its **public** key, the operator installs
+the account and its trusted host tools (repeat to update them or rotate the key):
+
+```sh
+uv run python tools/deploy_online.py setup-server-ci --name saga2d-online \
+  --server-public-key ~/secrets/saga-server-ci/id_ed25519.pub
+```
+
+Setup creates `saga2d-server-ci`: no password, no supplementary groups, a
+root-owned home. Its SSH key has a forced command
+(`/usr/local/lib/saga2d-server-ci/command`) that accepts exactly `status`,
+`backup`, `install` or `rollback` and passes that word to
+`sudo -n /usr/local/lib/saga2d-server-ci/run`. `/etc/sudoers.d/saga2d-server-ci`
+(checked with `visudo` before it is installed, and read back with `sudo -l`)
+allows exactly those four command lines as root and nothing else. `run`
+executes the installed `server_ci.py`, which reads a bounded JSON line and,
+for `install`, the archive from stdin:
+
+- `status`: current and previous releases, service state, health and the
+  locally served attestation.
+- `backup`: starts the installed backup unit and streams the newest backup
+  with its size, SHA-256 and room count.
+- `install`: requires the named current release, verifies size and SHA-256 and
+  runs the **installed** `install.sh`, which refuses a release carrying other
+  host files. A host change therefore needs this setup command first.
+- `rollback`: while the named release is current, reactivates `previous`.
+
+Forwarding, TTY, user rc files and passwords are disabled for the account, and
+setup validates the effective `sshd -T` settings before installing the key. It
+does not reload SSH itself when run by hand; `setup-server-ci` reloads it. What
+the key can do: deploy code built from main to run as the service account
+(which holds the room database), read room backups, and move between prepared
+releases. It cannot run anything else as root, change the host tools, the
+units, the proxy or the site, or read credentials. Cloud and DNS credentials
+stay on the laptop.
+
+GitHub's `server-rollout` environment (branch `main` only) holds
+`SAGA_SERVER_SSH_KEY` and `SAGA_SERVER_KNOWN_HOSTS` and the variables
+`SAGA_SERVER_HOST` and `SAGA_BACKUP_AGE_RECIPIENT`. The laptop keeps the key,
+the pinned host key and the age identity that decrypts backups under
+`~/secrets/saga-server-ci/` (Secrets index in `~/.config/agents/registry.md`).
+`tests/host_server_ci.py` exercises the account on a disposable runner; never
+run it on the production host.
+
 ## Routine operation
 
 ```sh
 uv run python tools/deploy_online.py status --name saga2d-online
-uv run python tools/deploy_online.py deploy --name saga2d-online
-uv run python deploy/smoke.py wss://games.tachyon-ai.eu/play
+gh run list -R ikamensh/saga-online --workflow server-rollout.yml --limit 5
 ```
 
 ## Website and release catalog
@@ -167,10 +255,9 @@ there is no automatic pruning. An intentional rollback is a new promotion of
 the reviewed previous bytes with a higher generation and the current expected
 head. Do not move the symlink manually while leaving `state.json` unchanged.
 The accepted production baseline is recorded in
-[`releases/server-baseline.json`](../releases/server-baseline.json), captured
-from the live `acb8cef2…3e082` release on 2026-09-17 after public client and
-retained-campaign acceptance. The [WB-004 rollout](../docs/warband-melee-rollout.md)
-records the candidate, backup, prior verified rollback release and exact checks.
+[`releases/server-baseline.json`](../releases/server-baseline.json); the
+automatic rollout writes it from the served attestation after acceptance, and
+its records are under [`releases/rollouts/`](../releases/rollouts/).
 CI's `games.example.test` reports are test evidence, not production baselines.
 
 ### Restricted CI publisher
@@ -259,9 +346,14 @@ consistent SQLite online backup of `/var/lib/saga2d-online/rooms.sqlite3` into
 `/var/backups/saga2d-online/rooms-<UTC>.sqlite3` (mode 600, integrity-checked,
 14 days retained). The backups live on the same disk as the database, so they
 protect against a corrupted or mistakenly emptied database, not against losing
-the volume. `deploy_online.py backup --name saga2d-online` takes a fresh backup,
-copies the newest file to `dist/online/backups/` on the laptop and verifies its
-integrity; run it before every server deployment and keep the copies off-host.
+the volume. Every rollout takes a fresh one before activation and keeps it off
+the host, encrypted to the laptop's age key, as the artifact
+`server-backup-<run>` for 90 days:
+
+```sh
+gh run download RUN -R ikamensh/saga-online -n server-backup-RUN -D /tmp/backup
+age -d -i ~/secrets/saga-server-ci/backup-age-identity.txt -o rooms.sqlite3 /tmp/backup/rooms-*.age
+```
 
 To restore: stop `saga2d-online`, copy the chosen backup to
 `/var/lib/saga2d-online/rooms.sqlite3` (owned by `saga2d-online`, mode 600,

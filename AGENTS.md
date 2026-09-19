@@ -21,7 +21,8 @@ uv run python -m saga2d.server --games tribes.multiplayer:ONLINE warband.online.
 uv run --project publishing --locked python tools/release_catalog.py releases/catalog.json # validate the catalog
 uv run --project publishing --locked python tools/build_site.py --output dist/site # render the website from the catalog and website/content.py
 uv run --project publishing --locked python -m pytest -q tests/test_release_catalog.py tests/test_build_site.py # static-site checks without the hosted games
-uv run python tools/deploy_online.py plan --name saga2d-online       # offline; deploy / site / backup perform the named operation
+uv run python tools/deploy_online.py plan --name saga2d-online       # offline; deploy / site / setup-*-ci perform the named operation
+gh workflow run server-rollout.yml -R ikamensh/saga-online           # the automatic server rollout, by hand (normally a refused promotion starts it)
 SAGA2D_SILENT=1 uv run python tools/verify_online.py /tmp/online     # native create/join/rejoin journeys for every game
 uv run python tools/load_online.py wss://games.tachyon-ai.eu/play warband --rooms 4
 uv run python tools/verify_room_seats.py wss://games.tachyon-ai.eu/play  # a three-seat Warband room fills, starts, refuses a client without seats
@@ -33,14 +34,23 @@ uv run python tools/verify_room_seats.py wss://games.tachyon-ai.eu/play  # a thr
   static-site publication; it installs no sibling game sources. Use it for
   website work independently of the room server's exact engine/game pins.
 - `deploy/` — `prepare_release.sh` (verified immutable runtime and three-game
-  order/restart/rejoin acceptance), `install.sh` (activation with rollback),
+  order/restart/rejoin acceptance), `install.sh` (activation with rollback, and
+  `--rollback` to `previous`), `server_ci.py`/`install_server_ci.py` (the
+  restricted server-CI account: status, backup, install, rollback),
   `server.py`/`runtime.py` (live attestation), the systemd units, `Caddyfile`
   (TLS; `/play`, `/healthz` and `/server-compatibility.json` proxied),
   `cloud-init.yaml`, `check_release.py`/`smoke.py`, `backup.py`; `deploy/README.md`
   is the operations runbook.
 - `tools/deploy_online.py` — plan, bootstrap-project, provision, package,
-  deploy, site, backup against the dedicated Scaleway project; credentials come
+  deploy (first deployment and host changes), site, setup-site-ci and
+  setup-server-ci against the dedicated Scaleway project; credentials come
   from `~/secrets/scaleway.md` (section `saga2d-deploy`) and never leave the laptop.
+- `.github/workflows/server-rollout.yml` and `tools/server_rollout.py` — the
+  automatic server rollout: newest Warband release, moved pins, the full suite
+  and one archive (`tests.yml`), backup, rehearsal, activation, public and native
+  checks, automatic rollback, and a machine record under `releases/rollouts/`
+  with the new baseline. A promotion refused for the server baseline starts it.
+  Agents do not run rollouts by hand; see `deploy/README.md`.
 - `tools/server_package.py` — copies tracked files from clean pinned Git commits
   and the verified PyPI engine wheel; records their inventory and locked runtime.
   Packaging requires clean inputs, including this repo. The read-only Tests
