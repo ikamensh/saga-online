@@ -42,4 +42,53 @@ The stack's standing authorization applies; the
 
 ## Status
 
-Acceptance recorded; the Warband merge is waiting for its branch's CI.
+**Accepted live server, 2026-09-19 03:08 UTC.** Warband `6ad2779` (the merge
+of WB-045's `a6d22f0`) passed
+[Tests 35416900214](https://github.com/ikamensh/warband/actions/runs/35416900214)
+and [native package checks 35416900239](https://github.com/ikamensh/warband/actions/runs/35416900239)
+(run number 86, Windows and Mac). Its contract,
+`3e324a4fa4174d9c594730288a29c935f277201c9edae0dcffefe2394534e62e`, differs
+from the live one in `warband/races.py` and in nothing else (packages,
+Python and registry unchanged). The saga-online lock needed no change. Saga
+Online `a8cfa9d` passed its suite locally at the new pins (146 tests) and in
+CI: [Tests 35417443472](https://github.com/ikamensh/saga-online/actions/runs/35417443472)
+and [Website checks 35417443367](https://github.com/ikamensh/saga-online/actions/runs/35417443367).
+The archive CI built and prepared as the service account is the one
+activated, identical to the local one:
+`db6c46818e4d5e7414a1a564f595f764230b9d88d50639180c5820142f8d047e` (324
+files).
+
+Checkpoints across the change (criterion 2): the same two-seat match (seed 7,
+64×48) as in the WB-037 rollout, played 150 s by the live release's authority,
+restored by the candidate and played four more minutes, and the other way
+round; both held. A unit's save carries no armour (its keys are position,
+hit points, orders and work), so an ogre saved by either release takes the
+armour of the one that restores it.
+
+Before activation: the off-host backup `rooms-20260919T030716Z.sqlite3` (15
+rooms, SHA-256 `293bddc5…`) and its private rehearsal (all 30 retained seats
+resumed on the candidate). `deploy_online.py deploy` prepared the archive as
+the service account and activated it at 03:07 UTC; the previous release
+`953a83c6…` stays at the `previous` pointer with its backups, and the website
+pointer did not move.
+
+After activation:
+- Public health is `ok`.
+- The served attestation names deployment `db6c4681…`, Warband `6ad2779` and
+  the candidate's contract `3e324a4f…`.
+- `deploy/smoke.py` passed create, join and order for all three games.
+- `permessage-deflate` is negotiated through the public proxy.
+- Every retained seat resumed on the live server with its own token (15
+  rooms, 30 seats, none failed).
+- A three-seat Warband room filled in order, started with 3 of 3, and refused
+  a client from before 0.3.8.
+- The native Warband journey (create, room-code join, accepted gameplay,
+  restart and rejoin against the public server) passed, a minute after the
+  other checks. Its frames are under `docs/evidence/wb045-rollout/public/`,
+  and I looked at them: the seat's own corner, an orc one this time, with its
+  hall, peons and the painted mine, and the rest fogged.
+
+The served attestation is the new
+[`releases/server-baseline.json`](../releases/server-baseline.json). The
+promotion of `6ad2779`'s publication ran at 03:00, before the activation,
+and was refused as designed.
