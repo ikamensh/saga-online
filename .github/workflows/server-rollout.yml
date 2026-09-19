@@ -114,17 +114,21 @@ jobs:
     needs: resolve
     if: needs.resolve.outputs.action == 'current' && needs.resolve.outputs.promote == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
     permissions:
-      actions: write
+      contents: read
+      actions: write # dispatches the promotion and follows it
+    timeout-minutes: 30
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
       - name: The live server already serves this build's contract; promote it
         env:
           GH_TOKEN: ${{ github.token }}
         run: >-
-          gh workflow run warband-promotion.yml --repo "$GITHUB_REPOSITORY" --ref main
-          -f build_run_id=${{ needs.resolve.outputs.build_run_id }} -f release_id=${{ needs.resolve.outputs.release_id }}
-          -f manifest_sha256=${{ needs.resolve.outputs.manifest_sha256 }}
+          tools/promote_and_wait.sh ${{ needs.resolve.outputs.build_run_id }} ${{ needs.resolve.outputs.release_id }}
+          ${{ needs.resolve.outputs.manifest_sha256 }}
 
   candidate:
     needs: resolve
@@ -364,10 +368,10 @@ jobs:
     needs: [resolve, deploy, native, rollback]
     if: always() && needs.resolve.outputs.action == 'deploy' && needs.deploy.result != 'skipped'
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 30
     permissions:
       contents: write # the record, and on acceptance the pins and baseline, onto main
-      actions: write # dispatch the promotion again
+      actions: write # dispatch the promotion again and follow it
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -409,14 +413,13 @@ jobs:
             [[ $attempt != 3 ]] || exit 1
           done
           git push --quiet origin --delete "server-rollout/$GITHUB_RUN_ID" 2>/dev/null || true
-      - name: Dispatch the promotion again
+      - name: Dispatch the promotion again and wait for it
         if: steps.record.outputs.outcome == 'accepted'
         env:
           GH_TOKEN: ${{ github.token }}
         run: >-
-          gh workflow run warband-promotion.yml --repo "$GITHUB_REPOSITORY" --ref main
-          -f build_run_id=${{ needs.resolve.outputs.build_run_id }} -f release_id=${{ needs.resolve.outputs.release_id }}
-          -f manifest_sha256=${{ needs.resolve.outputs.manifest_sha256 }}
+          tools/promote_and_wait.sh ${{ needs.resolve.outputs.build_run_id }} ${{ needs.resolve.outputs.release_id }}
+          ${{ needs.resolve.outputs.manifest_sha256 }}
       - name: A rollout that was not accepted fails its run
         if: steps.record.outputs.outcome != 'accepted'
         run: |
