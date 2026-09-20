@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import shutil
 import sqlite3
 import sys
@@ -23,6 +24,20 @@ from saga2d.online import OnlineClient
 from saga2d.packaging.verify import local_server
 
 GAMES = ("tribes.multiplayer:ONLINE", "warband.online.authority:ONLINE", "eador.multiplayer:ONLINE")
+UNIT = Path(__file__).resolve().parents[1] / "deploy" / "saga2d-online.service"
+
+
+def production_limits() -> dict[str, int]:
+    """What the installed unit starts the live server with: the rehearsal may not be more permissive.
+
+    Read rather than repeated, because a rehearsal at ``RoomServer``'s own
+    defaults would pass a room count the live server refuses, and this is the
+    last check before activation.
+    """
+    flags = dict(re.findall(r"--max-(rooms|connections) (\d+)", UNIT.read_text(encoding="utf-8")))
+    if set(flags) != {"rooms", "connections"}:
+        raise ValueError(f"{UNIT} no longer names --max-rooms and --max-connections")
+    return {"max_rooms": int(flags["rooms"]), "max_connections": int(flags["connections"])}
 
 
 def rooms(path: Path) -> list[dict]:
@@ -97,7 +112,7 @@ def rehearse(backup: Path, endpoint: str | None = None, *, per_game: bool = Fals
             original = RoomServer.__init__
 
             def with_state(self, games, **kwargs):  # the helper starts a bare server; the rehearsal needs the copied store
-                original(self, games, **{**kwargs, "state_dir": state, "room_ttl": 900, "max_rooms": 64, "max_connections": 128})  # the production limits
+                original(self, games, **{**kwargs, "state_dir": state, "room_ttl": 900, **production_limits()})
             RoomServer.__init__ = with_state
             try:
                 with local_server(*GAMES) as local:

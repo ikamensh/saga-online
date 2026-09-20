@@ -335,6 +335,22 @@ def test_public_checks_pass_on_the_activated_release_and_a_deliberate_failure_fo
                                                   "resumed_rooms": newest_of_each_game}
 
 
+def test_the_rehearsal_runs_at_the_live_units_limits_not_the_servers_defaults():
+    """The gate before activation must refuse what the live server would refuse, or it gates nothing."""
+    import inspect
+
+    from saga2d.server import RoomServer
+
+    from tools.rehearse_retained import UNIT, production_limits
+
+    limits = production_limits()
+    start = next(line for line in UNIT.read_text(encoding="utf-8").splitlines() if line.startswith("ExecStart="))
+    assert f"--max-rooms {limits['max_rooms']}" in start and f"--max-connections {limits['max_connections']}" in start
+    defaults = inspect.signature(RoomServer.__init__).parameters
+    assert limits["max_rooms"] <= defaults["max_rooms"].default
+    assert limits["max_connections"] <= defaults["max_connections"].default
+
+
 def test_a_live_check_samples_the_newest_retained_room_of_each_game():
     from tools.rehearse_retained import newest_per_game
     rooms = [{"code": code, "game": game, "expires_at": expires} for code, game, expires in
