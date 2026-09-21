@@ -36,12 +36,12 @@
       "source_commit": "543af1947d5f3c2840f5d5adf64396eda188d166"
     }
   },
-  "before_catalog_sha256": "db02c56dcc1a55d321f60df5785c0f83ad5fb54424a01096e58f89c5cc00884d",
-  "build_run_id": 35575515710,
-  "catalog_sha256": "33672be7becf82014cf00ca503dd92231f0b1a0020a34070822fc674053c6676",
-  "game_sha256": "b3ad847bf9cc93e4d868a128b79f571d6fbf5fb934592cad236c24af989aa49e",
-  "manifest_sha256": "13c0e64be8f11b66c5f616d521a431ce71d3e4a8bfa559a274e5d6968018f205",
-  "release_id": 392798834,
+  "before_catalog_sha256": "33672be7becf82014cf00ca503dd92231f0b1a0020a34070822fc674053c6676",
+  "build_run_id": 35575800131,
+  "catalog_sha256": "c143e718495f08f135530a13ed2ec445274f568f327dd86b9aad87b256fc03f3",
+  "game_sha256": "aff124918887f3bcaadabc74e0e4f8bae3c71737784cbdcb6026f0d4bc5253fe",
+  "manifest_sha256": "e7ecbc0529f07cce8d6def968e929364b147a875eb7158eba9d9ed9d4a0ac3cd",
+  "release_id": 392816471,
   "schema_version": 1,
-  "source_commit": "993b31dd030582cb19f6830bc9a249f705ba20d0"
+  "source_commit": "dc0d6baf9d9b1ee64afa367c4e9838a3705be54b"
 }
