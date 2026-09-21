@@ -19,7 +19,10 @@ def verify(url: str) -> str:
         seats = [welcome] + [handshake(socket, "join", game=GAME, room=welcome["room"], seats=4) for socket in sockets[1:]]
         assert [(seat["player"], seat["seats"]) for seat in seats] == [(0, 3), (1, 3), (2, 3)], seats
         ready = receive(sockets[0], predicate=lambda message: message["ready"])
-        assert ready["present"] == 3 and len(ready["state"]["world"]["players"]) == 3
+        # Warband's world carries one player past the seats — the wilds, which own the neutral
+        # creatures — and marks it, exactly as its own loader reads it back.  Count the seats.
+        served = ready["state"]["world"]["players"]
+        assert ready["present"] == 3 and len([p for p in served if not p.get("neutral")]) == 3, served
         assert {unit["player"] for unit in ready["state"]["world"]["units"]} == {0}, "a seat was sent another's units at home"
         with connect(url, proxy=None) as old:
             old.send(json.dumps({"type": "join", "protocol": 1, "game": GAME, "room": welcome["room"]}))
