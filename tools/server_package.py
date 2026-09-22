@@ -60,6 +60,24 @@ def locked_runtime(root):
     return packages
 
 
+def tracked_package(root: Path, commit: str, package: str, required: dict[str, str]) -> dict[str, bytes]:
+    """Read a package's allowlisted source and declared runtime inputs from its pinned Git tree."""
+    tracked = subprocess.check_output(["git", "-C", str(root), "ls-tree", "-r", "--name-only",
+                                       commit, "--", package], text=True).splitlines()
+    selected = [name for name in tracked if name in required
+                or any(fnmatch.fnmatch(name, pattern) for pattern in PACKAGES[package])]
+    require(selected, f"No tracked package source: {package}")
+    payload = subprocess.check_output(["git", "-C", str(root), "archive", "--format=tar", commit, "--", *selected])
+    files = {}
+    with tarfile.open(fileobj=io.BytesIO(payload)) as archive:
+        for item in archive:
+            if item.isdir():
+                continue
+            require(item.isfile(), f"Linked or special package source: {item.name}")
+            files[item.name] = archive.extractfile(item).read()
+    return files
+
+
 def server_files(root: Path) -> dict[str, bytes]:
     """Bind allowlisted source bytes to clean game commits and one exact locked runtime."""
     root = root.resolve()
@@ -95,22 +113,11 @@ def server_files(root: Path) -> dict[str, bytes]:
     require(all(packages[name] == version for name, version in contract["packages"].items()),
             "Server lock differs from Warband's native compatibility runtime")
     files = {}
-    for package, patterns in PACKAGES.items():
+    for package in PACKAGES:
         if package != "saga2d":
             repository = "shardbound" if package == "eador" else package
             checkout_root = root.parent / repository
-            tracked = subprocess.check_output(["git", "-C", str(checkout_root), "ls-tree", "-r", "--name-only",
-                                               sources[repository], "--", package], text=True).splitlines()
-            selected = [name for name in tracked if any(fnmatch.fnmatch(name, pattern) for pattern in patterns)]
-            require(selected, f"No tracked package source: {package}")
-            payload = subprocess.check_output(["git", "-C", str(checkout_root), "archive", "--format=tar",
-                                               sources[repository], "--", *selected])
-            with tarfile.open(fileobj=io.BytesIO(payload)) as archive:
-                for item in archive:
-                    if item.isdir():
-                        continue
-                    require(item.isfile(), f"Linked or special package source: {item.name}")
-                    files[item.name] = archive.extractfile(item).read()
+            files.update(tracked_package(checkout_root, sources[repository], package, contract["files"]))
         else:
             folder = Path(importlib.util.find_spec(package).origin).resolve().parent
             require(not any(path.is_symlink() for path in folder.rglob("*")), f"Linked package source: {folder}")
