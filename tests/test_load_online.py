@@ -7,7 +7,8 @@ from saga2d.packaging.verify import local_server
 GAMES = ('tribes.multiplayer:ONLINE', 'warband.online.authority:ONLINE', 'eador.multiplayer:ONLINE')
 
 
-@pytest.mark.parametrize('game', ['tribes', 'warband', 'shardbound'])
+@pytest.mark.parametrize('game', [pytest.param('tribes', marks=pytest.mark.demo), 'warband',
+                                  pytest.param('shardbound', marks=pytest.mark.demo)])
 def test_load_check_reports_ready_rooms_orders_and_state_cadence(game):
     with local_server(*GAMES) as endpoint:
         report = run(endpoint, game, rooms=1, seconds=2.5)

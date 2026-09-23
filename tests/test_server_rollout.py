@@ -319,7 +319,7 @@ def test_public_checks_pass_on_the_activated_release_and_a_deliberate_failure_fo
     expected = server_rollout.expected_baseline(packaged.archive, "wss://games.tachyon-ai.eu/play")
     state = tmp_path / "state"
     with running(packaged, state) as endpoint:
-        seeded = smoke(endpoint)  # three paused rooms with private seats, retained across the restart
+        seeded = smoke(endpoint, games=("warband-v2",))
     saved = backup(state / "rooms.sqlite3", tmp_path / "backups")
     with running(packaged, state) as endpoint:  # a fresh process: its room-creation budget is its own
         wrong = {**expected, "deployment_release": "0" * 64}
@@ -334,7 +334,7 @@ def test_public_checks_pass_on_the_activated_release_and_a_deliberate_failure_fo
     assert checks["deliberate_failure"] == {"passed": False} and report["passed"] is False
     assert checks["smoke"]["detail"] == ["warband-v2"]
     warband_room, = [record["room"] for record in seeded if record["game"] == "warband-v2"]
-    assert checks["retained_seats"]["detail"] == {"rooms": 3, "retained": 1, "failed": 0, "seats": 2,
+    assert checks["retained_seats"]["detail"] == {"rooms": 1, "retained": 1, "failed": 0, "seats": 2,
                                                   "resumed_rooms": [warband_room]}
 
 

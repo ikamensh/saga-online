@@ -3,20 +3,25 @@
 The hosted side of the Saga games (`~/saga/`, see `../AGENTS.md`): the
 authoritative room server deployment on Scaleway, the release catalog, the
 self-service website at https://games.tachyon-ai.eu/ and the operator tools.
-This checkout uses the published `saga2d==0.3.8` release; all three games and
+This checkout uses the published `saga2d==0.3.12` release; all three games and
 Sagaforge remain editable path dependencies. Changes to the sibling engine
 checkout do not affect this environment. `.github/server-pins.json` records the
 exact sibling commits, Python and uv required for a server package. Use separate
 adjacent checkouts for those pins; do not reset another task's working trees.
-Shardbound's pinned engine-alignment candidate is not yet accepted on its main.
 The packaged process is `python -B deploy/server.py`; it verifies recorded source
 and runtime inputs before serving game sockets and `/server-compatibility.json`.
+
+Warband is the playable release. Tribes and Shardbound are demos: keep them
+available when they work, but their gameplay checks are advisory and must not
+block a Warband release. Do not fix demo regressions while releasing Warband
+unless the user explicitly asks for that work.
 
 ## Commands
 
 ```bash
 uv sync --locked --extra dev                                # exact pinned Python/uv and sibling checkouts required
-uv run --locked pytest -q                                   # packaging, catalog, site and load checks (spawns real servers)
+uv run --locked pytest -q -m 'not demo'                     # Warband release gate, packaging, catalog and site
+uv run --locked pytest -q -m demo                           # advisory demo checks
 uv run python -m saga2d.server --games tribes.multiplayer:ONLINE warband.online.authority:ONLINE eador.multiplayer:ONLINE
 uv run --project publishing --locked python tools/release_catalog.py releases/catalog.json # validate the catalog
 uv run --project publishing --locked python tools/build_site.py --output dist/site # render the website from the catalog and website/content.py
@@ -33,7 +38,7 @@ uv run python tools/verify_room_seats.py wss://games.tachyon-ai.eu/play  # a thr
 - `publishing/` — a separate locked environment for catalog/site checks and
   static-site publication; it installs no sibling game sources. Use it for
   website work independently of the room server's exact engine/game pins.
-- `deploy/` — `prepare_release.sh` (verified immutable runtime and three-game
+- `deploy/` — `prepare_release.sh` (verified immutable runtime and Warband
   order/restart/rejoin acceptance), `install.sh` (activation with rollback, and
   `--rollback` to `previous`), `server_ci.py`/`install_server_ci.py` (the
   restricted server-CI account: status, backup, install, rollback),
@@ -97,8 +102,9 @@ uv run python tools/verify_room_seats.py wss://games.tachyon-ai.eu/play  # a thr
 - After any game release: update `releases/catalog.json`, validate it, rebuild
   and publish the site; never overwrite a versioned binary. Downloads are
   GitHub Releases on the game repos.
-- A server refresh must ship the game versions the published clients expect
-  (protocol and game ids in the catalog); check with `deploy/smoke.py` and a
-  public three-game create/join before calling it done.
+- A Warband server refresh must run the exact published Warband source and pass
+  Warband's packaged and public create/join/rejoin checks. Demo gameplay is
+  advisory; do not repair Tribes or Shardbound just to release Warband. The
+  shared server still carries their pinned code and data when it works.
 - Clear exceptions over silent fallbacks. Delete rather than deprecate.
   Commit each working increment.

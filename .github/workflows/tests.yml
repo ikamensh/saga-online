@@ -81,8 +81,11 @@ jobs:
           sudo apt-get install -y caddy python3-venv openssh-server
           caddy version
           uv sync --locked --extra dev
-      - name: Run the complete server and publication suite
-        run: uv run --locked python -m pytest -q --junitxml=dist/server-tests.xml
+      - name: Run the Warband server and publication suite
+        run: uv run --locked python -m pytest -q -m 'not demo' --junitxml=dist/server-tests.xml
+      - name: Check demo games without gating a Warband release
+        continue-on-error: true
+        run: uv run --locked python -m pytest -q -m demo --junitxml=dist/demo-tests.xml
       - name: Verify the read-only CI token can inspect public native provenance
         env:
           GH_TOKEN: ${{ github.token }}
@@ -144,6 +147,7 @@ jobs:
           name: server-acceptance-${{ inputs.ref || github.sha }}-${{ github.run_attempt }}
           path: |
             saga-online/dist/server-tests.xml
+            saga-online/dist/demo-tests.xml
             saga-online/dist/server-package.json
             saga-online/dist/server-acceptance.json
             saga-online/dist/deployment-exclusion.json

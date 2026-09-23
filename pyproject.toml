@@ -21,3 +21,4 @@ shardbound = { path = "../shardbound", editable = true }
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = ["demo: optional Tribes or Shardbound checks; advisory for Warband releases"]
