@@ -153,6 +153,8 @@ def verify_baseline(baseline, catalog, identity):
                 r"warband/(?:(?:[A-Za-z_]\w*/)*[A-Za-z_]\w*\.py|assets/constants/[A-Za-z_]\w*\.toml)", name)
             and re.fullmatch(r"[0-9a-f]{64}", digest) for name, digest in contract["files"].items()),
             "Invalid authoritative source inventory")
+    require(baseline["warband"]["source_commit"] == identity["source_commit"],
+            "Candidate requires a different server source", ServerBaseline)
     require(contract == baseline["warband"]["compatibility"], "Candidate requires a different server compatibility baseline", ServerBaseline)
 
 

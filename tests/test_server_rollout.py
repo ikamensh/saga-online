@@ -98,12 +98,14 @@ def test_a_build_the_live_server_already_serves_needs_only_its_promotion(tmp_pat
     assert decide(data)["promote"] is False, "nothing to do at all: a clean no-op"
 
 
-@pytest.mark.parametrize("why", ["rules", "served", "force"])
-def test_a_new_contract_a_diverged_live_server_or_force_deploys_with_moved_pins(tmp_path, why):
+@pytest.mark.parametrize("why", ["rules", "source", "served", "force"])
+def test_a_different_build_contract_live_server_or_force_deploys_with_moved_pins(tmp_path, why):
     data = release_data(tmp_path)
     served = None
     if why == "rules":
         changed_contract(data)
+    elif why == "source":
+        data["baseline"]["warband"]["source_commit"] = "b" * 40
     elif why == "served":
         served = {**data["baseline"], "deployment_release": "9" * 64}
     plan = decide(data, served=served, force=why == "force")

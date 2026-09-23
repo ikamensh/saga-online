@@ -75,6 +75,7 @@ def public(args):
     assert game["version"] == args.version, "Public Warband version differs from the requested version"
     baseline = json.loads((ROOT / "releases/server-baseline.json").read_text())
     assert public_json("/server-compatibility.json") == baseline, "Live runtime differs from the accepted baseline"
+    assert game["source_commit"] == baseline["warband"]["source_commit"], "The download and server run different Warband builds"
     assert catalog["server"]["endpoint"] == baseline["endpoint"] == SITE.replace("https:", "wss:") + "/play"
     package, = [item for item in game["packages"] if (item["os"], item["arch"], item["kind"]) == target()]
     assert package["url"] == f"{DOWNLOADS}/v{args.version}/{package['file']}"

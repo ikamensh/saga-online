@@ -51,7 +51,7 @@ def release_data(tmp_path, *, run_id=123, run_number=26, rule_data=False):
                 "python": "3.13.2", "uv": "0.12.10", "inno_setup": "6.7.1", "compatibility": contract}
     baseline = {"schema_version": 1, "deployment_release": "e" * 64,
                 "endpoint": "wss://games.tachyon-ai.eu/play", "protocol": 1,
-                "warband": {"source_commit": "b" * 40, "compatibility": contract}}
+                "warband": {"source_commit": identity["source_commit"], "compatibility": contract}}
     (tmp_path / "baseline.json").write_bytes(encoded(baseline))
     catalog = json.loads((ROOT / "releases/catalog.json").read_text())
     # Keep the transition fixture independent of whichever version is live today.
@@ -204,6 +204,17 @@ def test_promotion_accepts_reviewed_rule_data_in_the_server_contract(tmp_path):
     release = release_data(tmp_path, rule_data=True)
     result = prepare(release)
     assert result.returncode == 0, result.stderr
+
+
+def test_promotion_waits_for_the_server_to_run_the_downloadable_warband_build(release):
+    """Equal rule fingerprints alone cannot put a different Warband source in the public catalog."""
+    baseline = release["baseline"]
+    baseline["warband"]["source_commit"] = "b" * 40
+    (release["root"] / "baseline.json").write_bytes(encoded(baseline))
+
+    result = prepare(release)
+    assert result.returncode == 3, result.stderr
+    assert "Candidate requires a different server" in result.stderr
 
 
 def test_verified_promotion_builds_packages_and_activates_with_the_same_catalog_and_receipt(release):

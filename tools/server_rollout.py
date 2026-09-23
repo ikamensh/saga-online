@@ -81,8 +81,9 @@ def resolve(api, pins, baseline, catalog, served, *, force=False):
     live = {"deployment_release": baseline["deployment_release"], "source_commit": baseline["warband"]["source_commit"],
             "contract_sha256": baseline["warband"]["compatibility"]["sha256"]}
     plan = {"schema_version": 1, "force": force, "candidate": candidate, "baseline": live, "served_matches_baseline": served == baseline}
-    if contract == baseline["warband"]["compatibility"] and served == baseline and not force:
-        # The promotion compares contracts only: this build needs no new server, only its promotion.
+    if (identity["source_commit"] == baseline["warband"]["source_commit"]
+            and contract == baseline["warband"]["compatibility"] and served == baseline and not force):
+        # The downloadable build is already running; only its catalog promotion remains.
         return {**plan, "action": "current", "pins": pins,
                 "promote": catalog["games"]["warband"]["source_commit"] != identity["source_commit"]}
     comparison = api.get(f"/compare/{pins['sources']['warband']}...{identity['source_commit']}")
