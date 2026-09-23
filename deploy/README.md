@@ -76,7 +76,7 @@ Python, installs the exact managed Python under `/opt/saga2d-online/python`
 (accessible with `ProtectHome=true`), and installs a dedicated hashed runtime.
 As the unprivileged service account, `check_release.py` then starts the actual
 packaged launcher on an ephemeral loopback port, verifies its live attestation,
-creates and joins **all three actual games**, submits orders, stops the server
+creates and joins **Warband**, submits an order, stops the server
 with SIGTERM and backs up the paused checkpoint with the actual SQLite tool.
 It checks authenticated rejoin and exact paused state after restarting the
 original database, then after restoring only the backup into a fresh private
@@ -115,8 +115,8 @@ interrupt play until service is restored.
 `.github/workflows/server-rollout.yml` puts the newest published Warband on the
 live server and promotes it, with nobody at the laptop. Warband's "Publish
 verified Warband" dispatches "Promote verified Warband"; when that promotion is
-refused because the candidate needs a server the live one is not (its contract
-differs from `releases/server-baseline.json`, or the live attestation differs
+refused because the candidate needs a server the live one is not (its source or
+contract differs from `releases/server-baseline.json`, or the live attestation differs
 from that file), `tools/warband_promotion.py` exits 3 and the promotion's
 `request-rollout` job dispatches the rollout. An operator or agent can dispatch
 it too (`gh workflow run server-rollout.yml -R ikamensh/saga-online`), with
@@ -131,9 +131,9 @@ one that asked, so a batch of rules changes goes out together.
 
 | Job | Runs on | What it does |
 |-----|---------|--------------|
-| `resolve` | Ubuntu | `server_rollout.py resolve`: the newest immutable Warband release, its native run verified as the promotion does. The same contract as the baseline, served live, is `current`: a clean exit that dispatches the promotion only if the catalog names another build. Otherwise `deploy`: moves the Warband, run and Sagaforge pins, relocks if the games' metadata moved, and pushes the commit to `server-rollout/<run>` (never main). A candidate behind the pins, or one needing another Python or uv, is refused. |
-| `candidate` | Ubuntu | The whole `tests.yml` on that commit: the suite at the new pins, the host-entry-point checks, the one archive built and prepared as the service account, and `tests/host_server_ci.py` (install, rollback and refusals through the real CI account on the runner's systemd). |
-| `deploy` | Ubuntu, `server-rollout` environment | Status; a fresh backup through the CI account, kept off the host as an age-encrypted artifact (`server-backup-<run>`, 90 days); every retained seat resumed on a private copy with the candidate's server (`rehearse_retained.py`); activation through the host's installer; then `server_rollout.py accept`: public health, the served attestation equal to the archive's, the three-game smoke, `permessage-deflate` through the proxy, every retained seat resumed live and a three-seat Warband room. A failure after activation rolls back to `previous`. |
+| `resolve` | Ubuntu | `server_rollout.py resolve`: the newest immutable Warband release, its native run verified as the promotion does. The same source and contract as the baseline, served live, is `current`: a clean exit that dispatches the promotion only if the catalog names another build. Otherwise `deploy`: moves the Warband, run and Sagaforge pins, relocks if the games' metadata moved, and pushes the commit to `server-rollout/<run>` (never main). A candidate behind the pins, or one needing another Python or uv, is refused. |
+| `candidate` | Ubuntu | `tests.yml` on that commit: Warband's server and publication suite, advisory demo gameplay checks, the host-entry-point checks, the one archive built and prepared as the service account, and `tests/host_server_ci.py` (install, rollback and refusals through the real CI account on the runner's systemd). |
+| `deploy` | Ubuntu, `server-rollout` environment | Status; a fresh backup through the CI account, kept off the host as an age-encrypted artifact (`server-backup-<run>`, 90 days); every retained Warband seat resumed on a private copy with the candidate's server (`rehearse_retained.py --game warband-v2`); activation through the host's installer; then `server_rollout.py accept`: public health, the served attestation equal to the archive's, Warband create/join/order, `permessage-deflate` through the proxy, retained Warband seats resumed live and a three-seat Warband room. A failure after activation rolls back to `previous`. |
 | `native` | Windows and macOS | The candidate's own frozen client, downloaded from its immutable release, plays its online journey against the activated public server (`check_public_warband.py --candidate-tag`). |
 | `rollback` | Ubuntu, `server-rollout` environment | Only when a native journey failed: back to `previous`. |
 | `record` | Ubuntu | Writes `releases/rollouts/<UTC>-<warband>.json` (candidate, previous baseline, pins, backup, rehearsal, activation, every check, native receipts, rollback) for every run that reached the host. Accepted: merges the pin commit, writes the served attestation as the baseline, pushes to main and dispatches the promotion again. Anything else fails the run. |
