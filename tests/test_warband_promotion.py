@@ -35,10 +35,13 @@ def archive(files):
     return out.getvalue()
 
 
-def release_data(tmp_path, *, run_id=123, run_number=26):
+def release_data(tmp_path, *, run_id=123, run_number=26, rule_data=False):
+    files = {"warband/online/authority.py": sha(b"A reviewed simulation input fixture")}
+    if rule_data:
+        files["warband/assets/constants/units.toml"] = sha(b"reviewed unit rules")
     contract = {"schema_version": 1, "registry": "warband.online.authority:ONLINE", "python": "3.13.2",
                 "packages": {"saga2d": "0.3.2", "pillow": "12.3.0", "pyglet": "2.1.16", "websockets": "17.1"},
-                "files": {"warband/online/authority.py": sha(b"A reviewed simulation input fixture")}}
+                "files": files}
     contract["sha256"] = sha(json.dumps(contract, sort_keys=True, separators=(",", ":")).encode())
     version = f"0.2.{run_number - 25}"
     identity = {"schema_version": 2, "game": "warband", "source_commit": "a" * 40,
@@ -194,6 +197,13 @@ def test_prepare_accepts_exact_downloads_and_preserves_the_rest_of_the_catalog(r
     assert receipt["release_id"] == 456 and receipt["build_run_id"] == 123
     assert receipt["manifest_sha256"] == sha(release["assets"]["release.json"])
     assert receipt["baseline"] == json.loads((release["root"] / "baseline.json").read_text())
+
+
+def test_promotion_accepts_reviewed_rule_data_in_the_server_contract(tmp_path):
+    """A verified Warband release can include its TOML rules in the same source contract the server serves."""
+    release = release_data(tmp_path, rule_data=True)
+    result = prepare(release)
+    assert result.returncode == 0, result.stderr
 
 
 def test_verified_promotion_builds_packages_and_activates_with_the_same_catalog_and_receipt(release):

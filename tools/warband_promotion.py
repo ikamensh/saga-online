@@ -149,7 +149,8 @@ def verify_baseline(baseline, catalog, identity):
             "Invalid compatibility contract digest")
     require(contract["python"] == identity["python"] and contract["packages"]["saga2d"] == identity["saga2d_version"],
             "Compatibility runtime differs from release identity")
-    require(contract["files"] and all(re.fullmatch(r"warband/(?:[A-Za-z_]\w*/)*[A-Za-z_]\w*\.py", name)
+    require(contract["files"] and all(re.fullmatch(
+                r"warband/(?:(?:[A-Za-z_]\w*/)*[A-Za-z_]\w*\.py|assets/constants/[A-Za-z_]\w*\.toml)", name)
             and re.fullmatch(r"[0-9a-f]{64}", digest) for name, digest in contract["files"].items()),
             "Invalid authoritative source inventory")
     require(contract == baseline["warband"]["compatibility"], "Candidate requires a different server compatibility baseline", ServerBaseline)
