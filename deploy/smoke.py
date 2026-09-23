@@ -17,14 +17,14 @@ def receive(socket, kind, *, ready=None, predicate=lambda message: True):
     raise RuntimeError(f"Server did not send {kind}")
 
 
-def smoke(endpoint):
+def smoke(endpoint, games=("tribes-v1", "warband-v2", "shardbound-v1")):
     url = urllib.parse.urlsplit(endpoint)
     health = urllib.parse.urlunsplit(("https" if url.scheme == "wss" else "http", url.netloc, "/healthz", "", ""))
     with urllib.request.urlopen(health, timeout=10) as response:
         if response.status != 200 or response.read() != b"ok\n":
             raise RuntimeError("Server health response was unexpected")
     records = []
-    for game in ("tribes-v1", "warband-v2", "shardbound-v1"):
+    for game in games:
         with connect(endpoint, proxy=None) as host, connect(endpoint, proxy=None) as guest:
             host.send(json.dumps({"type": "create", "protocol": 1, "game": game, "options": {"seed": 7}}))
             room = receive(host, "welcome")

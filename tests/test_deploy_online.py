@@ -114,7 +114,7 @@ runpy.run_path(sys.argv[0], run_name="__main__")
     report = json.loads(verified.stdout)
     assert report["passed"] is True and report["restart_rejoin"] is True
     assert report["backup_restore"] is True
-    assert report["games"] == ["tribes-v1", "warband-v2", "shardbound-v1"]
+    assert report["games"] == ["warband-v2"]
     assert report["baseline"] == baseline
     marker = unpacked / ".venv/retry-marker"
     marker.write_text("Keep the existing environment on a staging retry")

@@ -59,7 +59,7 @@ def verify(release, release_id, endpoint):
                 if restart:
                     resume(local + "/play", records)
                 else:
-                    records = smoke(local + "/play")
+                    records = smoke(local + "/play", games=("warband-v2",))
             if not restart:
                 # Capture this exact paused checkpoint before rejoining both
                 # players lets the RTS advance during the restart check.

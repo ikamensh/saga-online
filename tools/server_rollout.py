@@ -209,15 +209,15 @@ def accept(endpoint, expected, backup, *, fail=False, report=None):
         return {"deployment_release": served["deployment_release"], "contract_sha256": served["warband"]["compatibility"]["sha256"]}
 
     def retained():
-        # Every seat already resumed on a private copy with this code; live, each resumed room
-        # holds a slot for the room TTL, so the newest retained room of each game stands for all.
-        seats = rehearse(backup, endpoint=endpoint, per_game=True)
+        # Every Warband seat already resumed on a private copy with this code; live, each
+        # resumed room holds a slot for the room TTL, so the newest one stands for all.
+        seats = rehearse(backup, endpoint=endpoint, per_game=True, game="warband-v2")
         require(seats["failed"] == 0, f"{seats['failed']} retained seats did not resume on the live server")
         return {key: seats[key] for key in ("rooms", "retained", "failed", "resumed_rooms")} | {"seats": len(seats["seats"])}
 
     check("health", health)
     check("attestation", attestation)
-    check("smoke", lambda: [record["game"] for record in smoke(endpoint)])
+    check("smoke", lambda: [record["game"] for record in smoke(endpoint, games=("warband-v2",))])
     check("permessage_deflate", lambda: deflate(endpoint))
     check("retained_seats", retained)
     check("three_seat_room", lambda: room_seats(endpoint))

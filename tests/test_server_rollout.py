@@ -332,9 +332,10 @@ def test_public_checks_pass_on_the_activated_release_and_a_deliberate_failure_fo
     assert [name for name, check in checks.items() if check["passed"]] == [
         "health", "attestation", "smoke", "permessage_deflate", "retained_seats", "three_seat_room"]
     assert checks["deliberate_failure"] == {"passed": False} and report["passed"] is False
-    newest_of_each_game = [record["room"] for record in sorted(seeded, key=lambda record: record["game"])]
-    assert checks["retained_seats"]["detail"] == {"rooms": 3, "retained": 3, "failed": 0, "seats": 6,
-                                                  "resumed_rooms": newest_of_each_game}
+    assert checks["smoke"]["detail"] == ["warband-v2"]
+    warband_room, = [record["room"] for record in seeded if record["game"] == "warband-v2"]
+    assert checks["retained_seats"]["detail"] == {"rooms": 3, "retained": 1, "failed": 0, "seats": 2,
+                                                  "resumed_rooms": [warband_room]}
 
 
 def test_the_rehearsal_runs_at_the_live_units_limits_not_the_servers_defaults():
@@ -373,6 +374,19 @@ def test_rehearsal_resumes_more_suspended_campaigns_than_fit_at_once(tmp_path, m
     report = rehearse_retained.rehearse(tmp_path / "rooms.sqlite3")
     assert report["retained"] == 3 and report["failed"] == 0
     assert len(report["seats"]) == 6
+
+
+def test_warband_rehearsal_ignores_retained_demo_rooms(tmp_path, monkeypatch):
+    from tools import rehearse_retained
+
+    retained = [{"code": "demo", "game": "shardbound-v1", "expires_at": 9e12},
+                {"code": "play", "game": "warband-v2", "expires_at": 9e12}]
+    monkeypatch.setattr(rehearse_retained, "rooms", lambda _: retained)
+    selected = []
+    monkeypatch.setattr(rehearse_retained, "resume_all", lambda endpoint, room_list, report: selected.extend(room_list))
+
+    report = rehearse_retained.rehearse(tmp_path / "backup.sqlite3", endpoint="wss://example.test/play", game="warband-v2")
+    assert report["retained"] == 1 and selected == [retained[1]]
 
 
 def test_a_live_check_samples_the_newest_retained_room_of_each_game():

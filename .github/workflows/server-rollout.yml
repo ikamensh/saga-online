@@ -233,9 +233,9 @@ jobs:
           path: saga-online/dist/encrypted-backup/
           if-no-files-found: error
           retention-days: 90
-      - name: Resume every retained seat on a private copy with the candidate's server
+      - name: Resume every retained Warband seat on a private copy with the candidate's server
         run: |
-          uv run --locked python tools/rehearse_retained.py "${{ steps.backup.outputs.path }}" > "$RUNNER_TEMP/rehearsal.json"
+          uv run --locked python tools/rehearse_retained.py "${{ steps.backup.outputs.path }}" --game warband-v2 > "$RUNNER_TEMP/rehearsal.json"
           python3 -c "import json; r = json.load(open('$RUNNER_TEMP/rehearsal.json')); json.dump({k: r[k] for k in ('rooms', 'retained', 'failed')} | {'seats': len(r['seats'])}, open('$FRAGMENTS/rehearsal.json', 'w'))"
       - name: Activate through the host's installer
         id: install

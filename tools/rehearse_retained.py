@@ -89,14 +89,14 @@ def newest_per_game(retained: list[dict]) -> list[dict]:
     return sorted(newest.values(), key=lambda room: room["game"])
 
 
-def rehearse(backup: Path, endpoint: str | None = None, *, per_game: bool = False) -> dict:
+def rehearse(backup: Path, endpoint: str | None = None, *, per_game: bool = False, game: str | None = None) -> dict:
     """Resume every retained seat: on a private copy with this checkout's server, or on ``endpoint`` itself.
 
     ``per_game`` resumes only the newest retained room of each game. On the live server every
     resumed room holds one of its 32 slots for the room TTL, so a live check samples while the
     private rehearsal covers every seat.
     """
-    retained = [room for room in rooms(backup) if room["expires_at"] > time.time()]
+    retained = [room for room in rooms(backup) if room["expires_at"] > time.time() and (game is None or room["game"] == game)]
     report = {"backup": backup.name, "rooms": len(rooms(backup)), "retained": len(retained), "seats": [],
               "endpoint": endpoint or "private copy"}
     if per_game:
@@ -133,8 +133,9 @@ def main() -> int:
     parser.add_argument("backup", type=Path)
     parser.add_argument("--endpoint", help="Resume on this server (the live one after activation) instead of a private copy")
     parser.add_argument("--per-game", action="store_true", help="Only the newest retained room of each game")
+    parser.add_argument("--game", help="Only resume retained rooms for this game")
     args = parser.parse_args()
-    report = rehearse(args.backup, args.endpoint, per_game=args.per_game)
+    report = rehearse(args.backup, args.endpoint, per_game=args.per_game, game=args.game)
     print(json.dumps(report, indent=1))
     return 1 if report["failed"] else 0
 
