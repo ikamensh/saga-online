@@ -3,10 +3,11 @@
     uv run python tools/rehearse_retained.py dist/online/backups/rooms-<UTC>.sqlite3
     uv run python tools/rehearse_retained.py BACKUP --endpoint wss://games.tachyon-ai.eu/play   # after activation
 
-Starts the real room server for all three games on a loopback port over a copy of the backup (the
-original is never opened for writing), then resumes each seat of each retained room with its own
-token and waits for the room's state. Prints one line per seat (stderr) and a JSON summary; exits
-non-zero when any retained seat fails to resume. Without --endpoint nothing reaches the live server or store.
+Starts the real room server for all three games on a loopback port over a fresh copy of the backup
+for each retained room (the original is never opened for writing), then resumes each seat with its
+own token and waits for the room's state. Fresh copies keep earlier rehearsals from filling the
+production room limit. Prints one line per seat (stderr) and a JSON summary; exits non-zero when
+any retained seat fails to resume. Without --endpoint nothing reaches the live server or store.
 """
 from __future__ import annotations
 
@@ -104,21 +105,23 @@ def rehearse(backup: Path, endpoint: str | None = None, *, per_game: bool = Fals
     if endpoint is not None:
         resume_all(endpoint, retained, report)
     else:
-        with tempfile.TemporaryDirectory(prefix="saga2d-rehearsal-") as temporary:
-            state = Path(temporary) / "state"
-            state.mkdir(mode=0o700)
-            shutil.copy2(backup, state / "rooms.sqlite3")
-            from saga2d.server import RoomServer
-            original = RoomServer.__init__
+        from saga2d.server import RoomServer
+        original = RoomServer.__init__
+        limits = production_limits()
+        for room in retained:
+            with tempfile.TemporaryDirectory(prefix="saga2d-rehearsal-") as temporary:
+                state = Path(temporary) / "state"
+                state.mkdir(mode=0o700)
+                shutil.copy2(backup, state / "rooms.sqlite3")
 
-            def with_state(self, games, **kwargs):  # the helper starts a bare server; the rehearsal needs the copied store
-                original(self, games, **{**kwargs, "state_dir": state, "room_ttl": 900, **production_limits()})
-            RoomServer.__init__ = with_state
-            try:
-                with local_server(*GAMES) as local:
-                    resume_all(local, retained, report)
-            finally:
-                RoomServer.__init__ = original
+                def with_state(self, games, **kwargs):  # the helper starts a bare server; the rehearsal needs the copied store
+                    original(self, games, **{**kwargs, "state_dir": state, "room_ttl": 900, **limits})
+                RoomServer.__init__ = with_state
+                try:
+                    with local_server(*GAMES) as local:
+                        resume_all(local, [room], report)
+                finally:
+                    RoomServer.__init__ = original
     report["failed"] = sum(not seat["resumed"] for seat in report["seats"])
     if retained and not report["seats"]:
         report["failed"] = len(retained)  # retained rooms without a single seat token cannot be resumed

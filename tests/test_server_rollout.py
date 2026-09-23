@@ -353,6 +353,28 @@ def test_the_rehearsal_runs_at_the_live_units_limits_not_the_servers_defaults():
     assert limits["max_connections"] <= defaults["max_connections"].default
 
 
+def test_rehearsal_resumes_more_suspended_campaigns_than_fit_at_once(tmp_path, monkeypatch):
+    """Retained campaigns must all rejoin on a private server with the live simultaneous room limit."""
+    from saga2d.server import Room
+    from saga2d.server.games import load_games
+    from saga2d.server.storage import RoomStore
+    from tools import rehearse_retained
+
+    spec = load_games(["eador.multiplayer:ONLINE"])["shardbound-v1"]
+    store = RoomStore(tmp_path)
+    for index in range(3):
+        match = spec.create({"seed": 7 + index, "campaign": True})
+        room = Room("shardbound-v1", match, f"room{index}",
+                    tokens=[f"seat{index}a", f"seat{index}b"], needed=spec.needed)
+        store.suspend(room, 7 * 86400, spec.checkpoint(match))
+    store.close()
+    monkeypatch.setattr(rehearse_retained, "production_limits", lambda: {"max_rooms": 2, "max_connections": 8})
+
+    report = rehearse_retained.rehearse(tmp_path / "rooms.sqlite3")
+    assert report["retained"] == 3 and report["failed"] == 0
+    assert len(report["seats"]) == 6
+
+
 def test_a_live_check_samples_the_newest_retained_room_of_each_game():
     from tools.rehearse_retained import newest_per_game
     rooms = [{"code": code, "game": game, "expires_at": expires} for code, game, expires in
