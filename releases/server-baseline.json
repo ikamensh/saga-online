@@ -1,5 +1,5 @@
 {
-  "deployment_release": "193a657622e8e5e759269e038f25b06585172ef65cb5afd8775a60b86ba25ed3",
+  "deployment_release": "8c6154249401a73da6075489444c5f8faeda322b9f7fb74db2b6d13e90b5593b",
   "endpoint": "wss://games.tachyon-ai.eu/play",
   "protocol": 1,
   "schema_version": 1,
@@ -18,15 +18,15 @@
         "warband/online/__init__.py": "5fa50310419d56822285e2f84c63f49e51fa2fb12ef21a8a16d6250e35d83e1f",
         "warband/online/authority.py": "c20cf0841f0709b78814a3ea5b147c14b64492774d60c733fe0dcd61507c0287",
         "warband/sim/__init__.py": "e8460f888010b70aabdb8cc5f125a285405fd4393764aa764d8c42890927a567",
-        "warband/sim/camps.py": "120a968f229e8ce8ddc56b464b3a4090a51385dd655c721f13bf70777abb7b0e",
+        "warband/sim/camps.py": "cbb9e4ac6a02211cd8fb5b4a319b2173cdbf92d3a1d4efc32b343304405e7ddb",
         "warband/sim/config.py": "c69eb72bb5efbe4f1c82e97406f8f7f3c252c7cbe2aac9047e7eb6f52804e249",
-        "warband/sim/mapgen.py": "6f2c9ffdf09ac94881ba88dbba8fb6ffd40b7b2e544e803684ac39e104c1a71e",
-        "warband/sim/model.py": "34ce5a013c8745976d9770a5c30591022b3e6ad4aa063eecfd729d9ff60ab0d6",
+        "warband/sim/mapgen.py": "4bfd2c15c2edd3b6adbd00f06c400e57e10e2ffc2b976e8ffd13d8eddb772764",
+        "warband/sim/model.py": "a019ff5b31d03eb3f9dc058bb69f0f4a989a40a846ba6fb10090cc58f06a66b7",
         "warband/sim/path.py": "d7820fb04d4a4e09cf727f86c03de1a8bc51c2664b11ffb4659cf98cb9d423e2",
         "warband/sim/races.py": "71489b1460ab7edacfae3080fc638727002b9734494bb6efacf2e644e594d3db",
         "warband/sim/rules.py": "2d7d3734328dea07263a09fd8d2cc65b3b6cebc0f69503a69dfdb7ed6148bb30",
         "warband/sim/settlement.py": "44d1849d08fc71e5471b063d032f4789915111557ddecdea46395129f3ee4531",
-        "warband/sim/worker_ai.py": "c20973c501d11a4970295922d0642c02c9724e39d9606fb5a55bb90be704724e",
+        "warband/sim/worker_ai.py": "e52e298d62950cd98626761363bb216ad95a091270af0a1828c75aa59084aaf6",
         "warband/sim/worker_knowledge.py": "79c3ac10e460609017dc4d31739acd10769436ec0b4d9da8bfad7ef18f190a23"
       },
       "packages": {
@@ -38,8 +38,8 @@
       "python": "3.13.2",
       "registry": "warband.online.authority:ONLINE",
       "schema_version": 1,
-      "sha256": "510df11a51b0f3360b5fecc8e524fecfa3d7e24f023ce039fdaa304218f9aae9"
+      "sha256": "719f4ce0b3a19acf50a4bc140c2f10bfd2b278e35437f1c5a121bbfc659d8ff4"
     },
-    "source_commit": "f702f6e543439128fbae7e0657ac176de4ec419d"
+    "source_commit": "9a8887573589728d3dcd5f39cba062a010d882a8"
   }
 }
