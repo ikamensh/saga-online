@@ -1,7 +1,7 @@
 {
   "already_current": false,
   "baseline": {
-    "deployment_release": "7e8ba7f78982f79db000605558ee10baadef9d4253f2c4c725871bfcbd54180b",
+    "deployment_release": "4f71c62650907f932f517232953fdce6ced498cc82cc0af009f5f5d359e16787",
     "endpoint": "wss://games.tachyon-ai.eu/play",
     "protocol": 1,
     "schema_version": 1,
@@ -42,15 +42,15 @@
         "schema_version": 1,
         "sha256": "72b189f928ad2fdd4fe3843b82a7dd21296edfb4f6eb43bcbea332526c0b9d0c"
       },
-      "source_commit": "f7f093918f8477fef55fcfb7de33673449fd5d3b"
+      "source_commit": "754aeebe0502682e4299767208a9c45793ea04f5"
     }
   },
-  "before_catalog_sha256": "ffd118fc7f7a346a341bac528322b3db26f6c4e8b00a6f82e33f8c2cf1c2343b",
-  "build_run_id": 35856968776,
-  "catalog_sha256": "2e59f9cb75019837a9a65b19f60ce25a7e6b8293ee38921cb179ac60858078d2",
-  "game_sha256": "2ca896611a6b3f8324c4c5d10b896284827712c560df6d4bc442ad013a5b1e64",
-  "manifest_sha256": "cfb7c47151d7502f9511069515d32b9d135bbed635de853936e383b39b52bfd1",
-  "release_id": 394632165,
+  "before_catalog_sha256": "2e59f9cb75019837a9a65b19f60ce25a7e6b8293ee38921cb179ac60858078d2",
+  "build_run_id": 35983613147,
+  "catalog_sha256": "11a1695194fe6172e00625137c414c99b389828a781d95962be12409138b3fcf",
+  "game_sha256": "041fafd8e73fd42e44f267eff3726609af098ae40dd4576d36a1404f5dc08fad",
+  "manifest_sha256": "03138ea9a016168d731dc98b74450234637df8eae7165c266053ae4850d42290",
+  "release_id": 395559505,
   "schema_version": 1,
-  "source_commit": "f7f093918f8477fef55fcfb7de33673449fd5d3b"
+  "source_commit": "754aeebe0502682e4299767208a9c45793ea04f5"
 }
