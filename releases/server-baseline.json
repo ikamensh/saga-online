@@ -1,5 +1,5 @@
 {
-  "deployment_release": "7365f732c4b357619b6408f86115357b9056352e100f7ae74ab85b7172514927",
+  "deployment_release": "d50f3bf4f673d347388ce03467617c46d07b2d367a366e2d026188e75eea8f5f",
   "endpoint": "wss://games.tachyon-ai.eu/play",
   "protocol": 1,
   "schema_version": 1,
@@ -32,14 +32,14 @@
       "packages": {
         "pillow": "12.3.0",
         "pyglet": "2.1.16",
-        "saga2d": "0.3.12",
+        "saga2d": "0.3.14",
         "websockets": "17.1"
       },
       "python": "3.13.2",
       "registry": "warband.online.authority:ONLINE",
       "schema_version": 1,
-      "sha256": "110b9e359bde68444aff179e2d9767987dc2237c19f808869b35572e2456e1f1"
+      "sha256": "3274c02e0bf177abcfabebce32c21ebebebc6ca01faaadd94020bb2c3f7e3d2c"
     },
-    "source_commit": "56bcc0c1ca12ef4d021c2e374dce671b57c82701"
+    "source_commit": "a9b3d8aa76b6cc3c65ed9924a91ccd0ebb015397"
   }
 }
