@@ -1,7 +1,7 @@
 {
   "already_current": false,
   "baseline": {
-    "deployment_release": "bd990215dc0447bab80fff841f6d0fc534228f751f8ba24edcf8d139d5778c4f",
+    "deployment_release": "93baa3d60fc9b21ce273124f739c1e0334987373d499e505fa2400fd38e7cd3b",
     "endpoint": "wss://games.tachyon-ai.eu/play",
     "protocol": 1,
     "schema_version": 1,
@@ -10,23 +10,23 @@
         "files": {
           "warband/__init__.py": "1791b856b7f8b60acac4d98118e091c3811cdb1d594d693f739e13cff4fbc810",
           "warband/assets/constants/behavior.toml": "effacf394194700fc8aa0b930ccc73e97f2441801badd01e5e553d9329aeb666",
-          "warband/assets/constants/buildings.toml": "f89ade53a8a153e61807a69be2646096333b61e91edf6f46e18ac75456828aa2",
+          "warband/assets/constants/buildings.toml": "6fc9714596acb79dac41704d7485eb72c5cbf959bd1acf9c32dd24fc0b3b83e9",
           "warband/assets/constants/combat.toml": "1ec99e3a2f3dcfdc35313ba68cea49888e8242da3147909a9cc86e7b1f2ca374",
           "warband/assets/constants/economy.toml": "61ce340672c3e3bdebae29dc9e8e755a7402eed9299a66e1a33faf976c765775",
           "warband/assets/constants/neutrals.toml": "22c14d2475f37920cf7bd165b2e9f3eeabcb2b1d4d60386e3833b95342a3fb3b",
-          "warband/assets/constants/races.toml": "196d05e21ef3f4504decd1e4b2625390e02e478e5e0d94737f0851878ff9a884",
-          "warband/assets/constants/units.toml": "45a593fac354807da3b731175eac9e8c46bdac849b28be952958d5d155ade0ec",
-          "warband/assets/constants/upgrades.toml": "0b1ed2e2419d9c123823ed4de4c92b34a0e2c74d3e93b711bc512e3565a1f5c9",
+          "warband/assets/constants/races.toml": "988ec2be0fe3a09db84f9f6b5562ac97ab2a1a8da06b5d10083666573f3975ca",
+          "warband/assets/constants/units.toml": "a7b7a1ceb8836fec677d5902c6733e12bd03e1ce0cc24071cf59b110ff0b12b6",
+          "warband/assets/constants/upgrades.toml": "d65a12a1904aaf3aee6b30379867be259c35954448d4c86dba56acd240cf048d",
           "warband/online/__init__.py": "5fa50310419d56822285e2f84c63f49e51fa2fb12ef21a8a16d6250e35d83e1f",
           "warband/online/authority.py": "7d6b756d885e231b6fe4015cd31581e6f755703d7701ebfbf95e79f97d04bd02",
           "warband/sim/__init__.py": "e8460f888010b70aabdb8cc5f125a285405fd4393764aa764d8c42890927a567",
-          "warband/sim/camps.py": "b23464ad9dd99ed3a89ce6ebbca0e9a17de67aac3ca113e74d601df3c7340091",
-          "warband/sim/config.py": "220e0f77679b2c19d0065b51f93ba898db97d3a86e1e5df82c3ea5f43b755642",
+          "warband/sim/camps.py": "120a968f229e8ce8ddc56b464b3a4090a51385dd655c721f13bf70777abb7b0e",
+          "warband/sim/config.py": "e5aef6f0c06215ebfb49d5fad05fea4db2b366cd0c62211b26b0fbd71990b64c",
           "warband/sim/mapgen.py": "89af5f75d93cc7506cb966932023d7ab41ea12b2d985f32b1debd33537d68c9e",
-          "warband/sim/model.py": "56acf9e56059220ee3f28c65e232171e727b3261e103c7e72be4cf17a1dd60fb",
+          "warband/sim/model.py": "1bcffa7369c4c557aff7bcace585d8915b9fefbe1c4fbfb70d4694299c5da3e8",
           "warband/sim/path.py": "d7820fb04d4a4e09cf727f86c03de1a8bc51c2664b11ffb4659cf98cb9d423e2",
           "warband/sim/races.py": "9c6b603d9044aba86303e822cc9d01d3c3e1ac6e0494b13ae1ccd74fe38f1300",
-          "warband/sim/rules.py": "6c99b369c2af6f84910b2c026afaa801085cadb122ead9d7574efbb795aa79f5",
+          "warband/sim/rules.py": "85040ffe8329f4feb2231778e2ca5b934df1391d78a3922bc8e26e3c68b88400",
           "warband/sim/settlement.py": "44d1849d08fc71e5471b063d032f4789915111557ddecdea46395129f3ee4531",
           "warband/sim/worker_ai.py": "c20973c501d11a4970295922d0642c02c9724e39d9606fb5a55bb90be704724e",
           "warband/sim/worker_knowledge.py": "79c3ac10e460609017dc4d31739acd10769436ec0b4d9da8bfad7ef18f190a23"
@@ -40,17 +40,17 @@
         "python": "3.13.2",
         "registry": "warband.online.authority:ONLINE",
         "schema_version": 1,
-        "sha256": "a6e3f54fa5da912689ba85590dc17ddbca3e88233313a577d9064f2de0429f7b"
+        "sha256": "7a886b1eb85988ebb4a8ff1d3f426a050a1941efd06557098848ee47f6f0229b"
       },
-      "source_commit": "3d0ec577f406ec322bf995da976f1098a9ebd71e"
+      "source_commit": "07cb63d6abad60c568a93d9c2e3a06641c7376a7"
     }
   },
-  "before_catalog_sha256": "2ab2529f7ecce679e961ef79bb8d5a44e6d920dfffa5d5e6c98723943a00f1c3",
-  "build_run_id": 35998979257,
-  "catalog_sha256": "9528637755c626abccb6d9f39979a9d56b84b8a397ada92abbf070d7f9b06213",
-  "game_sha256": "f074107d95c3672cbeab06e1269fcc925aef9a28ad0e746f5cde3118e773507d",
-  "manifest_sha256": "3be71afcf65acc8a82ce5091793e4b446294c94409086b6f076a3b7feaa0aa1e",
-  "release_id": 395691436,
+  "before_catalog_sha256": "9528637755c626abccb6d9f39979a9d56b84b8a397ada92abbf070d7f9b06213",
+  "build_run_id": 36016766127,
+  "catalog_sha256": "a9838a3521fddcd2cab75e0a3424e0898349bcce46cbaaec6db05699fdea771d",
+  "game_sha256": "ac50236579ba0348e678bda8a7cbfa1b5778bb5a29256cf0d1b249d81d821e48",
+  "manifest_sha256": "f19f9e35cffee7834cf71cc62a2ab5269c19538f2c35e5ee14eef0d22cbb205d",
+  "release_id": 395824962,
   "schema_version": 1,
-  "source_commit": "3d0ec577f406ec322bf995da976f1098a9ebd71e"
+  "source_commit": "07cb63d6abad60c568a93d9c2e3a06641c7376a7"
 }
