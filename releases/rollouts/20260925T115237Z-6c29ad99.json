@@ -1,0 +1,249 @@
+{
+  "acceptance": {
+    "checks": {
+      "attestation": {
+        "detail": {
+          "contract_sha256": "879c6186b6f38c12055a62dc15cbed4c10d6312d5733207cf06158b0d63e85a9",
+          "deployment_release": "856b883443fff3375df7581a93ec756a50121d9063d996a18205a4a62fb1cde4"
+        },
+        "passed": true
+      },
+      "health": {
+        "passed": true
+      },
+      "permessage_deflate": {
+        "detail": "permessage-deflate; server_max_window_bits=12; client_max_window_bits=12",
+        "passed": true
+      },
+      "retained_seats": {
+        "detail": {
+          "failed": 0,
+          "resumed_rooms": [],
+          "retained": 0,
+          "rooms": 33,
+          "seats": 0
+        },
+        "passed": true
+      },
+      "smoke": {
+        "detail": [
+          "warband-v2"
+        ],
+        "passed": true
+      },
+      "three_seat_room": {
+        "detail": "three-seat room p22fbozim5dw on wss://games.tachyon-ai.eu/play: filled in order, started with 3 of 3, each seat sent its own; a client from before 0.3.8 refused: 'This match has 3 seats. Update your game client to play it.'",
+        "passed": true
+      }
+    },
+    "endpoint": "wss://games.tachyon-ai.eu/play",
+    "passed": true
+  },
+  "backup": {
+    "bytes": 1150976,
+    "encrypted_artifact": "server-backup-36131062702",
+    "name": "rooms-20260925T115005Z.sqlite3",
+    "rooms": 33,
+    "schema_version": 1,
+    "sha256": "9f9aa6b22f368c273a4f10fe493c2f2f0e2bcf2c90bcd4ac3adafa34f6c67a6c"
+  },
+  "candidate": {
+    "build_run_id": 36127706134,
+    "contract_sha256": "879c6186b6f38c12055a62dc15cbed4c10d6312d5733207cf06158b0d63e85a9",
+    "manifest_sha256": "e70876ef211645a5b8dcf6768d57223c4619114f25febb0d33d013d2a975f436",
+    "release_id": 396556808,
+    "run_number": 236,
+    "source_commit": "6c29ad99b28e067dca81f939efcbfa4a4ff197e6",
+    "tag": "v0.2.211",
+    "version": "0.2.211"
+  },
+  "deployment_release": "856b883443fff3375df7581a93ec756a50121d9063d996a18205a4a62fb1cde4",
+  "finished": "2026-09-25T11:52:37Z",
+  "force": false,
+  "install": {
+    "activated": "856b883443fff3375df7581a93ec756a50121d9063d996a18205a4a62fb1cde4",
+    "attestation": {
+      "deployment_release": "856b883443fff3375df7581a93ec756a50121d9063d996a18205a4a62fb1cde4",
+      "endpoint": "wss://games.tachyon-ai.eu/play",
+      "protocol": 1,
+      "schema_version": 1,
+      "warband": {
+        "compatibility": {
+          "files": {
+            "warband/__init__.py": "1791b856b7f8b60acac4d98118e091c3811cdb1d594d693f739e13cff4fbc810",
+            "warband/assets/constants/behavior.toml": "effacf394194700fc8aa0b930ccc73e97f2441801badd01e5e553d9329aeb666",
+            "warband/assets/constants/buffs.toml": "6ec2b51ce751114283de5a4d6701cdb921ec38152017e7e7fc80e5a8caaabee1",
+            "warband/assets/constants/buildings.toml": "ee04d65842ed5cdd656d0462ba58a25ab2dddb67117980224336cc49bf1e29c9",
+            "warband/assets/constants/combat.toml": "ea2400138ca6251263dbc2d0d82387b9cc0df2f13ce3a6b9316fd8d1eaa873be",
+            "warband/assets/constants/economy.toml": "62a4083c833caa0613954a6d37ea5b0eddbc9fa772477b5e67ed98e7e3161324",
+            "warband/assets/constants/neutrals.toml": "3926f2e45f6d83a9b3ddc9bb1764a37dfea7adab915dd82e57cac26c9a64d1b0",
+            "warband/assets/constants/races.toml": "d41278174f210e7c5cd12773c9624696cc69b37f42057955d6c0bbdccc053395",
+            "warband/assets/constants/spells.toml": "a4728348ae5fa37ad008f5f10a90007e7f0e976b6695868febb18bf067ad3c7c",
+            "warband/assets/constants/units.toml": "66d0178f17ec62b8c8e1a7fd0aa2ab50bfb7f694945c1a10d8f08109cc7b87a6",
+            "warband/assets/constants/upgrades.toml": "ff3d80b1205a1f839ebfa59c19f3d89ae754e6d84bbebd20312ee5fbea813223",
+            "warband/online/__init__.py": "5fa50310419d56822285e2f84c63f49e51fa2fb12ef21a8a16d6250e35d83e1f",
+            "warband/online/authority.py": "1b8e870a30a27196bfeb250800e2ee7a69518a14dce0d90a82e38fd6611f4423",
+            "warband/sim/__init__.py": "e8460f888010b70aabdb8cc5f125a285405fd4393764aa764d8c42890927a567",
+            "warband/sim/camps.py": "cbb9e4ac6a02211cd8fb5b4a319b2173cdbf92d3a1d4efc32b343304405e7ddb",
+            "warband/sim/config.py": "1919d6b6187d0cd8e50e611c218141be3c74ae8126802e5636f6ddf4269afcf3",
+            "warband/sim/mapgen.py": "6eb432d96f5ca2a21a0097b9d4b07fee9345186a002d61a81e30ef046aab1fda",
+            "warband/sim/model.py": "fa07a23fe6f10e78ff93dc8611ac31fceb8ec3ce16df97a2638e9bfa27ebd4f6",
+            "warband/sim/path.py": "d7820fb04d4a4e09cf727f86c03de1a8bc51c2664b11ffb4659cf98cb9d423e2",
+            "warband/sim/races.py": "7a39879d963adefb5e0ea2063f5ab2ad784a8edeb077b947134be5ee3e2faeb5",
+            "warband/sim/rules.py": "405fe77e84acaf7e3791506031d259a7094a6cb8ac5636099e72848fedf3049a",
+            "warband/sim/settlement.py": "4bd56b33bda791994a4eb586fb70639c447f20c90db4d8cd7191e7d4a24f7460",
+            "warband/sim/worker_ai.py": "f22471bad17a58e8239ae6942c927431e126056e5a0b91c0ad10790a54802ab9",
+            "warband/sim/worker_knowledge.py": "e322ae7ccabad8171ac2e51559ee1b86250263cfd0bfd0920340c597974665f7"
+          },
+          "packages": {
+            "pillow": "12.3.0",
+            "pyglet": "2.1.16",
+            "saga2d": "0.3.14",
+            "websockets": "17.1"
+          },
+          "python": "3.13.2",
+          "registry": "warband.online.authority:ONLINE",
+          "schema_version": 1,
+          "sha256": "879c6186b6f38c12055a62dc15cbed4c10d6312d5733207cf06158b0d63e85a9"
+        },
+        "source_commit": "6c29ad99b28e067dca81f939efcbfa4a4ff197e6"
+      }
+    },
+    "current": "856b883443fff3375df7581a93ec756a50121d9063d996a18205a4a62fb1cde4",
+    "health": "ok",
+    "instance": "saga2d-online",
+    "previous": "5dcff79b5087a400302bec554d893c7ead14c2b60184386b11068c4b2eea2cb8",
+    "schema_version": 1,
+    "service": "active",
+    "site_pending": false,
+    "tools": "ef8fd5ee70ab65f6abe75a1746fc1ada4854e4f68064c2f44ee5f374cf340aa7"
+  },
+  "native": {
+    "macos": {
+      "native": {
+        "compiled_simulation": true,
+        "live_match_menu": true,
+        "native_clipboard_join": true,
+        "native_multiplayer_input": true,
+        "native_settlement_planning": true,
+        "passed": true,
+        "start_after_resize": true
+      },
+      "online": {
+        "assembly_point": true,
+        "authoritative_movement": true,
+        "automatic_plan_builder": true,
+        "cancel_plans": true,
+        "create_join": true,
+        "foreign_order_rejected": true,
+        "global_production": true,
+        "private_seat_rejoin": true
+      },
+      "package": "Warband-0.2.211-darwin-arm64-app.zip",
+      "passed": true,
+      "server_release": "856b883443fff3375df7581a93ec756a50121d9063d996a18205a4a62fb1cde4",
+      "source_commit": "6c29ad99b28e067dca81f939efcbfa4a4ff197e6",
+      "version": "0.2.211"
+    },
+    "windows": {
+      "online": {
+        "assembly_point": true,
+        "authoritative_movement": true,
+        "automatic_plan_builder": true,
+        "cancel_plans": true,
+        "create_join": true,
+        "foreign_order_rejected": true,
+        "global_production": true,
+        "private_seat_rejoin": true
+      },
+      "package": "Warband-0.2.211-windows-x64-portable.zip",
+      "passed": true,
+      "server_release": "856b883443fff3375df7581a93ec756a50121d9063d996a18205a4a62fb1cde4",
+      "source_commit": "6c29ad99b28e067dca81f939efcbfa4a4ff197e6",
+      "version": "0.2.211"
+    }
+  },
+  "outcome": "accepted",
+  "pins": {
+    "python": "3.13.2",
+    "sources": {
+      "sagaforge": "e099051a63c44a698ea4ccf9b87ef9e05d446152",
+      "shardbound": "8ca1e41a17ef27876a5b5e9405c2348fc8ba912f",
+      "tribes": "57dfa12dbfe5c94958fef91329141b6565e3de1b",
+      "warband": "6c29ad99b28e067dca81f939efcbfa4a4ff197e6"
+    },
+    "uv": "0.12.10",
+    "warband_run_id": 36127706134,
+    "warband_run_number": 236
+  },
+  "previous": {
+    "contract_sha256": "879c6186b6f38c12055a62dc15cbed4c10d6312d5733207cf06158b0d63e85a9",
+    "deployment_release": "5dcff79b5087a400302bec554d893c7ead14c2b60184386b11068c4b2eea2cb8",
+    "source_commit": "0a9c9b3a4bd1ce7909daffc2c34a368acc74f260"
+  },
+  "rehearsal": {
+    "failed": 0,
+    "retained": 0,
+    "rooms": 33,
+    "seats": 0
+  },
+  "run": "https://github.com/ikamensh/saga-online/actions/runs/36131062702",
+  "schema_version": 1,
+  "status_before": {
+    "attestation": {
+      "deployment_release": "5dcff79b5087a400302bec554d893c7ead14c2b60184386b11068c4b2eea2cb8",
+      "endpoint": "wss://games.tachyon-ai.eu/play",
+      "protocol": 1,
+      "schema_version": 1,
+      "warband": {
+        "compatibility": {
+          "files": {
+            "warband/__init__.py": "1791b856b7f8b60acac4d98118e091c3811cdb1d594d693f739e13cff4fbc810",
+            "warband/assets/constants/behavior.toml": "effacf394194700fc8aa0b930ccc73e97f2441801badd01e5e553d9329aeb666",
+            "warband/assets/constants/buffs.toml": "6ec2b51ce751114283de5a4d6701cdb921ec38152017e7e7fc80e5a8caaabee1",
+            "warband/assets/constants/buildings.toml": "ee04d65842ed5cdd656d0462ba58a25ab2dddb67117980224336cc49bf1e29c9",
+            "warband/assets/constants/combat.toml": "ea2400138ca6251263dbc2d0d82387b9cc0df2f13ce3a6b9316fd8d1eaa873be",
+            "warband/assets/constants/economy.toml": "62a4083c833caa0613954a6d37ea5b0eddbc9fa772477b5e67ed98e7e3161324",
+            "warband/assets/constants/neutrals.toml": "3926f2e45f6d83a9b3ddc9bb1764a37dfea7adab915dd82e57cac26c9a64d1b0",
+            "warband/assets/constants/races.toml": "d41278174f210e7c5cd12773c9624696cc69b37f42057955d6c0bbdccc053395",
+            "warband/assets/constants/spells.toml": "a4728348ae5fa37ad008f5f10a90007e7f0e976b6695868febb18bf067ad3c7c",
+            "warband/assets/constants/units.toml": "66d0178f17ec62b8c8e1a7fd0aa2ab50bfb7f694945c1a10d8f08109cc7b87a6",
+            "warband/assets/constants/upgrades.toml": "ff3d80b1205a1f839ebfa59c19f3d89ae754e6d84bbebd20312ee5fbea813223",
+            "warband/online/__init__.py": "5fa50310419d56822285e2f84c63f49e51fa2fb12ef21a8a16d6250e35d83e1f",
+            "warband/online/authority.py": "1b8e870a30a27196bfeb250800e2ee7a69518a14dce0d90a82e38fd6611f4423",
+            "warband/sim/__init__.py": "e8460f888010b70aabdb8cc5f125a285405fd4393764aa764d8c42890927a567",
+            "warband/sim/camps.py": "cbb9e4ac6a02211cd8fb5b4a319b2173cdbf92d3a1d4efc32b343304405e7ddb",
+            "warband/sim/config.py": "1919d6b6187d0cd8e50e611c218141be3c74ae8126802e5636f6ddf4269afcf3",
+            "warband/sim/mapgen.py": "6eb432d96f5ca2a21a0097b9d4b07fee9345186a002d61a81e30ef046aab1fda",
+            "warband/sim/model.py": "fa07a23fe6f10e78ff93dc8611ac31fceb8ec3ce16df97a2638e9bfa27ebd4f6",
+            "warband/sim/path.py": "d7820fb04d4a4e09cf727f86c03de1a8bc51c2664b11ffb4659cf98cb9d423e2",
+            "warband/sim/races.py": "7a39879d963adefb5e0ea2063f5ab2ad784a8edeb077b947134be5ee3e2faeb5",
+            "warband/sim/rules.py": "405fe77e84acaf7e3791506031d259a7094a6cb8ac5636099e72848fedf3049a",
+            "warband/sim/settlement.py": "4bd56b33bda791994a4eb586fb70639c447f20c90db4d8cd7191e7d4a24f7460",
+            "warband/sim/worker_ai.py": "f22471bad17a58e8239ae6942c927431e126056e5a0b91c0ad10790a54802ab9",
+            "warband/sim/worker_knowledge.py": "e322ae7ccabad8171ac2e51559ee1b86250263cfd0bfd0920340c597974665f7"
+          },
+          "packages": {
+            "pillow": "12.3.0",
+            "pyglet": "2.1.16",
+            "saga2d": "0.3.14",
+            "websockets": "17.1"
+          },
+          "python": "3.13.2",
+          "registry": "warband.online.authority:ONLINE",
+          "schema_version": 1,
+          "sha256": "879c6186b6f38c12055a62dc15cbed4c10d6312d5733207cf06158b0d63e85a9"
+        },
+        "source_commit": "0a9c9b3a4bd1ce7909daffc2c34a368acc74f260"
+      }
+    },
+    "current": "5dcff79b5087a400302bec554d893c7ead14c2b60184386b11068c4b2eea2cb8",
+    "health": "ok",
+    "instance": "saga2d-online",
+    "previous": "20686be4d0a168630ffdcedf62b5a4b440a968055e7680df56954afe08f05968",
+    "schema_version": 1,
+    "service": "active",
+    "site_pending": false,
+    "tools": "ef8fd5ee70ab65f6abe75a1746fc1ada4854e4f68064c2f44ee5f374cf340aa7"
+  }
+}
