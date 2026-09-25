@@ -1,5 +1,5 @@
 {
-  "deployment_release": "20686be4d0a168630ffdcedf62b5a4b440a968055e7680df56954afe08f05968",
+  "deployment_release": "5dcff79b5087a400302bec554d893c7ead14c2b60184386b11068c4b2eea2cb8",
   "endpoint": "wss://games.tachyon-ai.eu/play",
   "protocol": 1,
   "schema_version": 1,
@@ -42,6 +42,6 @@
       "schema_version": 1,
       "sha256": "879c6186b6f38c12055a62dc15cbed4c10d6312d5733207cf06158b0d63e85a9"
     },
-    "source_commit": "27c12bda74c64faa31fa2b0584b3966b931652ff"
+    "source_commit": "0a9c9b3a4bd1ce7909daffc2c34a368acc74f260"
   }
 }
