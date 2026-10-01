@@ -147,6 +147,17 @@ preparation, before activation; fix it on main and dispatch the rollout.
 
 ### Restricted server-CI account
 
+If a failed code rollback cannot read newer room checkpoints, use the protected
+`server-recovery.yml` workflow to reactivate the already tested and deployed
+archive. Supply its rollout run ID, archive SHA-256 (`release`) and the exact
+failed current release (`expected_current`). Recovery requires successful
+candidate and deploy jobs from a main-branch rollout, verifies its retained
+archive and deployment receipt, and refuses an active service or pending site
+transaction. It preserves room data, verifies public attestation and retains a
+recovery receipt. It deliberately does not roll back to the incompatible code.
+After recovery, dispatch an ordinary server rollout to certify and record a
+fresh release with the recovered compatible build as its rollback target.
+
 Prepare a dedicated Ed25519 key. With its **public** key, the operator installs
 the account and its trusted host tools (repeat to update them or rotate the key):
 
