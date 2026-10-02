@@ -13,8 +13,11 @@ import json
 from pathlib import Path
 import platform
 import shutil
+import socket
 import subprocess
 import tempfile
+import time
+import urllib.error
 import urllib.request
 import zipfile
 
@@ -23,11 +26,26 @@ from saga2d.packaging.verify import executable_smoke, sha256
 ROOT = Path(__file__).resolve().parents[1]
 SITE = "https://games.tachyon-ai.eu"
 DOWNLOADS = "https://github.com/ikamensh/warband/releases/download"
+#: Seconds between asks of a site name the runner could not resolve: a minute in all.  GitHub's runners, Windows and
+#: macOS alike, now and then fail their first lookup of the site while every public resolver answers (rollouts
+#: 36940296319, 36942292736, 36991524222, 36995987201 were rolled back for nothing else).
+RESOLVE_WAITS = (5, 10, 20, 25)
 REQUIRED = {"create_join", "authoritative_movement", "foreign_order_rejected", "private_seat_rejoin",
             "global_production", "automatic_plan_builder", "cancel_plans", "assembly_point"}
 
 
 def public_json(path: str) -> dict:
+    """*path* on the games site.  A name the runner cannot resolve yet is asked again (``RESOLVE_WAITS``); any other
+    failure, and a name still unresolved after them, raises."""
+    for wait in RESOLVE_WAITS:
+        try:
+            with urllib.request.urlopen(SITE + path, timeout=30) as response:
+                return json.load(response)
+        except urllib.error.URLError as error:
+            if not isinstance(error.reason, socket.gaierror):
+                raise
+            print(f"{SITE} did not resolve ({error.reason}); asking again in {wait} s", flush=True)
+            time.sleep(wait)
     with urllib.request.urlopen(SITE + path, timeout=30) as response:
         return json.load(response)
 
