@@ -1,6 +1,41 @@
 {
   "catalog_version": 1,
   "games": {
+    "hellward": {
+      "channel": "preview",
+      "game_ids": [
+        "hellward-v1"
+      ],
+      "name": "Hellward",
+      "notes": "https://github.com/ikamensh/hellward/releases/tag/v0.2.0",
+      "packages": [
+        {
+          "arch": "x64",
+          "bytes": 419245696,
+          "file": "Hellward-0.2.0-windows-x64-portable.zip",
+          "kind": "portable-zip",
+          "min_os": "Windows 10",
+          "os": "windows",
+          "sha256": "a01b885a5a04e430d7e0df614a22b2e8a3eb9769b9237d20c54ed99f3d6ffbca",
+          "signed": false,
+          "url": "https://github.com/ikamensh/hellward/releases/download/v0.2.0/Hellward-0.2.0-windows-x64-portable.zip"
+        },
+        {
+          "arch": "arm64",
+          "bytes": 376782053,
+          "file": "Hellward-0.2.0-darwin-arm64-app.zip",
+          "kind": "app-zip",
+          "min_os": "macOS 14 on Apple Silicon",
+          "os": "macos",
+          "sha256": "3154bbe79139da6fbe847e63c621f545a474e89091c158ff38abc746f03579ca",
+          "signed": false,
+          "url": "https://github.com/ikamensh/hellward/releases/download/v0.2.0/Hellward-0.2.0-darwin-arm64-app.zip"
+        }
+      ],
+      "released": "2026-10-02",
+      "source_commit": "57bd69a008e0199520f3aa5294a9271ba35f2c13",
+      "version": "0.2.0"
+    },
     "shardbound": {
       "channel": "preview",
       "game_ids": [
@@ -100,91 +135,56 @@
         "warband-v2"
       ],
       "name": "Warband",
-      "notes": "https://github.com/ikamensh/warband/releases/tag/v0.2.232",
+      "notes": "https://github.com/ikamensh/warband/releases/tag/v0.2.236",
       "packages": [
         {
           "arch": "x64",
-          "bytes": 159430893,
-          "file": "Warband-0.2.232-windows-x64-portable.zip",
+          "bytes": 159429608,
+          "file": "Warband-0.2.236-windows-x64-portable.zip",
           "kind": "portable-zip",
           "min_os": "Windows 10",
           "os": "windows",
-          "sha256": "691752d599542a80187ad93b9f7f5de5715da212f24a14e5de2e0314789ab661",
+          "sha256": "ecdb011241b8075407c5c7bc76b994740b2208d657a990b9c6a947e68539bcac",
           "signed": false,
-          "url": "https://github.com/ikamensh/warband/releases/download/v0.2.232/Warband-0.2.232-windows-x64-portable.zip"
+          "url": "https://github.com/ikamensh/warband/releases/download/v0.2.236/Warband-0.2.236-windows-x64-portable.zip"
         },
         {
           "arch": "x64",
-          "bytes": 149339929,
-          "file": "Warband-0.2.232-windows-x64-setup.exe",
+          "bytes": 149335382,
+          "file": "Warband-0.2.236-windows-x64-setup.exe",
           "kind": "installer",
           "min_os": "Windows 10",
           "os": "windows",
-          "sha256": "dcfcb1a9e17832187777cfaea33be1b2406b5f863a63c92772b9829b63d0fa70",
+          "sha256": "3fe08305cd2b034748999171666862fb91dc5942b1a5d35d208f748708f55180",
           "signed": false,
-          "url": "https://github.com/ikamensh/warband/releases/download/v0.2.232/Warband-0.2.232-windows-x64-setup.exe"
+          "url": "https://github.com/ikamensh/warband/releases/download/v0.2.236/Warband-0.2.236-windows-x64-setup.exe"
         },
         {
           "arch": "arm64",
-          "bytes": 155010339,
-          "file": "Warband-0.2.232-darwin-arm64-portable.zip",
+          "bytes": 155010535,
+          "file": "Warband-0.2.236-darwin-arm64-portable.zip",
           "kind": "portable-zip",
           "min_os": "macOS 14 on Apple Silicon",
           "os": "macos",
-          "sha256": "7882d4c9c14363da8d8b72774641b106764705c975b7ba5aa341c1cef95e7290",
+          "sha256": "7b0879c2d0df30cb587a908cb1a3766d50214e1b4c6960c23f012ece0657b25a",
           "signed": false,
-          "url": "https://github.com/ikamensh/warband/releases/download/v0.2.232/Warband-0.2.232-darwin-arm64-portable.zip"
+          "url": "https://github.com/ikamensh/warband/releases/download/v0.2.236/Warband-0.2.236-darwin-arm64-portable.zip"
         },
         {
           "arch": "arm64",
-          "bytes": 152674135,
-          "file": "Warband-0.2.232-darwin-arm64-app.zip",
+          "bytes": 152674344,
+          "file": "Warband-0.2.236-darwin-arm64-app.zip",
           "kind": "app-zip",
           "min_os": "macOS 14 on Apple Silicon",
           "os": "macos",
-          "sha256": "50d5addf05a64479659141b8948c6efc19a9c53a2bc2233ab3f3853e96d6e462",
+          "sha256": "76c6da849fde9c539fe05f18874d4455449ca17cacb885dda32db00643092b14",
           "signed": false,
-          "url": "https://github.com/ikamensh/warband/releases/download/v0.2.232/Warband-0.2.232-darwin-arm64-app.zip"
-        }
-      ],
-      "released": "2026-10-01",
-      "source_commit": "a98783000427b925d5210484d9d3013a55e4ca1b",
-      "version": "0.2.232"
-    },
-    "hellward": {
-      "channel": "preview",
-      "game_ids": [
-        "hellward-v1"
-      ],
-      "name": "Hellward",
-      "notes": "https://github.com/ikamensh/hellward/releases/tag/v0.2.0",
-      "packages": [
-        {
-          "arch": "x64",
-          "bytes": 419245696,
-          "file": "Hellward-0.2.0-windows-x64-portable.zip",
-          "kind": "portable-zip",
-          "min_os": "Windows 10",
-          "os": "windows",
-          "sha256": "a01b885a5a04e430d7e0df614a22b2e8a3eb9769b9237d20c54ed99f3d6ffbca",
-          "signed": false,
-          "url": "https://github.com/ikamensh/hellward/releases/download/v0.2.0/Hellward-0.2.0-windows-x64-portable.zip"
-        },
-        {
-          "arch": "arm64",
-          "bytes": 376782053,
-          "file": "Hellward-0.2.0-darwin-arm64-app.zip",
-          "kind": "app-zip",
-          "min_os": "macOS 14 on Apple Silicon",
-          "os": "macos",
-          "sha256": "3154bbe79139da6fbe847e63c621f545a474e89091c158ff38abc746f03579ca",
-          "signed": false,
-          "url": "https://github.com/ikamensh/hellward/releases/download/v0.2.0/Hellward-0.2.0-darwin-arm64-app.zip"
+          "url": "https://github.com/ikamensh/warband/releases/download/v0.2.236/Warband-0.2.236-darwin-arm64-app.zip"
         }
       ],
       "released": "2026-10-02",
-      "source_commit": "57bd69a008e0199520f3aa5294a9271ba35f2c13",
-      "version": "0.2.0"
+      "source_commit": "aed23537407219386b5a48662aa61067d0edeb91",
+      "version": "0.2.236"
     }
   },
   "server": {
