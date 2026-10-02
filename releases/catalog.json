@@ -150,6 +150,41 @@
       "released": "2026-10-01",
       "source_commit": "a98783000427b925d5210484d9d3013a55e4ca1b",
       "version": "0.2.232"
+    },
+    "hellward": {
+      "channel": "preview",
+      "game_ids": [
+        "hellward-v1"
+      ],
+      "name": "Hellward",
+      "notes": "https://github.com/ikamensh/hellward/releases/tag/v0.2.0",
+      "packages": [
+        {
+          "arch": "x64",
+          "bytes": 419245696,
+          "file": "Hellward-0.2.0-windows-x64-portable.zip",
+          "kind": "portable-zip",
+          "min_os": "Windows 10",
+          "os": "windows",
+          "sha256": "a01b885a5a04e430d7e0df614a22b2e8a3eb9769b9237d20c54ed99f3d6ffbca",
+          "signed": false,
+          "url": "https://github.com/ikamensh/hellward/releases/download/v0.2.0/Hellward-0.2.0-windows-x64-portable.zip"
+        },
+        {
+          "arch": "arm64",
+          "bytes": 376782053,
+          "file": "Hellward-0.2.0-darwin-arm64-app.zip",
+          "kind": "app-zip",
+          "min_os": "macOS 14 on Apple Silicon",
+          "os": "macos",
+          "sha256": "3154bbe79139da6fbe847e63c621f545a474e89091c158ff38abc746f03579ca",
+          "signed": false,
+          "url": "https://github.com/ikamensh/hellward/releases/download/v0.2.0/Hellward-0.2.0-darwin-arm64-app.zip"
+        }
+      ],
+      "released": "2026-10-02",
+      "source_commit": "57bd69a008e0199520f3aa5294a9271ba35f2c13",
+      "version": "0.2.0"
     }
   },
   "server": {

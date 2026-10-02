@@ -99,17 +99,23 @@ def package_table(packages):
 
 def install_steps(name, packages):
     has = {pkg['os'] for pkg in packages}
-    signed = {pkg['os']: pkg['signed'] for pkg in packages if pkg['kind'] in ('installer', 'app-zip')}
+    kinds = {(pkg['os'], pkg['kind']) for pkg in packages}
+    signed = {pkg['os']: pkg['signed'] for pkg in packages if pkg['kind'] in ('installer', 'app-zip', 'portable-zip')}
     windows = ''
-    if 'windows' in has:
+    if ('windows', 'installer') in kinds:
         windows = (f'<h3>Windows</h3><ol class="steps">'
                    f'<li>Download the installer above and open the file when the download finishes.</li>'
                    f'<li>Follow the installer with its default folder. It installs for your Windows account only; no administrator password or Python is needed.</li>'
                    f'<li>Leave <b>Play {esc(name)}</b> selected on the last page, or open Start and type <b>{esc(name)}</b> later.</li></ol>')
-        if not signed.get('windows', True):
-            windows += ('<div class="note"><b>Unsigned build.</b> If Windows shows <b>Windows protected your PC</b>, choose '
-                        '<b>More info → Run anyway</b>. That prompt appears because this build is not yet code-signed; '
-                        'check the SHA-256 below if you want to verify the file. PCs with Smart App Control may refuse unsigned apps entirely.</div>')
+    elif 'windows' in has:
+        windows = (f'<h3>Windows</h3><ol class="steps">'
+                   f'<li>Download the ZIP above, right-click it and choose <b>Extract All</b>.</li>'
+                   f'<li>Open the extracted <b>{esc(name)}</b> folder and double-click <b>{esc(name)}.exe</b>. No installer, administrator password or Python is needed.</li>'
+                   f'<li>To update, extract the new ZIP in its place; your saves and settings are kept.</li></ol>')
+    if 'windows' in has and not signed.get('windows', True):
+        windows += ('<div class="note"><b>Unsigned build.</b> If Windows shows <b>Windows protected your PC</b>, choose '
+                    '<b>More info → Run anyway</b>. That prompt appears because this build is not yet code-signed; '
+                    'check the SHA-256 below if you want to verify the file. PCs with Smart App Control may refuse unsigned apps entirely.</div>')
     mac = ''
     if 'macos' in has:
         mac = (f'<h3>Mac (Apple Silicon)</h3><ol class="steps">'
@@ -163,21 +169,27 @@ def game_page(slug, entry, content, images, site):
                      f'<p>{esc(name)} does not have a published installer yet. It runs from the '
                      f'<a href="{SOURCE_URL}">source repository</a> with <code>uv run python -m {esc({"shardbound": "eador"}.get(slug, slug))}</code>, '
                      f'including its online mode. This page will list the installer when a release passes acceptance.</p></section>')
-    online = f'<h2 id="online">Play online: {esc(content["online"]["mode"]).lower()}</h2>' + online_steps(name, slug, entry['game_ids'][0], content['online'], site)
-    first = '<h2>Your first match</h2><ol class="steps">' + ''.join(f'<li>{esc(step)}</li>' for step in content['first_match']) + '</ol>'
+    online = ''   # a single-player game has no rooms to create or join
+    if content['online'] is not None:
+        online = (f'<h2 id="online">Play online: {esc(content["online"]["mode"]).lower()}</h2>'
+                  + online_steps(name, slug, entry['game_ids'][0], content['online'], site))
+    first = f'<h2>{esc(content.get("first_title", "Your first match"))}</h2><ol class="steps">' + ''.join(f'<li>{esc(step)}</li>' for step in content['first_match']) + '</ol>'
     gallery = '<h2>Screenshots</h2><div class="gallery">' + ''.join(
         f'<figure><a href="{img["full"]}"><img src="{img["thumb"]}" alt="{esc(img["alt"])}" loading="lazy" width="640" height="400"></a>'
         f'<figcaption>{esc(img["alt"])}</figcaption></figure>' for img in images) + '</div>'
     features = '<h2>What is in the game</h2><ul class="features">' + ''.join(f'<li>{esc(f)}</li>' for f in content['features']) + '</ul>'
     requirements = ('<div><h2>Requirements</h2><ul class="features">'
                     + ''.join(f'<li><b>{OS_NAMES[os]}:</b> {esc(text)}</li>' for os, text in content['requirements'].items())
-                    + f'<li><b>Online play:</b> an internet connection; both players need the same version.</li></ul></div>')
+                    + ('<li><b>Online play:</b> an internet connection; both players need the same version.</li>'
+                       if content['online'] is not None else '') + '</ul></div>')
     issues = '<div><h2>Known issues</h2><ul class="features">' + ''.join(f'<li>{esc(i)}</li>' for i in content['known_issues']) + '</ul></div>'
     support = (f'<div><h2>Help and data</h2><ul class="features">'
-               f'<li><a href="{esc(content["guide"])}">Player guide</a> and <a href="{SUPPORT_URL}">issue tracker</a>. Include the game version, your OS and the exact message.</li>'
+               f'<li><a href="{esc(content["guide"])}">Player guide</a> and <a href="{esc(content.get("support", SUPPORT_URL))}">issue tracker</a>. Include the game version, your OS and the exact message.</li>'
                f'<li>Saves and settings live in <code>{esc(content["data_dir"]["windows"])}</code> on Windows and <code>{esc(content["data_dir"]["macos"])}</code> on a Mac. Uninstalling keeps them; delete the folder to reset.</li>'
-               f'<li>Online rooms store only the match state and two private seat tokens; nothing identifies you beyond your IP address while connected.</li>'
-               f'<li>Free and open source under the MIT license (<a href="{SOURCE_URL}">source</a>). Nunito font under the SIL Open Font License.</li></ul></div>')
+               + ('<li>Online rooms store only the match state and two private seat tokens; nothing identifies you beyond your IP address while connected.</li>'
+                  if content['online'] is not None else '<li>Single player: the game never connects to the internet.</li>')
+               + f'<li>Free and open source under the MIT license (<a href="{esc(content.get("source", SOURCE_URL))}">source</a>).'
+               + f'{esc(content.get("font_note", " Nunito font under the SIL Open Font License."))}</li></ul></div>')
     return head + downloads + online + first + gallery + features + f'<div class="section-grid">{requirements}{issues}{support}</div>'
 
 
@@ -191,11 +203,12 @@ def index_page(catalog, images):
                   else f'<a class="button soon" href="/{slug}/">Coming soon</a>')
         cards.append(f'<article class="card"><a href="/{slug}/"><img src="{images[slug][0]["thumb"]}" alt="{esc(images[slug][0]["alt"])}" width="640" height="400"></a>'
                      f'<div class="card-body"><h2><a href="/{slug}/">{esc(entry["name"])}</a></h2><p class="tagline">{esc(content["tagline"])}</p>'
-                     f'<p class="meta"><span><b>Online:</b> {esc(content["online"]["mode"])}</span><span><b>Platforms:</b> {esc(platforms)}</span></p>'
+                     f'<p class="meta"><span><b>Online:</b> {esc(content["online"]["mode"] if content["online"] else "Single player")}</span><span><b>Platforms:</b> {esc(platforms)}</span></p>'
                      f'<div class="actions">{action}<a class="button" href="/{slug}/">About the game</a></div></div></article>')
-    hero = ('<section class="hero"><h1>Three small strategy games. Install one, invite a friend.</h1>'
-            '<p class="lede">Free downloads for Windows and Mac. Each game connects to the same online service: create a room, '
-            'share the invite link, and play from different networks with no account, port forwarding or launcher.</p>'
+    hero = ('<section class="hero"><h1>Small strategy games. Install one, invite a friend.</h1>'
+            '<p class="lede">Free downloads for Windows and Mac. The multiplayer games connect to the same online service: create a room, '
+            'share the invite link, and play from different networks with no account, port forwarding or launcher. '
+            'Hellward is a single-player campaign.</p>'
             '<ul class="journey"><li data-step="1">Choose a game</li><li data-step="2">Download and install</li>'
             '<li data-step="3">Multiplayer → Create room</li><li data-step="4">Send the invite link</li><li data-step="5">Play</li></ul></section>')
     return hero + '<div class="cards">' + ''.join(cards) + '</div>'
@@ -250,7 +263,7 @@ def build(output: Path, catalog_path: Path = CATALOG, *, build_date: date | None
     pages = [page(output, '/', title='Saga2D Games', description='Free strategy games for Windows and Mac with online play by invitation.',
                   content=index_page(catalog, images), site=site, names=names, built=built)]
     for slug, entry in catalog['games'].items():
-        pages.append(page(output, f'/{slug}/', title=f'{entry["name"]} — download and play online',
+        pages.append(page(output, f'/{slug}/', title=f'{entry["name"]} — download and play' + (' online' if GAMES[slug]['online'] else ''),
                           description=GAMES[slug]['tagline'], content=game_page(slug, entry, GAMES[slug], images[slug], site),
                           site=site, names=names, active=slug, built=built))
     pages.append(page(output, '/join/', title='Join a room', description='Join a friend\'s online room.',

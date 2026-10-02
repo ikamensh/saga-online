@@ -8,6 +8,50 @@ aligned with each game's release notes and its About text.
 MEDIA = 'website/media'
 
 GAMES = {
+    'hellward': {
+        'tagline': 'A gothic tower defence in 3D whose demon leaders curse your towers.',
+        'summary': ('Hold twelve sanctuaries in two acts, from burning Tristram through Hell\'s Gate to the Temple of '
+                    'Light. The demons\' leaders read the fight: before each curse a leader plays the battle ahead in '
+                    'its head, again and again, and lays the curse where it hurts your defence most.'),
+        'online': None,
+        'features': [
+            'Twelve locations in two acts, each with its own map, entrances, waves and music.',
+            'Leaders that choose their curses by simulating the fight ahead; break their chants with Smite or the Frozen Orb, or Cleanse a cursed tower.',
+            'Seven tower families, warded gates, four spells, and forged tower patterns from salvage and side-entrance trophies.',
+            'A skill tree paid in sigils, unlearned for free between defences.',
+            'A painted story told in pages between the battles, and a prologue comic.',
+            'Several campaign profiles, saved on your computer; no account and no internet needed.',
+        ],
+        'first_title': 'Your first defence',
+        'first_match': [
+            'Descend from the title: the prologue plays, then the lantern walks to Tristram.',
+            'Read who comes and what they curse in the intro, then Defend.',
+            'Press 1 and click bare ground beside a lane to raise an Arrow Tower; spread them out.',
+            'Press Space to call a wave early for a little gold; click a cursed tower and press C to Cleanse it.',
+            'Keep the sanctuary\'s life: ten lives earn two sigils, eighteen earn three.',
+        ],
+        'screenshots': [
+            (f'{MEDIA}/hellward/01-battle.jpg', 'Tristram: the Fallen pack round its Shaman while a Cleanse lifts a curse'),
+            (f'{MEDIA}/hellward/02-curse.jpg', 'A Fallen Shaman lays Weaken on an Arrow Tower; its rune circle marks the towers caught'),
+            (f'{MEDIA}/hellward/03-map.jpg', 'The Descent: the lantern on the map of Act I'),
+            (f'{MEDIA}/hellward/04-briefing.jpg', "The Catacombs' intro: the host, their curses and your arsenal"),
+            (f'{MEDIA}/hellward/05-hells-gate.jpg', "Hell's Gate: a warded gate holds and the Bone Acolyte's curse is broken"),
+        ],
+        'requirements': {
+            'windows': 'Windows 10 or 11, 64-bit, with Vulkan or Direct3D 12 graphics.',
+            'macos': 'macOS 14 or later on Apple Silicon (M1 or newer).',
+        },
+        'known_issues': [
+            'An early preview: some monsters and towers of the later locations still wear stand-in bodies borrowed from others.',
+            'The Windows build is unsigned and the Mac app is not notarized; see the first-launch notes above.',
+            'English only.',
+        ],
+        'guide': 'https://github.com/ikamensh/hellward#readme',
+        'support': 'https://github.com/ikamensh/hellward/issues',
+        'source': 'https://github.com/ikamensh/hellward',
+        'font_note': '',
+        'data_dir': {'windows': '%USERPROFILE%\\.hellward', 'macos': '~/.hellward'},
+    },
     'warband': {
         'tagline': 'A snappy real-time strategy skirmish in the classic mould.',
         'summary': ('Gather gold and lumber, raise a base, train an army and raze the rival settlement. '

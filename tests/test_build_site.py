@@ -29,7 +29,7 @@ def test_site_pages_reflect_the_catalog_and_content(tmp_path):
     catalog = load()
     assert json.loads((output / 'releases.json').read_text()) == catalog
     assert set(manifest['pages']) == {'index.html', 'warband/index.html', 'tribes/index.html', 'shardbound/index.html',
-                                      'join/index.html', 'status/index.html', '404.html'}
+                                      'hellward/index.html', 'join/index.html', 'status/index.html', '404.html'}
     warband = (output / 'warband/index.html').read_text()
     for package in catalog['games']['warband']['packages']:
         assert package['url'] in warband and package['sha256'] in warband
@@ -45,6 +45,11 @@ def test_site_pages_reflect_the_catalog_and_content(tmp_path):
     for slug in unreleased:
         page = (output / slug / 'index.html').read_text()
         assert 'No download yet' in page and 'python -m ' in page
+    hellward = (output / 'hellward/index.html').read_text()   # single player: no rooms, a portable Windows zip
+    assert 'id="online"' not in hellward and 'Single player' in hellward and 'Extract All' in hellward
+    assert 'Your first defence' in hellward and 'github.com/ikamensh/hellward' in hellward
+    for package in catalog['games']['hellward']['packages']:
+        assert package['url'] in hellward and package['sha256'] in hellward
     shardbound = (output / 'shardbound/index.html').read_text()
     assert 'kept for seven days' in shardbound
     index = (output / 'index.html').read_text()

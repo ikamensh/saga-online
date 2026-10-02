@@ -9,9 +9,9 @@ from tools.release_catalog import CATALOG, load, save, validate
 
 def test_committed_catalog_lists_every_game_with_immutable_package_facts():
     catalog = load()
-    assert set(catalog['games']) == {'warband', 'tribes', 'shardbound'}
+    assert set(catalog['games']) == {'warband', 'tribes', 'shardbound', 'hellward'}
     assert catalog['server']['endpoint'] == 'wss://games.tachyon-ai.eu/play'
-    for slug in ('warband', 'tribes'):
+    for slug in ('warband', 'tribes', 'hellward'):
         game = catalog['games'][slug]
         assert game['version'] and game['packages']
         assert {(p['os'], p['arch']) for p in game['packages']} >= {('windows', 'x64'), ('macos', 'arm64')}
