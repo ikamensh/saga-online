@@ -81,6 +81,20 @@ def scout_destination(world, scout_pos, human, opponent, remembered):
     return tile_center(tile), 'geometry'
 
 
+def claim_scout_target(ordered, target):
+    """Record *target* in the *ordered* set, refusing to repeat a destination.
+
+    Raises AssertionError when the rounded target was already ordered: the
+    scout must head somewhere new or the run must fail loudly instead of
+    reissuing the same failed order forever.
+    """
+    key = (round(target[0], 1), round(target[1], 1))
+    if key in ordered:
+        raise AssertionError(f'Scouting repeats an already-ordered destination {target}')
+    ordered.add(key)
+    return key
+
+
 def verify(output: Path, server: str, room: str, timeout: float, visible: bool) -> None:
     from pyglet.window import key, mouse
     from saga2d import Game, MatchMenu, fonts
@@ -106,12 +120,14 @@ def verify(output: Path, server: str, room: str, timeout: float, visible: bool) 
             for _ in range(count):
                 tick(game, 1 / 30)
 
-        def wait(predicate, label, budget=None):
+        def wait(predicate, label, budget=None, probe=False):
             deadline = time.monotonic() + (timeout if budget is None else budget)
             while time.monotonic() < deadline:
                 frames()
                 if predicate():
-                    return
+                    return True
+            if probe:
+                return False
             current = game.scene
             session = getattr(current, 'session', None)
             raise AssertionError(f'{label}: timed out after {timeout:g}s; '
@@ -189,11 +205,9 @@ def verify(output: Path, server: str, room: str, timeout: float, visible: bool) 
                     and (sprite := scene.view.unit_sprite(u.id)) is not None and sprite.visible]
 
         def remembered_sightings():
-            try:
-                rows = scene.view.memory().get('buildings', [])
-            except (AttributeError, TypeError, ValueError):
-                return []
-            return rows if isinstance(rows, list) else []
+            # MapView.memory() is {"buildings": [...]}; only a genuinely empty
+            # record falls back to geometry, and anything unexpected propagates.
+            return scene.view.memory().get('buildings', [])
 
         try:
             game = Game('Warband remote AI verification', resolution=(1280, 800),
@@ -206,10 +220,13 @@ def verify(output: Path, server: str, room: str, timeout: float, visible: bool) 
             assert isinstance(menu, MatchSetupMenu) and isinstance(menu, MatchMenu) \
                 and menu.mode == 'online', type(menu).__name__
             # Paste the public invite link (never a private seat): the form accepts
-            # a bare code or the public /join/warband-v2/CODE URL.
+            # a bare code or the public /join/warband-v2/CODE URL. The player's
+            # previous clipboard is restored straight after, never logged.
+            previous_clipboard = game.backend.get_clipboard_text()
             game.backend.set_clipboard_text(f'https://games.tachyon-ai.eu/join/warband-v2/{room}')
             click_widget(find_button(lambda label: label == 'Paste invite'))
             assert menu.fields[2] == room.upper(), menu.fields[2]
+            game.backend.set_clipboard_text(previous_clipboard)
             shot('01-online-room')
             press(key.ENTER)
             wait(lambda: isinstance(game.scene, NetworkGameScene) and game.scene.session.ready,
@@ -228,6 +245,8 @@ def verify(output: Path, server: str, room: str, timeout: float, visible: bool) 
             if isinstance(cached, dict):
                 report['profile'] = {k: cached[k] for k in ('name', 'rating', 'games', 'wins', 'losses')
                                      if k in cached}
+            assert scene.session.seats == 2, \
+                f'Only two-seat duel rooms are supported, not {scene.session.seats}'
             human, opponent = scene.human, 1 - scene.human
             report.update(player=human, opponent=opponent, initial_tick=scene.world.tick,
                           seed=scene.session.state['seed'], map_size=[scene.world.width, scene.world.height])
@@ -297,24 +316,23 @@ def verify(output: Path, server: str, room: str, timeout: float, visible: bool) 
             click_world(scout.pos)
             assert scout_id in scene.selection
             scout_deadline = time.monotonic() + timeout
-            scout_target, scout_basis = None, None
+            scout_basis, ordered_targets = None, set()
             while time.monotonic() < scout_deadline:
                 if visible_opponents():
                     break
                 scout = scene.world.units[scout_id]
                 scout_target, scout_basis = scout_destination(
                     scene.world, scout.pos, human, opponent, remembered_sightings())
+                claim_scout_target(ordered_targets, scout_target)
                 before_revision = scene.session.revision
                 minimap(scout_target, mouse.RIGHT)
-                try:
-                    wait(lambda: isinstance(scene.world.units[scout_id].order, Move),
-                         'Authoritative scouting order', budget=15)
-                    accepted('scout', before_revision, 'units', scout_id,
-                             target=scout_target, basis=scout_basis)
-                    wait(lambda: bool(visible_opponents()),
-                         'Scout naturally reveals a rendered remote unit', budget=30)
-                except AssertionError:
-                    continue
+                wait(lambda: isinstance(scene.world.units[scout_id].order, Move),
+                     'Authoritative scouting order', budget=15)
+                accepted('scout', before_revision, 'units', scout_id,
+                         target=scout_target, basis=scout_basis)
+                if wait(lambda: bool(visible_opponents()),
+                        'Scout naturally reveals a rendered remote unit', budget=30, probe=True):
+                    break
             assert visible_opponents(), 'Scouting never rendered the remote seat'
             enemy = min(visible_opponents(), key=lambda u: (not u.is_worker, not bool(u.orders)))
             enemy_id, enemy_position = enemy.id, enemy.pos
@@ -356,13 +374,8 @@ def verify(output: Path, server: str, room: str, timeout: float, visible: bool) 
             tick_before_rejoin = scene.world.tick
             room_before_rejoin = scene.session.room
             press(key.F10)
-            click_widget(find_button(lambda label: label == 'Back to title'))
-            frames(2)
-            try:
-                click_widget(find_button(lambda label: label == 'Back to title'), button=mouse.LEFT)
-            except AssertionError:
-                pass
-            wait(lambda: isinstance(game.scene, TitleScene), 'Leave to the title through the pause menu')
+            click_widget(find_button(lambda label: label == 'Leave match'))
+            wait(lambda: isinstance(game.scene, TitleScene), 'Leave match returns to the title')
             press(key.M)
             assert isinstance(game.scene, MatchSetupMenu) and game.scene.mode == 'online'
             click_widget(find_button(lambda label: label.startswith('Rejoin last room')))
@@ -395,14 +408,16 @@ def verify(output: Path, server: str, room: str, timeout: float, visible: bool) 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('output', type=Path)
-    from saga2d.online import server_endpoint
-    parser.add_argument('--server', default=server_endpoint(), help='TLS WebSocket endpoint (default: public server)')
+    parser.add_argument('--server', default=None, help='TLS WebSocket endpoint (default: public server)')
     parser.add_argument('--room', required=True, help='Existing room held by the remote seat')
     parser.add_argument('--timeout', type=float, default=120, help='Maximum seconds per expected gameplay transition')
     parser.add_argument('--visible', action='store_true', help='Show the native window while verifying')
     args = parser.parse_args()
     if not args.room.isalnum() or args.timeout <= 0:
         parser.error('--room must be alphanumeric and --timeout must be positive')
+    if args.server is None:
+        from saga2d.online import server_endpoint
+        args.server = server_endpoint()
     os.environ['SAGA2D_SILENT'] = '1'
     verify(args.output.resolve(), args.server, args.room, args.timeout, args.visible)
 

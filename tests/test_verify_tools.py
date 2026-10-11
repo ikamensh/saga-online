@@ -38,9 +38,10 @@ def test_every_game_offers_the_style_and_title_screen_the_journeys_open(name):
 def test_remote_ai_verifier_resolves_the_moved_warband_ui():
     """The verifier once imported warband.style/textures/title; the UI moved them
     under warband.ui and warband.art, and the menu gained MatchSetupMenu."""
-    from verify_warband_remote_ai import scout_destination
+    from verify_warband_remote_ai import claim_scout_target, scout_destination
 
     assert callable(scout_destination)
+    assert callable(claim_scout_target)
     multiplayer = importlib.import_module('warband.ui.multiplayer')
     assert multiplayer.GAME_ID == 'warband-v2'
     assert issubclass(multiplayer.MatchSetupMenu, importlib.import_module('saga2d').MatchMenu)
@@ -49,6 +50,9 @@ def test_remote_ai_verifier_resolves_the_moved_warband_ui():
         assert callable(getattr(multiplayer, helper)), helper
     for method in ('host', 'join', 'rejoin', 'paste_code', 'room_code_from_text'):
         assert callable(getattr(multiplayer.MatchSetupMenu, method)), method
+    # The rejoin journey leaves through the live match menu, not a guessed title button.
+    assert 'open_menu' in multiplayer.NetworkGameScene.__dict__
+    assert callable(getattr(multiplayer.NetworkMenuScene, 'leave_match'))
     assert callable(importlib.import_module('warband.ui.style').build_theme)
     assert isinstance(importlib.import_module('warband.art.textures').TILE, int)
     assert isinstance(importlib.import_module('warband.ui.title').TitleScene, type)
@@ -86,3 +90,30 @@ def test_scout_prefers_a_remembered_rival_sighting():
     target, basis = scout_destination(world, own.center, 0, 1, remembered)
     assert basis == 'remembered'
     assert math.dist(target, rival.center) <= 4.5
+
+
+def test_scout_reads_a_real_sighting_row():
+    """The remembered rows are MapView.memory() Sighting dicts; one such row
+    steers the scout even though the live hall is never consulted."""
+    from verify_warband_remote_ai import scout_destination
+
+    world = importlib.import_module('warband.sim.mapgen').generate(1)
+    rules = importlib.import_module('warband.sim.rules')
+    sighting = importlib.import_module('warband.ui.view').Sighting
+    own = world.player_buildings(0, rules.BuildingType.TOWN_HALL, done=True)[0]
+    rival = world.player_buildings(1, rules.BuildingType.TOWN_HALL, done=True)[0]
+    target, basis = scout_destination(world, own.center, 0, 1, [sighting.of(rival).to_dict()])
+    assert basis == 'remembered'
+    assert math.dist(target, rival.center) <= 4.5
+
+
+def test_scout_refuses_to_repeat_an_ordered_destination():
+    """A leg that ends where an earlier order already went fails loudly
+    instead of reissuing the same failed order forever."""
+    from verify_warband_remote_ai import claim_scout_target
+
+    ordered = set()
+    claim_scout_target(ordered, (10.5, 20.5))
+    with pytest.raises(AssertionError):
+        claim_scout_target(ordered, (10.5, 20.5))
+    claim_scout_target(ordered, (30.5, 5.5))
