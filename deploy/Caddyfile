@@ -2,7 +2,7 @@ __DOMAIN__ {
     encode gzip
 
     # Compatibility comes from the running process, never the static website.
-    @server path /play /healthz /server-compatibility.json
+    @server path /play /healthz /server-compatibility.json /status /ratings /players/*
     reverse_proxy @server 127.0.0.1:8765 {
         header_down Cache-Control "no-store"
     }
@@ -14,7 +14,7 @@ __DOMAIN__ {
     @invite path /join/*
     rewrite @invite /join/index.html
 
-    @static not path /play /healthz /server-compatibility.json
+    @static not path /play /healthz /server-compatibility.json /status /ratings /players/*
     header @static Cache-Control "public, max-age=300"
     header {
         X-Content-Type-Options nosniff
