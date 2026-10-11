@@ -68,10 +68,12 @@ requirements within the server environment only. The demos stay at their
 pinned commits; no demo source changes. Packaging requires the direct pin and
 the override to name one identical exact version, the locked `saga2d` entry to
 be that same version from PyPI, and the installed engine to match; any drift
-refuses. The intentional upgrade procedure is: update both exact pins, `uv
-lock` only after the staged engine release is published, then verify with `uv
-export --locked`; the installed-PyPI and wheel-RECORD attestation is retained
-throughout. Content-addressed tarballs
+refuses when packaging validates its locked runtime inputs, after `uv export
+--locked`. The rollout's relock step does not catch such drift; packaging is
+the safety net. The intentional upgrade procedure is: update both exact pins,
+`uv lock` only after the staged engine release is published, then verify with
+`uv export --locked`; the installed-PyPI and wheel-RECORD attestation is
+retained throughout. Content-addressed tarballs
 under ignored `dist/online/` contain `deploy/server-inputs.json` with exact
 source commits, runtime versions and file hashes. Credentials, saves, caches,
 untracked source and working-tree metadata are excluded.

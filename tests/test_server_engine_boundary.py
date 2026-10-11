@@ -11,7 +11,7 @@ import importlib.metadata
 import shutil
 import subprocess
 import tomllib
-import urllib.request
+import zipfile
 
 import pytest
 
@@ -52,6 +52,7 @@ def test_direct_pin_drift_from_override_is_refused(tmp_path):
     (["saga2d==0.3.17"], ["saga2d>=0.3.17"]),
     (["saga2d==0.3.17"], ["saga2d==0.3.17", "saga2d==0.3.17"]),
     (["saga2d==0.3.16", "saga2d==0.3.17"], ["saga2d==0.3.17"]),
+    (["saga2d===0.3.17"], ["saga2d==0.3.17"]),
     (["saga2d==0.3.17; python_version > '3.12'"], ["saga2d==0.3.17"]),
 ])
 def test_incomplete_or_inexact_engine_selection_is_refused(tmp_path, direct, overrides):
@@ -116,19 +117,28 @@ def test_a_non_pypi_engine_substitution_is_refused(tmp_path):
         locked_runtime(tmp_path)
 
 
-def pypi_reachable():
-    try:
-        urllib.request.urlopen("https://pypi.org/simple/saga2d/", timeout=10).read(1)
-        return True
-    except Exception:
-        return False
+def make_wheel(directory, version):
+    """A metadata-only wheel: enough for the real resolver, nothing to install."""
+    dist_info = f"saga2d-{version}.dist-info"
+    files = {
+        "saga2d/__init__.py": f'__version__ = "{version}"\n',
+        f"{dist_info}/METADATA": f"Metadata-Version: 2.1\nName: saga2d\nVersion: {version}\n",
+        f"{dist_info}/WHEEL": "Wheel-Version: 1.0\nGenerator: server-boundary-fixture\n"
+                              "Root-Is-Purelib: true\nTag: py3-none-any\n",
+    }
+    files[f"{dist_info}/RECORD"] = "".join(f"{path},,\n" for path in (*files, f"{dist_info}/RECORD"))
+    with zipfile.ZipFile(directory / f"saga2d-{version}-py3-none-any.whl", "w") as archive:
+        for path, content in files.items():
+            archive.writestr(path, content)
 
 
 @pytest.mark.skipif(shutil.which("uv") is None, reason="uv demonstrates the resolver boundary")
 def test_override_forces_the_new_engine_despite_old_demo_metadata(tmp_path):
-    if not pypi_reachable():
-        pytest.skip("PyPI is unreachable; the resolver demonstration needs published releases")
-    old, new = "0.3.14", "0.3.16"
+    old, new = "0.3.14", "0.3.17"
+    wheelhouse = tmp_path / "wheelhouse"
+    wheelhouse.mkdir()
+    make_wheel(wheelhouse, old)
+    make_wheel(wheelhouse, new)
     demo = tmp_path / "demo-old"
     demo.mkdir()
     (demo / "pyproject.toml").write_text(
@@ -142,10 +152,13 @@ def test_override_forces_the_new_engine_despite_old_demo_metadata(tmp_path):
         'demo-old = { path = "demo-old", editable = true }\n')
 
     def lock():
-        return subprocess.run(["uv", "lock"], cwd=tmp_path, capture_output=True, text=True, timeout=300)
+        return subprocess.run(["uv", "lock", "--offline", "--no-index", "--find-links", str(wheelhouse)],
+                              cwd=tmp_path, capture_output=True, text=True, timeout=300)
 
     # The demo's older engine requirement conflicts with the server's newer one.
-    assert lock().returncode != 0
+    conflict = lock()
+    assert conflict.returncode != 0
+    assert f"saga2d=={old}" in conflict.stderr and f"saga2d=={new}" in conflict.stderr
     with open(tmp_path / "pyproject.toml", "a") as handle:
         handle.write("\n[tool.uv]\n"
                      "override-dependencies = [\n"

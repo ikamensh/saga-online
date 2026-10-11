@@ -29,7 +29,7 @@ def require(condition, message):
         raise ValueError(message)
 
 
-EXACT_ENGINE_PIN = re.compile(r"saga2d==([^,;|\s()\[\]]+)", re.IGNORECASE)
+EXACT_ENGINE_PIN = re.compile(r"saga2d==([^=,;|\s()\[\]]+)", re.IGNORECASE)
 
 
 def _engine_pins(entries):
