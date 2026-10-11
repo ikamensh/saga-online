@@ -2,6 +2,9 @@ version = 1
 revision = 3
 requires-python = ">=3.12"
 
+[manifest]
+overrides = [{ name = "saga2d", specifier = "==0.3.17" }]
+
 [[package]]
 name = "colorama"
 version = "0.4.6"
@@ -236,7 +239,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=9.0.2" },
-    { name = "saga2d", specifier = "==0.3.14" },
+    { name = "saga2d", specifier = "==0.3.17" },
     { name = "sagaforge", editable = "../sagaforge" },
     { name = "shardbound", editable = "../shardbound" },
     { name = "tribes", editable = "../tribes" },
@@ -246,16 +249,16 @@ provides-extras = ["dev"]
 
 [[package]]
 name = "saga2d"
-version = "0.3.14"
+version = "0.3.17"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pillow" },
     { name = "pyglet" },
     { name = "websockets" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/0d/3b/aeb3b8b19c8000e30fff7cdf4b10fa98f3f8af1d38e1dfe9c6a42365d1de/saga2d-0.3.14.tar.gz", hash = "sha256:655d4837918a2a769c6e0abb383a35be7b823eac573a9c679a5962e48dabedea", size = 680794, upload-time = "2026-09-24T20:06:38.775Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/61/8f/fdfb4e76fd09468c466093336f52433ba3cd4f32499c23618c370b236c2b/saga2d-0.3.17.tar.gz", hash = "sha256:a821b2964b0172f9cdc6baab2e88ad19c2bf8044c30bd19d33ea27d11e76b4b5", size = 725111, upload-time = "2026-10-11T10:39:31.785Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d1/f0/085920d86c80fdf7bea4e83b8511bf1daf8300d1bf604d3e3c7a6e4a49df/saga2d-0.3.14-py3-none-any.whl", hash = "sha256:cf5ba375802a6374df1ea580228ab2f2d879c2c87b187f0dfeb49f670efd040f", size = 525522, upload-time = "2026-09-24T20:06:37.154Z" },
+    { url = "https://files.pythonhosted.org/packages/a8/46/a246a9ade64fc92fd4a8f9abd8e360c5fd2f606777e23e6b9fd124bdc6a8/saga2d-0.3.17-py3-none-any.whl", hash = "sha256:84d55189be201e6e98c8c6d4e5e92acca19e92d6617cfa2469c4e4a7eeeef507", size = 538028, upload-time = "2026-10-11T10:39:30.383Z" },
 ]
 
 [[package]]
@@ -329,7 +332,7 @@ requires-dist = [
     { name = "pyinstaller-hooks-contrib", marker = "extra == 'package'", specifier = "==2026.7" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=9.0.2" },
     { name = "pytest-xdist", marker = "extra == 'dev'", specifier = ">=3.8" },
-    { name = "saga2d", specifier = "==0.3.14" },
+    { name = "saga2d", specifier = "==0.3.17" },
     { name = "sagaforge", editable = "../sagaforge" },
     { name = "setuptools", marker = "extra == 'dev'", specifier = ">=84" },
 ]
