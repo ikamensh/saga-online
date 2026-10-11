@@ -137,7 +137,7 @@ the same server result receipt with a nonempty match id, a winner in
 movement pointing the right way (winner up, loser down; a fresh
 1500-v-1500 pairing must move both). The engine emits ratings as
 floats (1500.0, ±16.0, fractional after rematches); the harness
-recomputes with a tight ulp-scale tolerance and never rounds
+recomputes with a tight floating-point tolerance and never rounds
 authoritative values, while games/wins/losses stay integers and
 NaN, infinities and bools are refused. The harness also checks the
 public `/status`, `/players/{id}?game=warband-v2` and
