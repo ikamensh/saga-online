@@ -1,6 +1,7 @@
 """The operator's verification tools still find every game's authoritative match, network scene, style and title."""
 
 import importlib
+import math
 import sys
 from pathlib import Path
 
@@ -32,3 +33,56 @@ def test_every_game_offers_the_style_and_title_screen_the_journeys_open(name):
     assert callable(importlib.import_module(scenes(name) + '.style').build_theme)
     title = importlib.import_module(scenes(name) + ('.scene' if name == 'eador' else '.title')).TitleScene
     assert isinstance(title, type)
+
+
+def test_remote_ai_verifier_resolves_the_moved_warband_ui():
+    """The verifier once imported warband.style/textures/title; the UI moved them
+    under warband.ui and warband.art, and the menu gained MatchSetupMenu."""
+    from verify_warband_remote_ai import scout_destination
+
+    assert callable(scout_destination)
+    multiplayer = importlib.import_module('warband.ui.multiplayer')
+    assert multiplayer.GAME_ID == 'warband-v2'
+    assert issubclass(multiplayer.MatchSetupMenu, importlib.import_module('saga2d').MatchMenu)
+    assert isinstance(multiplayer.NetworkGameScene, type)
+    for helper in ('online_identity', 'refresh_online_identity', 'stored_online_profile'):
+        assert callable(getattr(multiplayer, helper)), helper
+    for method in ('host', 'join', 'rejoin', 'paste_code', 'room_code_from_text'):
+        assert callable(getattr(multiplayer.MatchSetupMenu, method)), method
+    assert callable(importlib.import_module('warband.ui.style').build_theme)
+    assert isinstance(importlib.import_module('warband.art.textures').TILE, int)
+    assert isinstance(importlib.import_module('warband.ui.title').TitleScene, type)
+
+
+def test_scout_fallback_ignores_the_live_rival_hall():
+    """With no remembered sightings the scout heads for map geometry away from
+    its own base — even though the live rival hall sits elsewhere in the world."""
+    from verify_warband_remote_ai import scout_destination
+
+    world = importlib.import_module('warband.sim.mapgen').generate(1)
+    rules = importlib.import_module('warband.sim.rules')
+    model = importlib.import_module('warband.sim.model')
+    own = world.player_buildings(0, rules.BuildingType.TOWN_HALL, done=True)[0]
+    rival = world.player_buildings(1, rules.BuildingType.TOWN_HALL, done=True)[0]
+    target, basis = scout_destination(world, own.center, 0, 1, [])
+    assert basis == 'geometry'
+    corners = [(2, 2), (world.width - 3, 2), (2, world.height - 3),
+               (world.width - 3, world.height - 3)]
+    far = model.tile_center(max(corners, key=lambda c: math.dist(model.tile_center(c), own.center)))
+    assert math.dist(target, far) <= 4.5
+    assert math.dist(target, rival.center) > 4
+
+
+def test_scout_prefers_a_remembered_rival_sighting():
+    """A sighting the seat itself remembers steers the scout; live hidden
+    positions still play no part."""
+    from verify_warband_remote_ai import scout_destination
+
+    world = importlib.import_module('warband.sim.mapgen').generate(1)
+    rules = importlib.import_module('warband.sim.rules')
+    own = world.player_buildings(0, rules.BuildingType.TOWN_HALL, done=True)[0]
+    rival = world.player_buildings(1, rules.BuildingType.TOWN_HALL, done=True)[0]
+    remembered = [{'player': 1, 'rect': [rival.x, rival.y, rival.size, rival.size]}]
+    target, basis = scout_destination(world, own.center, 0, 1, remembered)
+    assert basis == 'remembered'
+    assert math.dist(target, rival.center) <= 4.5
