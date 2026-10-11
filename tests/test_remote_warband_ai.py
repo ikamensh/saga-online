@@ -9,7 +9,6 @@ import hashlib
 import json
 import os
 from pathlib import Path
-import shutil
 import subprocess
 import sys
 
@@ -254,10 +253,10 @@ def test_server_with_credentials_or_query_is_refused(rig):
 
 def test_cli_choices_match_warband_domain_enums():
     """Race/theme literals track warband.sim.rules; difficulty stays a bot subset."""
-    try:
-        from warband.sim.rules import Difficulty, MapTheme, Race
-    except ImportError as exc:
-        pytest.skip(f"warband stack not importable here: {exc}")
+    import importlib.util
+    if importlib.util.find_spec("warband.sim.rules") is None:
+        pytest.skip("warband.sim.rules not installed in this interpreter")
+    from warband.sim.rules import Difficulty, MapTheme, Race
     sys.path.insert(0, str(ROOT))
     from tools.remote_warband_ai import DIFFICULTIES, RACES, THEMES
     assert tuple(item.value for item in Race) == RACES
@@ -433,10 +432,11 @@ def test_installer_script_refuses_production_and_foreign_instances(tmp_path):
 
 def test_real_bot_help_when_dependencies_available():
     """The packaged headless client still exposes its CLI when the stack imports."""
-    python = shutil.which("python3")
-    assert python
+    import importlib.util
+    if importlib.util.find_spec("warband") is None:
+        pytest.skip("warband package not installed in this interpreter")
     result = subprocess.run([sys.executable, "-m", "warband.online.online_ai", "--help"],
                             capture_output=True, text=True, timeout=60, cwd=str(ROOT))
-    if result.returncode != 0:
-        pytest.skip(f"warband stack not importable here: {result.stderr.strip()[:200]}")
+    assert result.returncode == 0, (f"warband is installed but its CLI failed: "
+                                    f"{result.stderr.strip()[:500]} / {result.stdout[:200]}")
     assert "--create" in result.stdout and "--difficulty" in result.stdout
