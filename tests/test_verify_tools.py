@@ -150,21 +150,30 @@ def test_move_key_follows_the_live_scheme():
     assert controls.SCHEMES['classic'].card_key('m', move_slot) == 'm'
 
 
-def test_card_button_resolution_reads_live_widgets():
-    """Card labels resolve to their clickable button however the live card
-    renders them: direct text, a label inside its button, or a portrait
-    caption below it. Anything else fails loudly."""
-    from types import SimpleNamespace
-
-    from verify_warband_remote_ai import resolve_card_button
-
-    direct = SimpleNamespace(text='Move', bounds=(10, 10, 60, 40), on_click=lambda: None)
-    assert resolve_card_button([direct], 'Move') is direct
-    holder = SimpleNamespace(text='', bounds=(0, 0, 64, 64), on_click=lambda: None)
-    nested = SimpleNamespace(text='Move', bounds=(8, 40, 48, 16))
-    assert resolve_card_button([holder, nested], 'Move') is holder
-    portrait = SimpleNamespace(text='', bounds=(0, 64, 64, 64), on_click=lambda: None)
-    caption = SimpleNamespace(text='Peasant', bounds=(0, 0, 64, 16))
-    assert resolve_card_button([portrait, caption], 'Peasant') is portrait
-    with pytest.raises(AssertionError):
-        resolve_card_button([portrait, caption], 'Catapult')
+def test_card_seam_pairs_live_commands_with_buttons():
+    """The verifier clicks card buttons behind their labels through the public
+    card/card_buttons seam: on a mock-backend scene the two pair one to one,
+    a selected worker is offered Move, and the hall card names the peasant
+    the scene's own unit names do."""
+    saga2d = importlib.import_module('saga2d')
+    warband_scene = importlib.import_module('warband.ui.scene')
+    world = importlib.import_module('warband.sim.mapgen').generate(1)
+    rules = importlib.import_module('warband.sim.rules')
+    game = saga2d.Game('CardSeam', backend='mock', resolution=(1280, 800))
+    try:
+        scene = warband_scene.GameScene(world, 1, player=0, ranked=False)
+        game.push(scene)
+        tick = importlib.import_module('saga2d.testing.native_frames').tick
+        for _ in range(5):
+            tick(game, 1 / 30)
+        worker = next(u for u in world.player_units(0) if u.is_worker and not u.hidden)
+        scene.select([worker.id])
+        assert worker.id in scene.selection
+        pairs = list(zip(scene.card, scene.card_buttons, strict=True))
+        assert pairs
+        assert next(command for command, _ in pairs if command.label == 'Move').hotkey
+        hall = world.player_buildings(0, rules.BuildingType.TOWN_HALL, done=True)[0]
+        scene.select([hall.id])
+        assert scene.unit_name(rules.UnitType.PEASANT) in [command.label for command in scene.card]
+    finally:
+        game.close()

@@ -96,54 +96,6 @@ def move_choices(world, worker):
             and world.entity_at(tile_center((x, y))) is None]
 
 
-def resolve_card_button(widgets, label):
-    """The clickable widget behind card label *label* in a live widget list.
-
-    A card button carries its label directly, except portrait cards, whose
-    caption sits beside the button: then the nearest clickable sharing the
-    caption's horizontal span wins. Raises AssertionError when nothing
-    matches, listing the labels on screen.
-    """
-    def text_of(widget):
-        text = getattr(widget, 'text', None)
-        value = text() if callable(text) else text
-        return value if isinstance(value, str) else ''
-
-    def clickable(widget):
-        return callable(getattr(widget, 'on_click', None)) and getattr(widget, 'bounds', None) is not None
-
-    for widget in widgets:
-        if text_of(widget) == label and clickable(widget):
-            return widget
-    captions = [(widget, widget.bounds) for widget in widgets
-                if text_of(widget) == label and not clickable(widget)
-                and getattr(widget, 'bounds', None) is not None]
-    for caption, (lx, ly, lw, lh) in captions:
-        cx, cy = lx + lw / 2, ly + lh / 2
-        holders = [widget for widget in widgets
-                   if clickable(widget) and widget is not caption
-                   and widget.bounds[0] <= cx < widget.bounds[0] + widget.bounds[2]
-                   and widget.bounds[1] <= cy < widget.bounds[1] + widget.bounds[3]]
-        if holders:
-            return min(holders, key=lambda widget: widget.bounds[2] * widget.bounds[3])
-    for _, (lx, ly, lw, lh) in captions:
-        cx, cy = lx + lw / 2, ly + lh / 2
-        neighbours = []
-        for widget in widgets:
-            if not clickable(widget):
-                continue
-            bx, by, bw, bh = widget.bounds
-            if not bx <= cx < bx + bw:
-                continue
-            if by <= cy < by + bh:
-                continue
-            neighbours.append((min(abs(cy - by), abs(cy - (by + bh))), widget))
-        if neighbours:
-            return min(neighbours, key=lambda pair: pair[0])[1]
-    names = sorted({text_of(widget) for widget in widgets if text_of(widget)})
-    raise AssertionError(f'No command card button {label!r}; visible labels: {names}')
-
-
 def claim_scout_target(ordered, target):
     """Record *target* in the *ordered* set, refusing to repeat a destination.
 
@@ -221,11 +173,18 @@ def verify(output: Path, server: str, room: str, timeout: float, visible: bool) 
             click(x + w / 2, y + h / 2, button)
 
         def click_card(label_text):
-            # The command card under the live scheme: click the button behind
-            # its label, never a hard-coded key or a direct order call.
-            button = resolve_card_button(list(game.scene.ui.walk()), label_text)
-            assert getattr(button, 'enabled', True), f'Command card button {label_text!r} is disabled'
-            click_widget(button)
+            # The command card as it shows now: pair each command with its own
+            # button and click the match through a real mouse event. The
+            # command's action is never invoked directly.
+            pairs = list(zip(scene.card, scene.card_buttons, strict=True))
+            assert pairs, 'The command card shows no commands for this selection'
+            for command, button in pairs:
+                if command.label == label_text:
+                    assert getattr(button, 'enabled', True), f'Command card button {label_text!r} is disabled'
+                    click_widget(button)
+                    return
+            names = [command.label for command, _ in pairs]
+            raise AssertionError(f'No command card button {label_text!r}; card shows: {names}')
 
         def find_button(match):
             frames(2)
