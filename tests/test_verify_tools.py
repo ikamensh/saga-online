@@ -139,6 +139,53 @@ def test_move_choices_cover_an_off_diagonal_worker():
     assert math.dist(worker.pos, destination) <= 3
 
 
+def test_hidden_worker_is_not_eligible_for_scout():
+    """A worker ordered into a gold mine walks out of sight: the driven world
+    marks it hidden, and scout choice passes over it for a worker in the open."""
+    import math
+
+    from verify_warband_remote_ai import choose_scout
+
+    authority = importlib.import_module('warband.online.authority')
+    match = authority.WarbandMatch(1)
+    world = match.world
+    worker = next(u for u in world.player_units(0) if u.is_worker and not u.hidden)
+    mine = min((b for b in world.buildings.values() if b.info.mine is not None),
+               key=lambda b: math.dist(worker.pos, b.center))
+    match.apply(0, {'action': 'smart', 'args': [[worker.id], list(mine.center)],
+                    'kwargs': {'target_id': mine.id}})
+    for _ in range(4000):
+        match.step()
+        if world.units[worker.id].hidden:
+            break
+    assert world.units[worker.id].hidden, 'The driven worker never entered the mine'
+    assert choose_scout(list(world.player_units(0)), []).id != worker.id
+
+
+def test_trained_peasant_is_the_stable_scout_choice():
+    """Training through the authority completes into a peasant standing in the
+    open: scout choice prefers that id and it stays visible."""
+    from verify_warband_remote_ai import choose_scout
+
+    authority = importlib.import_module('warband.online.authority')
+    rules = importlib.import_module('warband.sim.rules')
+    match = authority.WarbandMatch(1)
+    world = match.world
+    before = {u.id for u in world.player_units(0)}
+    hall = world.player_buildings(0, rules.BuildingType.TOWN_HALL, done=True)[0]
+    match.apply(0, {'action': 'train', 'args': [hall.id, rules.UnitType.PEASANT], 'kwargs': {}})
+    trained = None
+    for _ in range(8000):
+        match.step()
+        fresh = [u for u in world.player_units(0) if u.id not in before]
+        if fresh:
+            trained = fresh[0]
+            break
+    assert trained is not None, 'The driven training never completed'
+    assert not trained.hidden
+    assert choose_scout(list(world.player_units(0)), [trained.id]).id == trained.id
+
+
 def test_move_key_follows_the_live_scheme():
     """The card's Move slot resolves through the scene's own scheme bindings:
     Q on the positional cards the screenshots show, the mnemonic letter only

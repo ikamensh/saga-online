@@ -96,6 +96,21 @@ def move_choices(world, worker):
             and world.entity_at(tile_center((x, y))) is None]
 
 
+def choose_scout(units, preferred):
+    """The scout from live own *units*: the first preferred id still around and
+    out in the open, else the first visible worker. A worker inside a mine is
+    hidden and cannot be clicked, so it is never chosen. Raises AssertionError
+    when no visible worker exists."""
+    visible = [u for u in units if u.is_worker and not u.hidden]
+    for ident in preferred:
+        match = next((u for u in visible if u.id == ident), None)
+        if match is not None:
+            return match
+    if visible:
+        return visible[0]
+    raise AssertionError('No visible worker to scout with; the others are inside mines or gone')
+
+
 def claim_scout_target(ordered, target):
     """Record *target* in the *ordered* set, refusing to repeat a destination.
 
@@ -238,6 +253,12 @@ def verify(output: Path, server: str, room: str, timeout: float, visible: bool) 
             # record falls back to geometry, and anything unexpected propagates.
             return scene.view.memory().get('buildings', [])
 
+        def scout_state(unit):
+            # This seat's own scout, for failure reports: never another seat.
+            sprite = scene.view.unit_sprite(unit.id)
+            return {'id': unit.id, 'pos': unit.pos, 'hidden': unit.hidden, 'state': unit.state,
+                    'sprite_visible': sprite.visible if sprite is not None else None}
+
         try:
             game = Game('Warband remote AI verification', resolution=(1280, 800),
                         visible=visible, theme=build_theme(), save_dir=Path(profile) / 'saves')
@@ -288,7 +309,7 @@ def verify(output: Path, server: str, room: str, timeout: float, visible: bool) 
             hall_id = hall.id
             workers = [u for u in scene.world.player_units(human) if u.is_worker and not u.hidden]
             assert len(workers) >= 2, 'A fresh room needs two available workers for harvesting and scouting'
-            worker_id, scout_id = workers[0].id, workers[1].id
+            worker_id = workers[0].id
             initial_local_ids = {u.id for u in scene.world.player_units(human)}
 
             # Move one worker through the live command card and a world click, as a player does.
@@ -334,12 +355,28 @@ def verify(output: Path, server: str, room: str, timeout: float, visible: bool) 
             assert UnitType.PEASANT.value in row['queue']
             shot('04-authoritative-training')
 
+            # The freshly trained peasant makes the stable scout: it walks out
+            # of the hall in the open, while an older worker may since have
+            # entered a mine, where no click can reach it.
+            wait(lambda: bool({u.id for u in scene.world.player_units(human)} - initial_local_ids),
+                 'Server completes local peasant training')
+            trained_ids = sorted({u.id for u in scene.world.player_units(human)} - initial_local_ids)
+            report['trained_units'] = trained_ids
+            scout = choose_scout(list(scene.world.player_units(human)), trained_ids)
+            scout_id = scout.id
+            wait(lambda: not scene.world.units[scout_id].hidden
+                 and (sprite := scene.view.unit_sprite(scout_id)) is not None and sprite.visible,
+                 'Chosen scout walks out where it can be seen', budget=30)
+            scout = scene.world.units[scout_id]
+            press(key.HOME)
+            frames(12)
+            press(key.ESCAPE)
+            frames(2)
+            click_world(scout.pos)
+            assert scout_id in scene.selection, f'Scout never selected: {scout_state(scout)}'
             # Scout fog-honestly: the target comes from remembered sightings or map
             # geometry, never from the live hidden rival hall. Retry across legs so a
             # first blind heading still finds a rendered remote unit in time.
-            scout = scene.world.units[scout_id]
-            click_world(scout.pos)
-            assert scout_id in scene.selection
             scout_deadline = time.monotonic() + timeout
             scout_basis, ordered_targets = None, set()
             while time.monotonic() < scout_deadline:
@@ -373,8 +410,6 @@ def verify(output: Path, server: str, room: str, timeout: float, visible: bool) 
                  'Visible remote workers or soldiers continue acting')
             report['visible_opponent_progress'] = [received('units', u.id) for u in visible_opponents()]
 
-            wait(lambda: bool({u.id for u in scene.world.player_units(human)} - initial_local_ids),
-                 'Server completes local peasant training')
             wait(lambda: scene.world.units[worker_id].carrying is Resource.LUMBER
                  or scene.world.players[human].lumber > initial_lumber,
                  'Server produces harvested lumber')
