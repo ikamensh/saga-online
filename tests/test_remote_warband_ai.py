@@ -46,7 +46,11 @@ CURRENT_JOURNAL = "\n".join([
 
 
 def write_fake_bin(path: Path, *, marker="saga2d-warband-ai", active_state="inactive",
+                   load_state="loaded", sub_state=None,
                    journal_current=CURRENT_JOURNAL, journal_all=None) -> Path:
+    if sub_state is None:
+        sub_state = "running" if active_state == "active" else \
+            ("failed" if active_state == "failed" else "dead")
     """A fake ssh/scp pair emulating one remote VM; invocations append to log files."""
     bindir = path / "bin"
     bindir.mkdir(parents=True, exist_ok=True)
@@ -58,6 +62,9 @@ def write_fake_bin(path: Path, *, marker="saga2d-warband-ai", active_state="inac
     (path / "journal_AAA-111").write_text(journal_current + "\n")
     (path / "journal_all").write_text((journal_all if journal_all is not None
                                        else PRIOR_JOURNAL + "\n" + journal_current + "\n"))
+    (path / "LOAD").write_text(load_state + "\n")
+    (path / "ACT").write_text(active_state + "\n")
+    (path / "SUB").write_text(sub_state + "\n")
     lines = [
         "#!/bin/bash",
         f"DIR={path}",
@@ -65,7 +72,6 @@ def write_fake_bin(path: Path, *, marker="saga2d-warband-ai", active_state="inac
         f"UNITS={units}",
         f"ALL={path / 'journal_all'}",
         f"MARKER={marker}",
-        f"STATE={active_state}",
         'cmd=""',
         "seen_deploy=0",
         'for arg in "$@"; do',
@@ -75,21 +81,29 @@ def write_fake_bin(path: Path, *, marker="saga2d-warband-ai", active_state="inac
         'printf "%s\\n" "$*" >>"$LOG"',
         'case "$cmd" in',
         '  "cat /etc/saga2d-online/managed-instance") printf "%s\\n" "$MARKER";;',
-        '  *"ActiveState"*) if [[ "$STATE" == active ]]; then SUB=running; else SUB=dead; fi;'
-        ' printf "LoadState=loaded\\nActiveState=%s\\nSubState=%s\\nInvocationID=%s\\n'
-        'ExecMainStatus=0\\nCPUUsageNSec=7\\nMemoryCurrent=8\\n"'
-        ' "$STATE" "$SUB" "$(cat "$DIR/INV")";;',
+        '  *"ActiveState"*) printf "LoadState=%s\\nActiveState=%s\\nSubState=%s\\n'
+        'InvocationID=%s\\nExecMainStatus=0\\nCPUUsageNSec=7\\nMemoryCurrent=8\\n"'
+        ' "$(cat "$DIR/LOAD")" "$(cat "$DIR/ACT")" "$(cat "$DIR/SUB")" "$(cat "$DIR/INV")";;',
         '  *"InvocationID"*"--value"*) cat "$DIR/INV";;',
-        '  *"systemd-run"*) printf "%s\\n" "$cmd" >>"$UNITS";'
+        '  *"systemd-run"*) if [[ "$(cat "$DIR/LOAD")" != "not-found" ]]; then'
+        ' printf "Failed to start transient service unit: Unit was already loaded or has a fragment file.\\n" >&2;'
+        ' exit 1; fi;'
+        ' printf "%s\\n" "$cmd" >>"$UNITS";'
         ' n=$(( $(cat "$DIR/RUNS") + 1 )); echo "$n" >"$DIR/RUNS";'
-        ' echo "RUN-$n" >"$DIR/INV"; : >"$DIR/journal_RUN-$n"; printf "Started\\n";;',
+        ' echo "RUN-$n" >"$DIR/INV"; : >"$DIR/journal_RUN-$n";'
+        ' echo loaded >"$DIR/LOAD"; echo active >"$DIR/ACT"; echo running >"$DIR/SUB";'
+        ' printf "Started\\n";;',
         '  *"journalctl"*)',
         '    if [[ "$cmd" =~ _SYSTEMD_INVOCATION_ID=([A-Za-z0-9-]+) ]]; then'
         ' id="${BASH_REMATCH[1]}";'
         ' if [[ -f "$DIR/journal_$id" ]]; then cat "$DIR/journal_$id"; fi;'
         "    else cat \"$ALL\"; fi;;",
         '  *"cloud-init"*) printf "status: done\\n";;',
-        '  *"systemctl stop"*) printf "Stopped\\n";;',
+        '  *"reset-failed"*) echo not-found >"$DIR/LOAD"; echo inactive >"$DIR/ACT";'
+        ' echo dead >"$DIR/SUB"; printf "ok\\n";;',
+        '  *"systemctl stop"*) if [[ "$(cat "$DIR/ACT")" != "failed" ]]; then'
+        ' echo not-found >"$DIR/LOAD"; echo inactive >"$DIR/ACT"; echo dead >"$DIR/SUB"; fi;'
+        ' printf "Stopped\\n";;',
         '  "sudo "*|"rm "*) printf "ok\\n";;',
         '  *) printf "ok\\n";;',
         "esac",
@@ -366,6 +380,62 @@ def test_completed_unit_stays_observable_and_prior_runs_do_not_leak(tmp_path):
     assert (third["invocation_id"], third["room"], third["finished"], third["winner"]) == \
         ("RUN-1", "NEWROOM", True, 0)
     assert "OLDROOM" not in json.dumps(third)
+
+
+def failed_unit(tmp_path):
+    bindir = write_fake_bin(tmp_path, marker="saga2d-warband-ai", active_state="failed",
+                            load_state="loaded", sub_state="failed")
+    return bindir, write_target(tmp_path), write_ssh_key(tmp_path)
+
+
+def status_load(path: Path, bindir: Path, target: Path, pub: Path) -> dict:
+    result = run_tool(bindir, "status", "--target", str(target), "--ssh-key", str(pub),
+                      "--json", path=path)
+    assert result.returncode == 0, result.stderr
+    return json.loads(result.stdout)["systemd"]
+
+
+def test_failed_unit_is_released_for_reuse_on_start(tmp_path):
+    """A failed leftover must not block the next bot: release it, then start."""
+    bindir, target, pub = failed_unit(tmp_path)
+    result = run_tool(bindir, "create", *base_args(target, pub), path=tmp_path)
+    assert result.returncode == 0, result.stderr
+    assert "reset-failed" in ssh_log(tmp_path)
+    assert "systemd-run" in (tmp_path / "units.log").read_text()
+    assert status_load(tmp_path, bindir, target, pub)["ActiveState"] == "active"
+
+
+def test_failed_unit_stop_cleans_up(tmp_path):
+    """Stopping a failed unit unloads it instead of reporting success over debris."""
+    bindir, target, pub = failed_unit(tmp_path)
+    result = run_tool(bindir, "stop", "--target", str(target), "--ssh-key", str(pub),
+                      path=tmp_path)
+    assert result.returncode == 0, result.stderr
+    assert "reset-failed" in ssh_log(tmp_path)
+    assert status_load(tmp_path, bindir, target, pub)["LoadState"] == "not-found"
+
+
+def test_completed_unit_stop_unloads(tmp_path):
+    """Stopping a successfully completed unit still unloads it as before."""
+    bindir = write_fake_bin(tmp_path, marker="saga2d-warband-ai", active_state="active",
+                            load_state="loaded", sub_state="exited")
+    target, pub = write_target(tmp_path), write_ssh_key(tmp_path)
+    result = run_tool(bindir, "stop", "--target", str(target), "--ssh-key", str(pub),
+                      path=tmp_path)
+    assert result.returncode == 0, result.stderr
+    assert status_load(tmp_path, bindir, target, pub)["LoadState"] == "not-found"
+
+
+def test_no_unit_stop_is_idempotent(tmp_path):
+    """Stopping with no unit loaded succeeds without touching the service."""
+    bindir = write_fake_bin(tmp_path, marker="saga2d-warband-ai", active_state="inactive",
+                            load_state="not-found", sub_state="dead")
+    target, pub = write_target(tmp_path), write_ssh_key(tmp_path)
+    result = run_tool(bindir, "stop", "--target", str(target), "--ssh-key", str(pub),
+                      path=tmp_path)
+    assert result.returncode == 0, result.stderr
+    assert "systemctl stop" not in ssh_log(tmp_path)
+    assert "reset-failed" not in ssh_log(tmp_path)
 
 
 def test_install_with_explicit_archive_hashes_it_locally(rig):

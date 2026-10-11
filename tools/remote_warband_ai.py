@@ -192,6 +192,21 @@ def service_running(states: dict) -> bool:
     return states.get("ActiveState") == "active" and states.get("SubState") == "running"
 
 
+def release_unit(args: argparse.Namespace, target: dict, states: dict) -> None:
+    """Unload one leftover owned unit so the service name is reusable.
+
+    A failed unit survives `stop` still loaded, so it is released with
+    `reset-failed`; any other loaded unit is released with `stop`. A unit
+    systemd reports as not-found is already stopped: no call is made.
+    """
+    if states.get("LoadState", "not-found") == "not-found":
+        return
+    if states.get("ActiveState") == "failed":
+        ssh(args, target, ["sudo", "systemctl", "reset-failed", SERVICE], capture=True)
+    else:
+        ssh(args, target, ["sudo", "systemctl", "stop", SERVICE], capture=True)
+
+
 def content_hash(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:
@@ -409,10 +424,9 @@ def do_start(args: argparse.Namespace, target: dict) -> None:
     if service_running(states):
         raise ValueError(f"Service {SERVICE} is already running on {target['name']}; "
                          "stop it before starting another bot")
-    if states.get("LoadState", "not-found") != "not-found":
-        # Unload the previous (completed or failed) transient unit so the service
-        # name is reusable. Journal evidence stays queryable by InvocationID.
-        ssh(args, target, ["sudo", "systemctl", "stop", SERVICE], capture=True)
+    # A previous run's journal stays queryable by InvocationID; only the
+    # service name itself is released for reuse here.
+    release_unit(args, target, states)
     # Identity bytes are only staged while no bot runs on this VM: the explicit
     # file when the operator reuses one, else the automatic per-VM path where
     # the engine mints and keeps its private ranked identity across matches.
@@ -437,7 +451,7 @@ def do_start(args: argparse.Namespace, target: dict) -> None:
 
 
 def do_stop(args: argparse.Namespace, target: dict) -> None:
-    ssh(args, target, ["sudo", "systemctl", "stop", SERVICE], capture=True)
+    release_unit(args, target, unit_states(args, target))
     print(json.dumps({"target": target["name"], "stopped": True}))
 
 
