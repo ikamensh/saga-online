@@ -199,9 +199,9 @@ def release_unit(args: argparse.Namespace, target: dict, states: dict) -> None:
     `reset-failed`; any other loaded unit is released with `stop`. A unit
     systemd reports as not-found is already stopped: no call is made.
     """
-    if states.get("LoadState", "not-found") == "not-found":
+    if states["LoadState"] == "not-found":
         return
-    if states.get("ActiveState") == "failed":
+    if states["ActiveState"] == "failed":
         ssh(args, target, ["sudo", "systemctl", "reset-failed", SERVICE], capture=True)
     else:
         ssh(args, target, ["sudo", "systemctl", "stop", SERVICE], capture=True)

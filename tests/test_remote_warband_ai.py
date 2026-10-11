@@ -48,10 +48,10 @@ CURRENT_JOURNAL = "\n".join([
 def write_fake_bin(path: Path, *, marker="saga2d-warband-ai", active_state="inactive",
                    load_state="loaded", sub_state=None,
                    journal_current=CURRENT_JOURNAL, journal_all=None) -> Path:
+    """A fake ssh/scp pair emulating one remote VM; invocations append to log files."""
     if sub_state is None:
         sub_state = "running" if active_state == "active" else \
             ("failed" if active_state == "failed" else "dead")
-    """A fake ssh/scp pair emulating one remote VM; invocations append to log files."""
     bindir = path / "bin"
     bindir.mkdir(parents=True, exist_ok=True)
     log = path / "ssh.log"
