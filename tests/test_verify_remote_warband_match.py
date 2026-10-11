@@ -618,6 +618,20 @@ def test_rated_start_forwards_a_single_rated_flag(tmp_path, public_routes):
     assert started.count("--rated") == 1
 
 
+def board_leaders(*, size=20, top=2000, step=10):
+    """Valid public leaderboard rows, sorted by rating descending."""
+    return [{"player_id": f"leader-{index:02d}", "name": f"Leader {index:02d}",
+             "rating": top - index * step, "games": 50, "wins": 30, "losses": 20}
+            for index in range(size)]
+
+
+def board_with(index, **overrides):
+    """A full valid board with one row replaced, still sorted unless overrides break it."""
+    leaders = board_leaders()
+    leaders[index] = {**leaders[index], **overrides}
+    return leaders
+
+
 def seam_with_full_leaderboard(base, receipt, *, board_size=20, top_rating=2000):
     """Individual profiles exact; leaderboard holds only higher-rated strangers."""
     (base / "players").mkdir(parents=True, exist_ok=True)
@@ -626,11 +640,7 @@ def seam_with_full_leaderboard(base, receipt, *, board_size=20, top_rating=2000)
                    "rating": entry["after"], "games": entry["games"],
                    "wins": entry["wins"], "losses": entry["losses"]}
         (base / "players" / (entry["player_id"] + ".json")).write_text(json.dumps(profile))
-    leaders = []
-    for index in range(board_size):
-        leaders.append({"player_id": f"leader-{index:02d}", "name": f"Leader {index:02d}",
-                        "rating": top_rating - index * 10,
-                        "games": 50, "wins": 30, "losses": 20})
+    leaders = board_leaders(size=board_size, top=top_rating)
     (base / "ratings.json").write_text(json.dumps({"game": "warband-v2", "players": leaders}))
     (base / "status.json").write_text(json.dumps(
         {"protocol": "warband-v2", "rooms": 1, "ready_rooms": 0, "players": 22,
@@ -643,25 +653,11 @@ def seam_with_full_leaderboard(base, receipt, *, board_size=20, top_rating=2000)
 def test_rated_seats_below_full_leaderboard_pass_on_exact_profiles(tmp_path):
     """Lower-ranked seats outside a full top-20 still pass when profiles match."""
     receipt = rated_receipt()
-    host = dict(HOST_STATUS, result=receipt)
-    guest = dict(GUEST_STATUS, result=receipt)
-    helper = write_stub(tmp_path, host=host, guest=guest)
-    targets = write_targets(tmp_path)
     routes = seam_with_full_leaderboard(tmp_path / "routes-full20", receipt)
-    argv = [*base_argv(tmp_path, helper, *targets), "--rated",
-            "--host-player-name", "HostBot", "--guest-player-name", "GuestBot",
-            "--status-base", routes]
-    result = run_harness(tmp_path, *argv)
+    result = run_rated_against(tmp_path, receipt, routes)
     assert result.returncode == 0, result.stderr + result.stdout
     report = json.loads((tmp_path / "out" / "report.json").read_text())
     assert report["status"] == "passed" and report["match_id"] == "match-42"
-
-
-def board_leaders(*, size=20, top=2000, step=10):
-    """Valid public leaderboard rows, sorted by rating descending."""
-    return [{"player_id": f"leader-{index:02d}", "name": f"Leader {index:02d}",
-             "rating": top - index * step, "games": 50, "wins": 30, "losses": 20}
-            for index in range(size)]
 
 
 def run_rated_against(tmp_path, receipt, routes):
@@ -696,15 +692,51 @@ def test_rated_listed_seat_mismatch_fails_despite_full_board(tmp_path):
     receipt = rated_receipt()
     base = tmp_path / "routes-mismatch"
     routes = seam_with_full_leaderboard(base, receipt)
-    leaders = board_leaders()
-    leaders[0] = {"player_id": "player-host", "name": "HostBot", "rating": 1015,
-                  "games": 5, "wins": 3, "losses": 2}
+    leaders = board_with(0, player_id="player-host", name="HostBot", rating=1015,
+                         games=5, wins=3, losses=2)
     leaders.sort(key=lambda row: row["rating"], reverse=True)
     rewrite_board(base, leaders)
     result = run_rated_against(tmp_path, receipt, routes)
     assert result.returncode == 1
     report = json.loads((tmp_path / "out" / "report.json").read_text())
     assert report["status"] == "failed" and "disagrees" in report["error"]
+
+
+@pytest.mark.parametrize("label,overrides", [
+    ("wrong-name", {"name": "Impostor"}),
+    ("wrong-count", {"games": 6}),
+])
+def test_rated_listed_seat_profile_mismatch_fails(tmp_path, label, overrides):
+    """A listed seat matching on rating but not its full profile still fails."""
+    receipt = rated_receipt()
+    base = tmp_path / f"routes-{label}"
+    routes = seam_with_full_leaderboard(base, receipt)
+    leaders = board_leaders(size=19)
+    leaders.append({"player_id": "player-host", "name": "HostBot", "rating": 1016,
+                    "games": 5, "wins": 3, "losses": 2, **overrides})
+    rewrite_board(base, leaders)
+    result = run_rated_against(tmp_path, receipt, routes)
+    assert result.returncode == 1, label
+    report = json.loads((tmp_path / "out" / "report.json").read_text())
+    assert report["status"] == "failed" and "disagrees" in report["error"], label
+
+
+def test_rated_overlong_leaderboard_fails_despite_listed_seats(tmp_path):
+    """A board longer than the requested 20 is malformed even with both seats listed."""
+    receipt = rated_receipt()
+    base = tmp_path / "routes-overlong"
+    routes = seam_with_full_leaderboard(base, receipt)
+    leaders = board_leaders(size=19)
+    leaders.append({"player_id": "player-host", "name": "HostBot", "rating": 1016,
+                    "games": 5, "wins": 3, "losses": 2})
+    leaders.append({"player_id": "player-guest", "name": "GuestBot", "rating": 984,
+                    "games": 5, "wins": 2, "losses": 3})
+    leaders.sort(key=lambda row: row["rating"], reverse=True)
+    rewrite_board(base, leaders)
+    result = run_rated_against(tmp_path, receipt, routes)
+    assert result.returncode == 1
+    report = json.loads((tmp_path / "out" / "report.json").read_text())
+    assert report["status"] == "failed" and "/ratings" in report["error"]
 
 
 def test_rated_absent_seat_above_board_cutoff_fails(tmp_path):
@@ -740,15 +772,11 @@ def test_rated_listed_seat_with_absent_seat_below_cutoff_passes(tmp_path):
     ("empty", []),
     ("malformed", [{"player_id": "leader-00", "name": "Leader 00",
                     "games": 50, "wins": 30, "losses": 20}]),
-    ("duplicate", [dict({"player_id": "leader-00", "name": "Leader 00",
-                         "rating": 2000, "games": 50, "wins": 30, "losses": 20})
-                   for _ in range(20)]),
-    ("unordered", [dict(row, rating=2000 - index * 10 + (20 if index == 19 else 0))
-                   for index, row in enumerate(board_leaders())]),
-    ("nonfinite", [dict(row, rating=float("inf") if index == 0 else row["rating"])
-                   for index, row in enumerate(board_leaders())]),
-    ("bool", [dict(row, rating=True if index == 0 else row["rating"])
-              for index, row in enumerate(board_leaders())]),
+    ("duplicate", [{"player_id": "leader-00", "name": "Leader 00", "rating": 2000,
+                    "games": 50, "wins": 30, "losses": 20} for _ in range(20)]),
+    ("unordered", board_with(19, rating=1830)),
+    ("nonfinite", board_with(0, rating=float("inf"))),
+    ("bool", board_with(0, rating=True)),
 ])
 def test_rated_broken_leaderboard_never_silently_passes(tmp_path, label, leaders):
     """Empty, malformed, duplicate, unordered or non-numeric boards always fail."""
