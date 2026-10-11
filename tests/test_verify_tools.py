@@ -226,6 +226,77 @@ def test_card_seam_pairs_live_commands_with_buttons():
         game.close()
 
 
+def test_scout_click_targets_the_fresh_rendered_body(tmp_path):
+    """The scout click must go to the fresh unit's rendered body point.
+
+    The public journey failed with 'Scout never selected': the verifier held a
+    scout Unit across paced frames while network snapshots replaced the unit
+    objects (measured live: held_is_current=False, and the held position hit
+    nothing while the current body point hit the scout). This test replays that
+    geometry locally: after a real move order, the view still presents the old
+    drawing through MapView.present_from/sync (the documented handoff the view
+    offers a network snapshot), so the pre-fix model-position click misses the
+    rendered picker while the helper's rendered body point hits it."""
+    from verify_warband_remote_ai import move_choices, scout_click_target
+
+    saga2d = importlib.import_module('saga2d')
+    InputEvent = importlib.import_module('saga2d.input').InputEvent
+    warband_scene = importlib.import_module('warband.ui.scene')
+    TILE = importlib.import_module('warband.art.textures').TILE
+    world = importlib.import_module('warband.sim.mapgen').generate(1)
+    game = saga2d.Game('ScoutClickSeam', backend='mock', resolution=(1280, 800),
+                       save_dir=tmp_path / 'saves')
+    try:
+        scene = warband_scene.GameScene(world, 1, player=0, ranked=False)
+        game.push(scene)
+        tick = importlib.import_module('saga2d.testing.native_frames').tick
+        for _ in range(5):
+            tick(game, 1 / 30)
+        worker = next(u for u in world.player_units(0) if u.is_worker and not u.hidden)
+        worker_id = worker.id
+        held_pos = tuple(worker.pos)
+        drawn = scene.view.drawn_positions()
+        choices = move_choices(world, worker)
+        assert choices
+        target = max(choices, key=lambda p: math.dist(p, held_pos))
+        assert scene.attempt('move', [worker_id], target)
+        for _ in range(120):
+            tick(game, 1 / 30)
+            if math.dist(tuple(world.units[worker_id].pos), held_pos) > 1.6:
+                break
+        assert math.dist(tuple(world.units[worker_id].pos), held_pos) > 1.6
+        # The view still presents the old drawing while the model has moved
+        # on, as it does right after a network snapshot lands mid-pacing.
+        scene.view.present_from(drawn)
+        scene.view.sync(fraction=0.5)
+        current = world.units[worker_id]
+
+        def real_click(tile_point):
+            """A real press/release pair through the scene's raw input, as the
+            backend delivers a mouse click; never scene.select."""
+            world_xy = (tile_point[0] * TILE, tile_point[1] * TILE)
+            screen_xy = scene.camera.world_to_screen(*world_xy)
+            press = InputEvent(type='click', button='left', x=int(screen_xy[0]), y=int(screen_xy[1]),
+                               world_x=world_xy[0], world_y=world_xy[1])
+            release = InputEvent(type='release', button='left', x=int(screen_xy[0]), y=int(screen_xy[1]),
+                                 world_x=world_xy[0], world_y=world_xy[1])
+            assert scene.handle_input(press)
+            assert scene.handle_input(release)
+            return list(scene.selection)
+
+        # The pre-fix click target — the stale held model position — selects
+        # nothing through real input, the public journey's exact symptom.
+        assert real_click(held_pos) != [worker_id]
+        assert worker_id not in scene.selection
+        # Reacquiring the same public own-unit id and clicking its rendered
+        # body point selects it through the same real input path.
+        scout, point = scout_click_target(scene, 0, worker_id)
+        assert scout is current
+        assert real_click(point) == [worker_id]
+    finally:
+        game.close()
+
+
 def test_same_account_second_seat_needs_a_casual_warband_room():
     """The journeys play both seats from one profile: a rated room rejects that
     second seat while a casual room accepts it, which is why the Warband journey

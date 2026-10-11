@@ -111,6 +111,20 @@ def choose_scout(units, preferred):
     raise AssertionError('No visible worker to scout with; the others are inside mines or gone')
 
 
+def scout_click_target(scene, human, scout_id):
+    """The (unit, world point) to click for the scout after paced frames.
+
+    Network snapshots replace unit objects while frames pace, so a held Unit
+    reference and its position go stale; the newly trained worker may also
+    have entered a mine since, where no click reaches it. Reacquires the
+    chosen scout from fresh own units (else the first visible worker) and
+    returns its public rendered body point, which is what MapView.entity_at
+    picks through a real mouse event.
+    """
+    scout = choose_scout(list(scene.world.player_units(human)), [scout_id])
+    return scout, scene.view.body_point(scout)
+
+
 def claim_scout_target(ordered, target):
     """Record *target* in the *ordered* set, refusing to repeat a destination.
 
@@ -372,7 +386,14 @@ def verify(output: Path, server: str, room: str, timeout: float, visible: bool) 
             frames(12)
             press(key.ESCAPE)
             frames(2)
-            click_world(scout.pos)
+            # Snapshots replace unit objects while frames pace, so the held
+            # reference and its position are stale; MapView.entity_at picks the
+            # interpolated rendered body, not the model position. Reacquire the
+            # scout from fresh own units and click its public rendered body
+            # point through a real mouse event, as a player does.
+            scout, click_point = scout_click_target(scene, human, scout_id)
+            scout_id = scout.id
+            click_world(click_point)
             assert scout_id in scene.selection, f'Scout never selected: {scout_state(scout)}'
             # Scout fog-honestly: the target comes from remembered sightings or map
             # geometry, never from the live hidden rival hall. Retry across legs so a
