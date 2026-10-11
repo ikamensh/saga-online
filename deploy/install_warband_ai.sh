@@ -3,8 +3,12 @@
 set -Eeuo pipefail
 archive=$1
 release_id=$2
+expected=${3:?expected instance name is required}
 [[ $release_id =~ ^[a-f0-9]{64}$ ]]
-[[ $(cat /etc/saga2d-online/managed-instance) == saga2d-warband-ai ]]
+[[ $expected =~ ^saga2d-warband-ai(-[a-z0-9-]{1,40})?$ ]]
+[[ $expected != saga2d-online ]]
+actual=$(cat /etc/saga2d-online/managed-instance)
+[[ $actual == "$expected" ]]
 printf '%s  %s\n' "$release_id" "$archive" | sha256sum --check --status
 base=/opt/saga2d-warband-ai
 release="$base/releases/$release_id"
@@ -20,6 +24,11 @@ if [[ ! -f "$release/.ready" ]]; then
 fi
 ln -sfn "$release" "$base/current.next"
 mv -Tf "$base/current.next" "$base/current"
+# Ranked identities live here for the unprivileged client; the systemd unit
+# opens exactly this path through its strict filesystem sandbox.
+mkdir -p /var/lib/saga2d-warband-ai
+chown saga2d-online:saga2d-online /var/lib/saga2d-warband-ai
+chmod 700 /var/lib/saga2d-warband-ai
 # The common VM bootstrap installs Caddy; this outbound-only client has no web service.
 systemctl disable --now caddy
 printf 'Installed AI client %s\n' "$release_id"
