@@ -29,6 +29,45 @@ def require(condition, message):
         raise ValueError(message)
 
 
+EXACT_ENGINE_PIN = re.compile(r"saga2d==([^,;|\s()\[\]]+)", re.IGNORECASE)
+
+
+def _engine_pins(entries):
+    """Every saga2d requirement in a dependency list, each one an exact pin."""
+    pins = []
+    for entry in entries:
+        head = re.split(r"[<>=!~;,\s\[]", entry, maxsplit=1)[0]
+        if head.lower() != "saga2d":
+            continue
+        match = EXACT_ENGINE_PIN.fullmatch(entry.strip())
+        require(match is not None, f"Expected one exact server engine pin, found: {entry!r}")
+        pins.append(match.group(1))
+    return pins
+
+
+def server_engine_pin(root: Path) -> str:
+    """The server's staged engine version: one exact direct pin, one matching server-only override.
+
+    The ``[tool.uv] override-dependencies`` entry supersedes the demos' older
+    engine requirements within the server environment only; the demo sources
+    stay at their pinned commits. A drift between the direct pin and the
+    override, or a saga2d source override, refuses instead of resolving
+    silently to either side.
+    """
+    project = tomllib.loads((root / "pyproject.toml").read_text())
+    direct = _engine_pins(project.get("project", {}).get("dependencies", []))
+    require(len(direct) == 1, "Expected exactly one direct server engine pin: saga2d==<version>")
+    uv = project.get("tool", {}).get("uv", {}) or {}
+    overrides = _engine_pins(uv.get("override-dependencies", []))
+    require(len(overrides) == 1, "Expected exactly one server engine override: saga2d==<version>")
+    require(overrides[0] == direct[0],
+            f"Server engine drift: direct pin saga2d=={direct[0]} differs from override saga2d=={overrides[0]}")
+    sources = uv.get("sources", {}) or {}
+    require(all(name.lower() != "saga2d" for name in sources),
+            "No saga2d source override is allowed; the server runs a published PyPI engine release")
+    return direct[0]
+
+
 def checkout(path, expected=None):
     def git(*args):
         return subprocess.check_output(["git", "-C", str(path), *args], text=True).strip()
@@ -40,6 +79,7 @@ def checkout(path, expected=None):
 
 
 def locked_runtime(root):
+    engine = server_engine_pin(root)
     lock = tomllib.loads((root / "uv.lock").read_text())
     packages, seen, pending = {}, set(), ["saga-online"]
     while pending:
@@ -57,6 +97,10 @@ def locked_runtime(root):
             packages[name] = item["version"]
         else:
             require(name in {"saga-online", *DISTRIBUTIONS}, f"Unexpected source dependency: {name}")
+    # The selected engine lock entry is the staged version from PyPI: an old
+    # lock, or a non-registry substitution, refuses here instead of packaging.
+    require(packages.get("saga2d") == engine,
+            f"Locked engine differs from the staged server pin saga2d=={engine}")
     return packages
 
 

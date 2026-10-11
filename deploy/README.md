@@ -59,7 +59,19 @@ Use separate adjacent checkouts when these differ from active development
 branches. It reads allowlisted game source from Git objects, verifies Saga2D's
 installed PyPI source against its wheel inventory, and exports hashed runtime
 dependencies using `uv export --locked`. The server lock must agree with the
-Warband native release's compatibility contract. Content-addressed tarballs
+Warband native release's compatibility contract.
+
+Engine upgrades are server-only. The server stages a new engine through its
+direct `saga2d==` pin together with a matching `[tool.uv]
+override-dependencies` entry, which supersedes the demos' older engine
+requirements within the server environment only. The demos stay at their
+pinned commits; no demo source changes. Packaging requires the direct pin and
+the override to name one identical exact version, the locked `saga2d` entry to
+be that same version from PyPI, and the installed engine to match; any drift
+refuses. The intentional upgrade procedure is: update both exact pins, `uv
+lock` only after the staged engine release is published, then verify with `uv
+export --locked`; the installed-PyPI and wheel-RECORD attestation is retained
+throughout. Content-addressed tarballs
 under ignored `dist/online/` contain `deploy/server-inputs.json` with exact
 source commits, runtime versions and file hashes. Credentials, saves, caches,
 untracked source and working-tree metadata are excluded.
