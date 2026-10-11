@@ -1,0 +1,64 @@
+{
+  "duel_equal": {
+    "host_player_id": "p_PfQ_M530iHuEGcuj",
+    "guest_player_id": "p_vckFWnzZ_FWXiOl8",
+    "match_id": "30c3c0f5d3274b50bd0bfb1bb7c8f409",
+    "result": {
+      "match_id": "30c3c0f5d3274b50bd0bfb1bb7c8f409",
+      "winner": 0,
+      "ratings": [
+        {
+          "player_id": "p_PfQ_M530iHuEGcuj",
+          "name": "DuelA",
+          "before": 1500.0,
+          "after": 1516.0,
+          "delta": 16.0,
+          "games": 1,
+          "wins": 1,
+          "losses": 0
+        },
+        {
+          "player_id": "p_vckFWnzZ_FWXiOl8",
+          "name": "DuelB",
+          "before": 1500.0,
+          "after": 1484.0,
+          "delta": -16.0,
+          "games": 1,
+          "wins": 0,
+          "losses": 1
+        }
+      ]
+    }
+  },
+  "duel_unequal": {
+    "host_player_id": "p_PfQ_M530iHuEGcuj",
+    "guest_player_id": "p_vckFWnzZ_FWXiOl8",
+    "match_id": "8c9835fa869542c2a94ebbabd9fbc67f",
+    "result": {
+      "match_id": "8c9835fa869542c2a94ebbabd9fbc67f",
+      "winner": 0,
+      "ratings": [
+        {
+          "player_id": "p_PfQ_M530iHuEGcuj",
+          "name": "DuelA",
+          "before": 1516.0,
+          "after": 1530.5304984710244,
+          "delta": 14.530498471024522,
+          "games": 2,
+          "wins": 2,
+          "losses": 0
+        },
+        {
+          "player_id": "p_vckFWnzZ_FWXiOl8",
+          "name": "DuelB",
+          "before": 1484.0,
+          "after": 1469.4695015289756,
+          "delta": -14.530498471024522,
+          "games": 2,
+          "wins": 0,
+          "losses": 2
+        }
+      ]
+    }
+  }
+}

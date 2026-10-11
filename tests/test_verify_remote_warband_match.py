@@ -414,6 +414,153 @@ def test_rated_receipt_requires_match_id_winner_and_distinct_ids(tmp_path, publi
         assert report["status"] == "failed" and keyword in report["error"].lower(), keyword
 
 
+ENGINE_RECEIPTS = ROOT / "tests" / "data" / "rated_duel_receipts.json"
+
+
+def seam_from_receipt(base, receipt):
+    """Public-route documents consistent with a source-produced receipt."""
+    (base / "players").mkdir(parents=True, exist_ok=True)
+    profiles = []
+    for entry in receipt["ratings"]:
+        profile = {"player_id": entry["player_id"], "name": entry["name"],
+                   "rating": entry["after"], "games": entry["games"],
+                   "wins": entry["wins"], "losses": entry["losses"]}
+        (base / "players" / (entry["player_id"] + ".json")).write_text(json.dumps(profile))
+        profiles.append(profile)
+    (base / "ratings.json").write_text(json.dumps({"game": "warband-v2", "players": profiles}))
+    (base / "status.json").write_text(json.dumps(
+        {"protocol": "warband-v2", "rooms": 1, "ready_rooms": 0, "players": 2,
+         "rated_grace": 60,
+         "ratings": {"warband-v2": {"enabled": True, "seats": [2, 3, 4],
+                                    "starting_rating": 1500}}}))
+    return f"file://{base}"
+
+
+def rated_statuses_for(receipt, room):
+    host = dict(HOST_STATUS, room=room, result=receipt)
+    guest = dict(GUEST_STATUS, room=room, result=receipt)
+    return host, guest
+
+
+def rated_names(receipt):
+    names = [entry["name"] for entry in receipt["ratings"]]
+    return names[0], names[1]
+
+
+def test_engine_captured_float_receipts_pass_harness(tmp_path):
+    """Source-produced float receipts (equal then fractional) verify end to end."""
+    if not ENGINE_RECEIPTS.is_file():
+        pytest.skip("engine-produced receipt fixture not captured")
+    captured = json.loads(ENGINE_RECEIPTS.read_text())
+    for key, room in (("duel_equal", "FLOAT01"), ("duel_unequal", "FLOAT02")):
+        duel = captured[key]
+        receipt = duel["result"]
+        for entry in receipt["ratings"]:
+            assert isinstance(entry["before"], float), "engine emits float ratings"
+            assert isinstance(entry["delta"], float)
+        host_name, guest_name = rated_names(receipt)
+        host, guest = rated_statuses_for(receipt, room)
+        helper = write_stub(tmp_path, host=host, guest=guest)
+        targets = write_targets(tmp_path)
+        routes = seam_from_receipt(tmp_path / f"routes-{key}", receipt)
+        argv = [*base_argv(tmp_path, helper, *targets), "--rated",
+                "--host-player-name", host_name, "--guest-player-name", guest_name,
+                "--status-base", routes]
+        result = run_harness(tmp_path, *argv)
+        assert result.returncode == 0, result.stderr + result.stdout
+        report = json.loads((tmp_path / "out" / "report.json").read_text())
+        assert report["status"] == "passed" and report["match_id"] == receipt["match_id"]
+
+
+def test_live_ranked_duels_settle_float_receipts(tmp_path):
+    """Real wire duels, fresh then reused identities: floats verify end to end."""
+    try:
+        from websockets.sync.client import connect
+        from saga2d.testing.online import command, handshake, receive, running_server
+    except ImportError:
+        pytest.skip("live duel needs websockets and saga2d.testing.online")
+    try:
+        import warband.online.authority  # noqa: F401
+    except ImportError:
+        pytest.skip("live duel needs the warband engine")
+
+    def duel(url, token_a, token_b, seed):
+        with connect(url, proxy=None) as host, connect(url, proxy=None) as guest:
+            fields = {} if token_a is None else {"player_token": token_a}
+            join_fields = {} if token_b is None else {"player_token": token_b}
+            welcome = handshake(host, game="warband-v2",
+                                options={"seed": seed, "width": 48, "height": 40},
+                                rated=True, player_name="DuelA", **fields)
+            guest_welcome = handshake(guest, "join", game="warband-v2", room=welcome["room"],
+                                      player_name="DuelB", **join_fields)
+            receive(host, predicate=lambda message: message["ready"])
+            receive(guest, predicate=lambda message: message["ready"])
+            command(guest, {"action": "resign", "args": [1]})
+            decided = receive(host, predicate=lambda message: message["result"] is not None)
+            assert receive(guest, predicate=lambda message: message["result"] is not None)[
+                "result"] == decided["result"]
+            return welcome, guest_welcome, decided["result"]
+
+    with running_server("warband.online.authority:ONLINE") as (url, _process):
+        first = duel(url, None, None, 3)
+        second = duel(url, first[0]["player_token"], first[1]["player_token"], 7)
+    assert first[0]["player_id"] == second[0]["player_id"], "identities are reused"
+    assert first[2]["match_id"] != second[2]["match_id"], "two distinct rooms were settled"
+    for entry, replayed in zip(sorted(second[2]["ratings"], key=lambda e: e["name"]),
+                               sorted(first[2]["ratings"], key=lambda e: e["name"])):
+        assert entry["before"] == replayed["after"], "second duel continues the first"
+    for welcome, guest_welcome, receipt in (first, second):
+        assert receipt["match_id"] == welcome["match_id"] and receipt["winner"] == 0
+        for entry in receipt["ratings"]:
+            assert isinstance(entry["before"], float) and isinstance(entry["delta"], float)
+    fractional = [entry["delta"] for entry in second[2]["ratings"]]
+    assert any(delta != int(delta) for delta in fractional), fractional
+    for (welcome, _guest_welcome, receipt), room in zip(
+            (first, second), ("LIVE01", "LIVE02")):
+        host, guest = rated_statuses_for(receipt, room)
+        helper = write_stub(tmp_path, host=host, guest=guest)
+        targets = write_targets(tmp_path)
+        routes = seam_from_receipt(tmp_path / f"routes-{room}", receipt)
+        argv = [*base_argv(tmp_path, helper, *targets), "--rated",
+                "--host-player-name", "DuelA", "--guest-player-name", "DuelB",
+                "--status-base", routes]
+        result = run_harness(tmp_path, *argv)
+        assert result.returncode == 0, result.stderr + result.stdout
+
+
+def test_engine_fractional_delta_is_not_an_integer(tmp_path):
+    """The reused-identity duel settles a genuinely fractional exchange."""
+    if not ENGINE_RECEIPTS.is_file():
+        pytest.skip("engine-produced receipt fixture not captured")
+    receipt = json.loads(ENGINE_RECEIPTS.read_text())["duel_unequal"]["result"]
+    deltas = [entry["delta"] for entry in receipt["ratings"]]
+    assert any(delta != int(delta) for delta in deltas), deltas
+
+
+def test_nonfinite_and_bool_ratings_are_rejected(tmp_path, public_routes):
+    """NaN, Infinity and bools are never valid ratings, however they arrive."""
+    poisoned = [
+        ("nan", "delta", float("nan"), "non-numeric"),
+        ("inf", "delta", float("inf"), "non-numeric"),
+        ("bool-delta", "delta", True, "non-numeric"),
+        ("bool-games", "games", True, "non-integer"),
+    ]
+    for label, field, value, keyword in poisoned:
+        entries = [dict(RATED_RESULT["ratings"][0]), dict(RATED_RESULT["ratings"][1])]
+        entries[0][field] = value
+        receipt = {"match_id": "match-42", "winner": 0, "ratings": entries}
+        helper = write_stub(tmp_path, host=dict(HOST_STATUS, result=receipt),
+                            guest=dict(GUEST_STATUS, result=receipt))
+        targets = write_targets(tmp_path)
+        argv = [*base_argv(tmp_path, helper, *targets), "--rated",
+                "--host-player-name", "HostBot", "--guest-player-name", "GuestBot",
+                "--status-base", public_routes]
+        result = run_harness(tmp_path, *argv)
+        assert result.returncode == 1, label
+        report = json.loads((tmp_path / "out" / "report.json").read_text())
+        assert report["status"] == "failed" and keyword in report["error"].lower(), label
+
+
 def test_rated_start_forwards_a_single_rated_flag(tmp_path, public_routes):
     """The helper create line carries one --rated alongside the ranked names."""
     host = dict(HOST_STATUS, result=RATED_RESULT)

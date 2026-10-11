@@ -131,7 +131,11 @@ identity file per side only to reuse one). Both bots must then report
 the same server result receipt with a nonempty match id, a winner in
 {0, 1}, distinct player ids, and deltas that net to zero with the
 movement pointing the right way (winner up, loser down; a fresh
-1500-v-1500 pairing must move both). The harness also checks the
+1500-v-1500 pairing must move both). The engine emits ratings as
+floats (1500.0, ±16.0, fractional after rematches); the harness
+recomputes with a tight ulp-scale tolerance and never rounds
+authoritative values, while games/wins/losses stay integers and
+NaN, infinities and bools are refused. The harness also checks the
 public `/status`, `/players/{id}?game=warband-v2` and
 `/ratings?game=warband-v2` routes, recording `rated_grace` in the
 report. A ranked run with no receipt fails loudly: the client engine

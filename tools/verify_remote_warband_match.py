@@ -385,6 +385,23 @@ def check_rejoin(guest_seen: dict) -> None:
         raise RuntimeError("guest final tick shows no play after its rejoin")
 
 
+def is_rating_number(value: object) -> bool:
+    """Finite int or float ratings, never bools: the engine emits floats."""
+    return isinstance(value, (int, float)) and not isinstance(value, bool) \
+        and math.isfinite(value)
+
+
+def is_count(value: object) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+# float64 Elo recomputation can differ by a few ulps (~1e-13 relative); 1e-9
+# relative tolerance sits ~1e3x above that noise and ~1e6x below a 0.01
+# rating-point discrepancy, so only arithmetic ghosts pass, never wrong values.
+RATING_REL_TOL = 1e-9
+RATING_ABS_TOL = 1e-9
+
+
 def check_ratings(result: dict, host_name: str, guest_name: str, winner_name: str,
                   starting_rating: int = 1500) -> dict:
     """Validate the server result receipt: two named ratings with netting deltas."""
@@ -399,11 +416,14 @@ def check_ratings(result: dict, host_name: str, guest_name: str, winner_name: st
         name = entry.get("name")
         if name not in (host_name, guest_name):
             raise RuntimeError(f"ranked receipt names unknown player {name!r}")
-        for key in ("before", "after", "delta", "games", "wins", "losses"):
-            value = entry.get(key)
-            if not isinstance(value, int) or isinstance(value, bool):
+        for key in ("before", "after", "delta"):
+            if not is_rating_number(entry.get(key)):
+                raise RuntimeError(f"ranked receipt for {name!r} has non-numeric {key}")
+        for key in ("games", "wins", "losses"):
+            if not is_count(entry.get(key)):
                 raise RuntimeError(f"ranked receipt for {name!r} has non-integer {key}")
-        if entry["after"] - entry["before"] != entry["delta"]:
+        if not math.isclose(entry["after"] - entry["before"], entry["delta"],
+                            rel_tol=RATING_REL_TOL, abs_tol=RATING_ABS_TOL):
             raise RuntimeError(f"ranked receipt delta does not match before/after for {name!r}")
         for key in ("games", "wins", "losses"):
             if entry[key] < 0:
@@ -416,7 +436,8 @@ def check_ratings(result: dict, host_name: str, guest_name: str, winner_name: st
         raise RuntimeError("ranked receipt does not cover both seats")
     if len(player_ids) != 2:
         raise RuntimeError("ranked receipt reuses one player_id for both seats")
-    if by_name[host_name]["delta"] + by_name[guest_name]["delta"] != 0:
+    if not math.isclose(by_name[host_name]["delta"] + by_name[guest_name]["delta"], 0.0,
+                        rel_tol=0.0, abs_tol=RATING_ABS_TOL):
         raise RuntimeError("ranked receipt deltas do not net to zero")
     loser_name = guest_name if winner_name == host_name else host_name
     winner_delta, loser_delta = by_name[winner_name]["delta"], by_name[loser_name]["delta"]
