@@ -224,3 +224,24 @@ def test_card_seam_pairs_live_commands_with_buttons():
         assert scene.unit_name(rules.UnitType.PEASANT) in [command.label for command in scene.card]
     finally:
         game.close()
+
+
+def test_same_account_second_seat_needs_a_casual_warband_room():
+    """The journeys play both seats from one profile: a rated room rejects that
+    second seat while a casual room accepts it, which is why the Warband journey
+    clicks the public Casual room button before Create room."""
+    from websockets.sync.client import connect
+    from saga2d.testing.online import handshake, running_server
+    import warband.online.authority  # noqa: F401
+
+    with running_server("warband.online.authority:ONLINE") as (url, _process):
+        with connect(url, proxy=None) as host, connect(url, proxy=None) as same:
+            welcome = handshake(host, game="warband-v2", options={"seed": 3}, rated=True)
+            with pytest.raises(AssertionError, match="already holds a seat"):
+                handshake(same, "join", game="warband-v2", room=welcome["room"],
+                          player_token=welcome["player_token"])
+        with connect(url, proxy=None) as host, connect(url, proxy=None) as same:
+            welcome = handshake(host, game="warband-v2", options={"seed": 3}, rated=False)
+            guest = handshake(same, "join", game="warband-v2", room=welcome["room"],
+                              player_token=welcome["player_token"])
+            assert guest["player"] == 1

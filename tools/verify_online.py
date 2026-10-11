@@ -134,11 +134,19 @@ def verify(name, output, endpoint):
             assert game.scene.mode == 'lan'
             shot('lan')
             click_text('Online')
+            if name == 'warband':
+                assert game.scene.rated is True, 'Warband setup opens rated by default'
+                click_text('Casual room')
+                assert game.scene.rated is False, \
+                    'Casual room button must switch the public room off rated'
             click_text('Create room')
             assert isinstance(game.scene, MatchLobby)
             wait(lambda: bool(game.scene.session.resume_token))
             creator = game.scene.session
             assert not creator.ready
+            if name == 'warband':
+                assert creator.rated is False, \
+                    'Created public room must be casual so one profile can hold both seats'
             room, token = creator.room, creator.resume_token
             shot('room')
             press(key.ESCAPE)
