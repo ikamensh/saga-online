@@ -408,6 +408,7 @@ def is_count(value: object) -> bool:
 # rating-point discrepancy, so only arithmetic ghosts pass, never wrong values.
 RATING_REL_TOL = 1e-9
 RATING_ABS_TOL = 1e-9
+LEADERBOARD_FULL_SIZE = 20
 
 
 def check_ratings(result: dict, host_name: str, guest_name: str, winner_id: str,
@@ -463,6 +464,32 @@ def check_ratings(result: dict, host_name: str, guest_name: str, winner_id: str,
             and not (winner_delta > 0 and loser_delta < 0):
         raise RuntimeError("a fresh-rating match must move both ratings")
     return row_by_id
+
+
+def check_leaderboard(rows: list) -> dict:
+    """Validate every leaderboard row; return player_id -> rating without skipping."""
+    ratings_by_id: dict = {}
+    previous = None
+    for row in rows:
+        if not isinstance(row, dict):
+            raise RuntimeError("public /ratings carries a malformed row")
+        player_id = row.get("player_id")
+        if not isinstance(player_id, str) or not player_id:
+            raise RuntimeError("public /ratings carries a row without a player id")
+        if player_id in ratings_by_id:
+            raise RuntimeError("public /ratings lists a player id twice")
+        if not isinstance(row.get("name"), str) or not row.get("name"):
+            raise RuntimeError("public /ratings carries a row without a name")
+        if not is_rating_number(row.get("rating")):
+            raise RuntimeError("public /ratings carries a non-numeric rating")
+        for key in ("games", "wins", "losses"):
+            if not is_count(row.get(key)) or row[key] < 0:
+                raise RuntimeError(f"public /ratings carries a non-integer {key}")
+        if previous is not None and row["rating"] > previous:
+            raise RuntimeError("public /ratings is not sorted by rating descending")
+        previous = row["rating"]
+        ratings_by_id[player_id] = row["rating"]
+    return ratings_by_id
 
 
 def fetch_route(base: str, *parts: str, query: str = "") -> dict:
@@ -537,11 +564,18 @@ def check_rated(args: argparse.Namespace, host_seen: dict, guest_seen: dict) -> 
     board = fetch_route(base, "ratings", query=f"game={GAME_ID}&limit=20")
     if board.get("game") != GAME_ID or not isinstance(board.get("players"), list):
         raise RuntimeError("public /ratings returned an unexpected document")
-    board_ratings = {row["player_id"]: row["rating"] for row in board["players"]
-                     if isinstance(row, dict) and "player_id" in row and "rating" in row}
+    board_ratings = check_leaderboard(board["players"])
     for player_id, entry in row_by_id.items():
-        if board_ratings.get(player_id) != entry["after"]:
-            raise RuntimeError(f"public /ratings disagrees with the receipt for {entry['name']!r}")
+        if player_id in board_ratings:
+            if board_ratings[player_id] != entry["after"]:
+                raise RuntimeError(f"public /ratings disagrees with the receipt for {entry['name']!r}")
+            continue
+        if len(board["players"]) != LEADERBOARD_FULL_SIZE:
+            raise RuntimeError(f"public /ratings disagrees with the receipt for {entry['name']!r}: "
+                               "the leaderboard has room, so an absent seat is not excused")
+        if any(rating < entry["after"] for rating in board_ratings.values()):
+            raise RuntimeError(f"public /ratings disagrees with the receipt for {entry['name']!r}: "
+                               "a full leaderboard must outrank an absent seat")
     return {"match_id": result.get("match_id"),
             "deltas": {entry["name"]: entry["delta"] for entry in row_by_id.values()},
             "public_routes": {"checked": True, "rated_grace": status.get("rated_grace"),
