@@ -81,6 +81,69 @@ def scout_destination(world, scout_pos, human, opponent, remembered):
     return tile_center(tile), 'geometry'
 
 
+def move_choices(world, worker):
+    """Reachable nearby move destinations for *worker*, in tile units.
+
+    Only public world queries: tiles around the worker's own tile that are
+    passable, unoccupied, and a step away. Each axis is bounded by its own
+    coordinate, so off-diagonal seats get a real search range.
+    """
+    from warband.sim.model import tile_center
+    return [tile_center((x, y))
+            for y in range(max(0, worker.tile[1] - 3), min(world.height, worker.tile[1] + 4))
+            for x in range(max(0, worker.tile[0] - 3), min(world.width, worker.tile[0] + 4))
+            if world.passable(x, y) and 1.5 <= math.dist(worker.pos, tile_center((x, y))) <= 3
+            and world.entity_at(tile_center((x, y))) is None]
+
+
+def resolve_card_button(widgets, label):
+    """The clickable widget behind card label *label* in a live widget list.
+
+    A card button carries its label directly, except portrait cards, whose
+    caption sits beside the button: then the nearest clickable sharing the
+    caption's horizontal span wins. Raises AssertionError when nothing
+    matches, listing the labels on screen.
+    """
+    def text_of(widget):
+        text = getattr(widget, 'text', None)
+        value = text() if callable(text) else text
+        return value if isinstance(value, str) else ''
+
+    def clickable(widget):
+        return callable(getattr(widget, 'on_click', None)) and getattr(widget, 'bounds', None) is not None
+
+    for widget in widgets:
+        if text_of(widget) == label and clickable(widget):
+            return widget
+    captions = [(widget, widget.bounds) for widget in widgets
+                if text_of(widget) == label and not clickable(widget)
+                and getattr(widget, 'bounds', None) is not None]
+    for caption, (lx, ly, lw, lh) in captions:
+        cx, cy = lx + lw / 2, ly + lh / 2
+        holders = [widget for widget in widgets
+                   if clickable(widget) and widget is not caption
+                   and widget.bounds[0] <= cx < widget.bounds[0] + widget.bounds[2]
+                   and widget.bounds[1] <= cy < widget.bounds[1] + widget.bounds[3]]
+        if holders:
+            return min(holders, key=lambda widget: widget.bounds[2] * widget.bounds[3])
+    for _, (lx, ly, lw, lh) in captions:
+        cx, cy = lx + lw / 2, ly + lh / 2
+        neighbours = []
+        for widget in widgets:
+            if not clickable(widget):
+                continue
+            bx, by, bw, bh = widget.bounds
+            if not bx <= cx < bx + bw:
+                continue
+            if by <= cy < by + bh:
+                continue
+            neighbours.append((min(abs(cy - by), abs(cy - (by + bh))), widget))
+        if neighbours:
+            return min(neighbours, key=lambda pair: pair[0])[1]
+    names = sorted({text_of(widget) for widget in widgets if text_of(widget)})
+    raise AssertionError(f'No command card button {label!r}; visible labels: {names}')
+
+
 def claim_scout_target(ordered, target):
     """Record *target* in the *ordered* set, refusing to repeat a destination.
 
@@ -156,6 +219,13 @@ def verify(output: Path, server: str, room: str, timeout: float, visible: bool) 
             x, y, w, h = widget.bounds
             assert w > 0 and h > 0, f'Button {label!r} has no grounded bounds yet'
             click(x + w / 2, y + h / 2, button)
+
+        def click_card(label_text):
+            # The command card under the live scheme: click the button behind
+            # its label, never a hard-coded key or a direct order call.
+            button = resolve_card_button(list(game.scene.ui.walk()), label_text)
+            assert getattr(button, 'enabled', True), f'Command card button {label_text!r} is disabled'
+            click_widget(button)
 
         def find_button(match):
             frames(2)
@@ -262,19 +332,15 @@ def verify(output: Path, server: str, room: str, timeout: float, visible: bool) 
             worker_id, scout_id = workers[0].id, workers[1].id
             initial_local_ids = {u.id for u in scene.world.player_units(human)}
 
-            # Move one worker by the same command-card key and world click a player uses.
+            # Move one worker through the live command card and a world click, as a player does.
             worker = scene.world.units[worker_id]
             click_world(worker.pos)
             assert worker_id in scene.selection
-            candidates = [tile_center((x, y))
-                          for y in range(max(0, worker.tile[1] - 3), min(scene.world.height, worker.tile[1] + 4))
-                          for x in range(max(0, worker.tile[0] - 3), min(scene.world.width, worker.tile[1] + 4))
-                          if scene.world.passable(x, y) and 1.5 <= math.dist(worker.pos, tile_center((x, y))) <= 3
-                          and scene.world.entity_at(tile_center((x, y))) is None]
+            candidates = move_choices(scene.world, worker)
             assert candidates, 'No open nearby destination for the move input'
             destination = min(candidates, key=lambda p: math.dist(p, hall.center))
             before_revision, old_position = scene.session.revision, worker.pos
-            press(key.M)
+            click_card('Move')
             assert scene.pending == 'move'
             click_world(destination)
             wait(lambda: isinstance(scene.world.units[worker_id].order, Move), 'Authoritative move order')
@@ -303,7 +369,7 @@ def verify(output: Path, server: str, room: str, timeout: float, visible: bool) 
             click_world(scene.world.buildings[hall_id].center)
             assert hall_id in scene.selection
             before_revision = scene.session.revision
-            press(key.P)
+            click_card(scene.unit_name(UnitType.PEASANT))
             wait(lambda: UnitType.PEASANT in scene.world.buildings[hall_id].queue, 'Authoritative training queue')
             row = accepted('train', before_revision, 'buildings', hall_id, unit_type=UnitType.PEASANT.value)
             assert UnitType.PEASANT.value in row['queue']

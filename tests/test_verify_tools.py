@@ -117,3 +117,54 @@ def test_scout_refuses_to_repeat_an_ordered_destination():
     with pytest.raises(AssertionError):
         claim_scout_target(ordered, (10.5, 20.5))
     claim_scout_target(ordered, (30.5, 5.5))
+
+
+def test_move_choices_cover_an_off_diagonal_worker():
+    """Seat 1 starts near x~45/y~31, where the old y-bounded x range searched
+    nothing: a real worker there must get reachable destinations."""
+    from verify_warband_remote_ai import move_choices
+
+    world = importlib.import_module('warband.sim.mapgen').generate(1)
+    workers = [u for u in world.player_units(1) if u.is_worker and not u.hidden]
+    worker = next(u for u in workers if u.tile[0] != u.tile[1])
+    choices = move_choices(world, worker)
+    assert choices, f'No destinations around tile {worker.tile}'
+    for point in choices:
+        assert world.passable(int(point[0]), int(point[1]))
+        assert world.entity_at(point) is None
+        assert 1.5 <= math.dist(worker.pos, point) <= 3
+    own_hall = world.player_buildings(1, importlib.import_module('warband.sim.rules').BuildingType.TOWN_HALL,
+                                      done=True)[0]
+    destination = min(choices, key=lambda p: math.dist(p, own_hall.center))
+    assert math.dist(worker.pos, destination) <= 3
+
+
+def test_move_key_follows_the_live_scheme():
+    """The card's Move slot resolves through the scene's own scheme bindings:
+    Q on the positional cards the screenshots show, the mnemonic letter only
+    on Classic."""
+    controls = importlib.import_module('warband.ui.controls')
+    move_slot = importlib.import_module('warband.ui.scene').UNIT_SLOTS['move']
+    assert controls.SCHEMES['grid'].card_key('m', move_slot) == 'q'
+    assert controls.SCHEMES['modal'].card_key('m', move_slot) == 'q'
+    assert controls.SCHEMES['classic'].card_key('m', move_slot) == 'm'
+
+
+def test_card_button_resolution_reads_live_widgets():
+    """Card labels resolve to their clickable button however the live card
+    renders them: direct text, a label inside its button, or a portrait
+    caption below it. Anything else fails loudly."""
+    from types import SimpleNamespace
+
+    from verify_warband_remote_ai import resolve_card_button
+
+    direct = SimpleNamespace(text='Move', bounds=(10, 10, 60, 40), on_click=lambda: None)
+    assert resolve_card_button([direct], 'Move') is direct
+    holder = SimpleNamespace(text='', bounds=(0, 0, 64, 64), on_click=lambda: None)
+    nested = SimpleNamespace(text='Move', bounds=(8, 40, 48, 16))
+    assert resolve_card_button([holder, nested], 'Move') is holder
+    portrait = SimpleNamespace(text='', bounds=(0, 64, 64, 64), on_click=lambda: None)
+    caption = SimpleNamespace(text='Peasant', bounds=(0, 0, 64, 16))
+    assert resolve_card_button([portrait, caption], 'Peasant') is portrait
+    with pytest.raises(AssertionError):
+        resolve_card_button([portrait, caption], 'Catapult')
