@@ -89,7 +89,11 @@ With `--player-name` and no `--identity-file`, the engine mints and
 keeps a per-VM private identity at
 `/var/lib/saga2d-warband-ai/identity.json` across matches; pass an
 owner-only mode 0600 `--identity-file` only to reuse an existing one.
-Identity bytes are uploaded, never printed.
+Identity bytes are uploaded, never printed. A rated `finished` event
+carries only the seat's public player id and rating profile, and
+`status --json` reports them; the harness binds each receipt row to
+its seat by that public id (duplicate aliases are refused), so no
+private token is ever needed for correlation.
 
 The client runs as a transient systemd service with a 25% CPU quota, a 256 MB
 memory limit and a read-only system filesystem. It stops on errors or when

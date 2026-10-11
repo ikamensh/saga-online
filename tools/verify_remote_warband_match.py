@@ -138,6 +138,8 @@ def validate(args: argparse.Namespace, parser: argparse.ArgumentParser) -> None:
         parser.error("--height must be 40-64")
     if args.rated and not (args.host_player_name and args.guest_player_name):
         parser.error("--rated requires --host-player-name and --guest-player-name")
+    if args.rated and args.host_player_name == args.guest_player_name:
+        parser.error("--host-player-name and --guest-player-name must differ")
     for name in ("host-player-name", "guest-player-name"):
         value = getattr(args, name.replace("-", "_"))
         if value is not None and not PLAYER_PATTERN.fullmatch(value):
@@ -265,7 +267,7 @@ def start_guest(args: argparse.Namespace, room: str) -> None:
 def fresh_accumulator() -> dict:
     return {"room": None, "player": None, "invocation": None, "tick": 0, "orders": 0,
             "states": 0, "reconnects": 0, "continuity": None, "finished": False,
-            "reason": None, "winner": None, "result": None}
+            "reason": None, "winner": None, "result": None, "player_id": None}
 
 
 def accumulate(seen: dict, status: dict, side: str) -> None:
@@ -287,6 +289,12 @@ def accumulate(seen: dict, status: dict, side: str) -> None:
             seen["invocation"] = invocation
         elif seen["invocation"] != invocation:
             raise RuntimeError(f"{side} restarted mid-run: {seen['invocation']} -> {invocation}")
+    public_id = status.get("player_id")
+    if public_id is not None:
+        if seen["player_id"] is None:
+            seen["player_id"] = public_id
+        elif seen["player_id"] != public_id:
+            raise RuntimeError(f"{side} public id changed mid-run")
     for key, field in (("tick", "tick"), ("orders", "orders_submitted"),
                        ("states", "states_received"), ("reconnects", "reconnects_observed")):
         value = status.get(field)
@@ -402,14 +410,14 @@ RATING_REL_TOL = 1e-9
 RATING_ABS_TOL = 1e-9
 
 
-def check_ratings(result: dict, host_name: str, guest_name: str, winner_name: str,
-                  starting_rating: int = 1500) -> dict:
-    """Validate the server result receipt: two named ratings with netting deltas."""
+def check_ratings(result: dict, host_name: str, guest_name: str, winner_id: str,
+                  host_id: str, guest_id: str, starting_rating: int = 1500) -> dict:
+    """Validate the receipt against each seat's own public id, never names alone."""
     ratings = result.get("ratings")
     if not isinstance(ratings, list) or len(ratings) != 2:
         raise RuntimeError("ranked receipt must carry exactly two player ratings")
-    by_name = {}
-    player_ids = set()
+    seat_ids = {"host": host_id, "guest": guest_id}
+    row_by_id = {}
     for entry in ratings:
         if not isinstance(entry, dict):
             raise RuntimeError("ranked receipt carries a malformed rating entry")
@@ -430,24 +438,31 @@ def check_ratings(result: dict, host_name: str, guest_name: str, winner_name: st
                 raise RuntimeError(f"ranked receipt for {name!r} has negative {key}")
         if not entry.get("player_id"):
             raise RuntimeError(f"ranked receipt for {name!r} names no player_id")
-        player_ids.add(entry["player_id"])
-        by_name[name] = entry
-    if set(by_name) != {host_name, guest_name}:
-        raise RuntimeError("ranked receipt does not cover both seats")
-    if len(player_ids) != 2:
-        raise RuntimeError("ranked receipt reuses one player_id for both seats")
-    if not math.isclose(by_name[host_name]["delta"] + by_name[guest_name]["delta"], 0.0,
+        if entry["player_id"] not in seat_ids.values():
+            raise RuntimeError(f"ranked receipt row for {name!r} carries an unknown player id")
+        if entry["player_id"] in row_by_id:
+            raise RuntimeError("ranked receipt reuses one player_id for both seats")
+        row_by_id[entry["player_id"]] = entry
+    if set(row_by_id) != set(seat_ids.values()):
+        raise RuntimeError("ranked receipt does not cover both seats' public ids")
+    for side, seat_name in (("host", host_name), ("guest", guest_name)):
+        if row_by_id[seat_ids[side]]["name"] != seat_name:
+            raise RuntimeError(f"ranked receipt row for seat {side} names "
+                               f"{row_by_id[seat_ids[side]]['name']!r}, not {seat_name!r}")
+    if not math.isclose(row_by_id[host_id]["delta"] + row_by_id[guest_id]["delta"], 0.0,
                         rel_tol=0.0, abs_tol=RATING_ABS_TOL):
         raise RuntimeError("ranked receipt deltas do not net to zero")
-    loser_name = guest_name if winner_name == host_name else host_name
-    winner_delta, loser_delta = by_name[winner_name]["delta"], by_name[loser_name]["delta"]
+    if winner_id not in seat_ids.values():
+        raise RuntimeError("ranked winner id matches neither seat's public id")
+    loser_id = guest_id if winner_id == host_id else host_id
+    winner_delta, loser_delta = row_by_id[winner_id]["delta"], row_by_id[loser_id]["delta"]
     if winner_delta < 0 or loser_delta > 0:
         raise RuntimeError("ranked receipt moves ratings the wrong way: "
-                           f"winner {winner_delta:+d}, loser {loser_delta:+d}")
-    if by_name[winner_name]["before"] == by_name[loser_name]["before"] == starting_rating \
+                           f"winner {winner_delta:+}, loser {loser_delta:+}")
+    if row_by_id[winner_id]["before"] == row_by_id[loser_id]["before"] == starting_rating \
             and not (winner_delta > 0 and loser_delta < 0):
         raise RuntimeError("a fresh-rating match must move both ratings")
-    return by_name
+    return row_by_id
 
 
 def fetch_route(base: str, *parts: str, query: str = "") -> dict:
@@ -497,37 +512,46 @@ def check_rated(args: argparse.Namespace, host_seen: dict, guest_seen: dict) -> 
     if ratings_config.get("enabled") is not True:
         raise RuntimeError(f"public /status shows ratings disabled for {GAME_ID}")
     starting_rating = ratings_config.get("starting_rating", 1500)
-    winner_name = args.host_player_name if host_seen["player"] == result["winner"] \
-        else args.guest_player_name
-    by_name = check_ratings(result, args.host_player_name, args.guest_player_name,
-                            winner_name, starting_rating)
+    host_id, guest_id = host_seen["player_id"], guest_seen["player_id"]
+    if not host_id or not guest_id:
+        raise RuntimeError("rated run reports no public player id for both seats")
+    if host_seen["player"] == result["winner"]:
+        winner_id = host_id
+    elif guest_seen["player"] == result["winner"]:
+        winner_id = guest_id
+    else:
+        raise RuntimeError("ranked receipt winner matches neither seat")
+    row_by_id = check_ratings(result, args.host_player_name, args.guest_player_name,
+                              winner_id, host_id, guest_id, starting_rating)
     public_players = {}
-    for name, entry in by_name.items():
-        profile = fetch_route(base, "players", entry["player_id"], query=f"game={GAME_ID}")
-        if profile.get("name") != name or profile.get("rating") != entry["after"]:
+    for player_id, entry in row_by_id.items():
+        name = entry["name"]
+        profile = fetch_route(base, "players", player_id, query=f"game={GAME_ID}")
+        if profile.get("player_id") != player_id or profile.get("name") != name \
+                or profile.get("rating") != entry["after"]:
             raise RuntimeError(f"public profile for {name!r} does not match the receipt")
         for key in ("games", "wins", "losses"):
             if profile.get(key) != entry[key]:
                 raise RuntimeError(f"public profile for {name!r} disagrees on {key}")
-        public_players[entry["player_id"]] = profile["rating"]
+        public_players[player_id] = profile["rating"]
     board = fetch_route(base, "ratings", query=f"game={GAME_ID}&limit=20")
     if board.get("game") != GAME_ID or not isinstance(board.get("players"), list):
         raise RuntimeError("public /ratings returned an unexpected document")
     board_ratings = {row["player_id"]: row["rating"] for row in board["players"]
                      if isinstance(row, dict) and "player_id" in row and "rating" in row}
-    for name, entry in by_name.items():
-        if board_ratings.get(entry["player_id"]) != entry["after"]:
-            raise RuntimeError(f"public /ratings disagrees with the receipt for {name!r}")
+    for player_id, entry in row_by_id.items():
+        if board_ratings.get(player_id) != entry["after"]:
+            raise RuntimeError(f"public /ratings disagrees with the receipt for {entry['name']!r}")
     return {"match_id": result.get("match_id"),
-            "deltas": {name: entry["delta"] for name, entry in by_name.items()},
+            "deltas": {entry["name"]: entry["delta"] for entry in row_by_id.values()},
             "public_routes": {"checked": True, "rated_grace": status.get("rated_grace"),
                               "players": public_players}}
 
 
 def side_summary(seen: dict) -> dict:
-    return {"player": seen["player"], "tick": seen["tick"], "orders": seen["orders"],
-            "winner": seen["winner"], "reconnects": seen["reconnects"],
-            "continuity": seen["continuity"]}
+    return {"player": seen["player"], "player_id": seen["player_id"], "tick": seen["tick"],
+            "orders": seen["orders"], "winner": seen["winner"],
+            "reconnects": seen["reconnects"], "continuity": seen["continuity"]}
 
 
 def run(argv=None) -> int:

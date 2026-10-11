@@ -249,6 +249,7 @@ def summarize_events(events: list[dict]) -> dict:
     summary: dict = {"room": None, "player": None, "difficulty": None, "finished": False,
                      "reason": None, "winner": None, "tick": 0, "states_received": 0,
                      "orders_submitted": 0, "reconnects_observed": 0, "result": None,
+                     "player_id": None, "profile": None,
                      "rejoin_continuity": None, "error": None}
     saw_pause = False
     saw_ready = False
@@ -305,6 +306,12 @@ def summarize_events(events: list[dict]) -> dict:
                     summary[key] = max(summary[key], event[key])
             if isinstance(event.get("result"), dict):
                 summary["result"] = sanitize_event(event["result"])
+            # Public identity rides with a rated receipt; private tokens never do
+            # (sanitize_event strips credential-shaped keys at every depth).
+            if isinstance(event.get("player_id"), str) and event["player_id"]:
+                summary["player_id"] = event["player_id"]
+            if isinstance(event.get("profile"), dict):
+                summary["profile"] = sanitize_event(event["profile"])
         elif kind == "error" and summary["error"] is None:
             summary["error"] = redact_text(str(event.get("error", "bot error")))[:200]
     return summary

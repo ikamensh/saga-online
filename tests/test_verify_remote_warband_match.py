@@ -25,6 +25,7 @@ HOST_STATUS = {
     "room": "MATCH01", "player": 0, "difficulty": "medium",
     "finished": True, "reason": "winner", "winner": 0, "tick": 5400,
     "states_received": 40, "orders_submitted": 120, "reconnects_observed": 0,
+    "player_id": "player-host",
     "result": None, "journal_lines": 40, "journal_kept": 12,
 }
 GUEST_STATUS = {
@@ -33,6 +34,7 @@ GUEST_STATUS = {
     "room": "MATCH01", "player": 1, "difficulty": "medium",
     "finished": True, "reason": "winner", "winner": 0, "tick": 5390,
     "states_received": 38, "orders_submitted": 100, "reconnects_observed": 1,
+    "player_id": "player-guest",
     "rejoin_continuity": {"player": 1, "before_tick": 100, "tick": 130,
                           "before_units": [11], "units": [11, 12],
                           "before_buildings": [], "buildings": [21]},
@@ -436,9 +438,11 @@ def seam_from_receipt(base, receipt):
     return f"file://{base}"
 
 
-def rated_statuses_for(receipt, room):
-    host = dict(HOST_STATUS, room=room, result=receipt)
-    guest = dict(GUEST_STATUS, room=room, result=receipt)
+def rated_statuses_for(receipt, room, host_name, guest_name):
+    """Fake helper statuses carrying the receipt's actual public ids per seat."""
+    ids = {entry["name"]: entry["player_id"] for entry in receipt["ratings"]}
+    host = dict(HOST_STATUS, room=room, result=receipt, player_id=ids[host_name])
+    guest = dict(GUEST_STATUS, room=room, result=receipt, player_id=ids[guest_name])
     return host, guest
 
 
@@ -459,7 +463,7 @@ def test_engine_captured_float_receipts_pass_harness(tmp_path):
             assert isinstance(entry["before"], float), "engine emits float ratings"
             assert isinstance(entry["delta"], float)
         host_name, guest_name = rated_names(receipt)
-        host, guest = rated_statuses_for(receipt, room)
+        host, guest = rated_statuses_for(receipt, room, host_name, guest_name)
         helper = write_stub(tmp_path, host=host, guest=guest)
         targets = write_targets(tmp_path)
         routes = seam_from_receipt(tmp_path / f"routes-{key}", receipt)
@@ -474,15 +478,14 @@ def test_engine_captured_float_receipts_pass_harness(tmp_path):
 
 def test_live_ranked_duels_settle_float_receipts(tmp_path):
     """Real wire duels, fresh then reused identities: floats verify end to end."""
-    try:
-        from websockets.sync.client import connect
-        from saga2d.testing.online import command, handshake, receive, running_server
-    except ImportError:
-        pytest.skip("live duel needs websockets and saga2d.testing.online")
-    try:
-        import warband.online.authority  # noqa: F401
-    except ImportError:
-        pytest.skip("live duel needs the warband engine")
+    import importlib.util
+    if importlib.util.find_spec("websockets") is None \
+            or importlib.util.find_spec("saga2d.testing.online") is None \
+            or importlib.util.find_spec("warband.online.authority") is None:
+        pytest.skip("live duel needs websockets, saga2d.testing.online and the warband engine")
+    from websockets.sync.client import connect
+    from saga2d.testing.online import command, handshake, receive, running_server
+    import warband.online.authority  # noqa: F401
 
     def duel(url, token_a, token_b, seed):
         with connect(url, proxy=None) as host, connect(url, proxy=None) as guest:
@@ -517,7 +520,7 @@ def test_live_ranked_duels_settle_float_receipts(tmp_path):
     assert any(delta != int(delta) for delta in fractional), fractional
     for (welcome, _guest_welcome, receipt), room in zip(
             (first, second), ("LIVE01", "LIVE02")):
-        host, guest = rated_statuses_for(receipt, room)
+        host, guest = rated_statuses_for(receipt, room, "DuelA", "DuelB")
         helper = write_stub(tmp_path, host=host, guest=guest)
         targets = write_targets(tmp_path)
         routes = seam_from_receipt(tmp_path / f"routes-{room}", receipt)
@@ -559,6 +562,47 @@ def test_nonfinite_and_bool_ratings_are_rejected(tmp_path, public_routes):
         assert result.returncode == 1, label
         report = json.loads((tmp_path / "out" / "report.json").read_text())
         assert report["status"] == "failed" and keyword in report["error"].lower(), label
+
+
+def test_swapped_public_ids_are_refused_despite_right_names(tmp_path, public_routes):
+    """Seats reporting each other's public ids fail even with correct receipt names."""
+    host = dict(HOST_STATUS, result=RATED_RESULT, player_id="player-guest")
+    guest = dict(GUEST_STATUS, result=RATED_RESULT, player_id="player-host")
+    helper = write_stub(tmp_path, host=host, guest=guest)
+    targets = write_targets(tmp_path)
+    argv = [*base_argv(tmp_path, helper, *targets), "--rated",
+            "--host-player-name", "HostBot", "--guest-player-name", "GuestBot",
+            "--status-base", public_routes]
+    result = run_harness(tmp_path, *argv)
+    assert result.returncode == 1
+    report = json.loads((tmp_path / "out" / "report.json").read_text())
+    assert report["status"] == "failed" and "row for seat host" in report["error"]
+
+
+def test_missing_seat_public_id_is_refused(tmp_path, public_routes):
+    """A rated seat with no finished public id cannot be correlated by id."""
+    guest = dict(GUEST_STATUS, result=RATED_RESULT, player_id=None)
+    helper = write_stub(tmp_path, host=dict(HOST_STATUS, result=RATED_RESULT), guest=guest)
+    targets = write_targets(tmp_path)
+    argv = [*base_argv(tmp_path, helper, *targets), "--rated",
+            "--host-player-name", "HostBot", "--guest-player-name", "GuestBot",
+            "--status-base", public_routes]
+    result = run_harness(tmp_path, *argv)
+    assert result.returncode == 1
+    report = json.loads((tmp_path / "out" / "report.json").read_text())
+    assert report["status"] == "failed" and "public player id" in report["error"].lower()
+
+
+def test_duplicate_rated_names_are_refused_before_ssh(tmp_path):
+    """One alias for both seats cannot resolve roles, so it is rejected up front."""
+    helper = write_stub(tmp_path)
+    targets = write_targets(tmp_path)
+    argv = [*base_argv(tmp_path, helper, *targets), "--rated",
+            "--host-player-name", "SameBot", "--guest-player-name", "SameBot"]
+    result = run_harness(tmp_path, *argv)
+    assert result.returncode == 2
+    assert "differ" in result.stderr
+    assert not (tmp_path / "started.log").exists()
 
 
 def test_rated_start_forwards_a_single_rated_flag(tmp_path, public_routes):

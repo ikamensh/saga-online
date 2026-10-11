@@ -37,7 +37,11 @@ CURRENT_JOURNAL = "\n".join([
                 "before_buildings": [21], "buildings": [21]}),
     json.dumps({"event": "match_ready", "revision": 12}),
     json.dumps({"event": "finished", "reason": "winner", "room": "NEWROOM", "player": 1,
-                "tick": 5400, "states_received": 40, "orders_submitted": 120, "winner": 0}),
+                "tick": 5400, "states_received": 40, "orders_submitted": 120, "winner": 0,
+                "player_id": "player-aaa",
+                "profile": {"player_id": "player-aaa", "name": "Seat", "rating": 1516.0,
+                            "games": 1, "wins": 1, "losses": 0},
+                "player_token": "STRIP-ME-1234567890abcdef"}),
 ])
 
 
@@ -297,6 +301,9 @@ def test_status_json_reports_current_invocation_only(rig):
     assert status["room"] == "NEWROOM" and status["player"] == 1
     assert status["finished"] is True and status["reason"] == "winner"
     assert status["winner"] == 0 and status["tick"] == 5400
+    assert status["player_id"] == "player-aaa"
+    assert status["profile"]["rating"] == 1516.0
+    assert "STRIP-ME-1234567890abcdef" not in result.stdout
     assert status["orders_submitted"] == 120 and status["reconnects_observed"] == 2
     assert status["rejoin_continuity"] == {"player": 1, "before_tick": 100, "tick": 130,
                                            "before_units": [11, 12], "units": [11, 12],
