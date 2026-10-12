@@ -5,14 +5,14 @@ description = "The hosted side of the Saga games: authoritative room server depl
 readme = "README.md"
 requires-python = ">=3.12"
 license = "MIT"
-dependencies = ["saga2d==0.3.17", "sagaforge", "tribes", "warband", "shardbound"]
+dependencies = ["saga2d==0.3.18", "sagaforge", "tribes", "warband", "shardbound"]
 
 [project.optional-dependencies]
 dev = ["pytest>=9.0.2"]
 
 [tool.uv]
 package = false
-override-dependencies = ["saga2d==0.3.17"]
+override-dependencies = ["saga2d==0.3.18"]
 
 [tool.uv.sources]
 sagaforge = { path = "../sagaforge", editable = true }

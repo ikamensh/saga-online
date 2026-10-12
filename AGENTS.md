@@ -3,7 +3,7 @@
 The hosted side of the Saga games (`~/saga/`, see `../AGENTS.md`): the
 authoritative room server deployment on Scaleway, the release catalog, the
 self-service website at https://games.tachyon-ai.eu/ and the operator tools.
-The server uses published `saga2d==0.3.17` through its direct pin plus a server-only
+The server uses published `saga2d==0.3.18` through its direct pin plus a server-only
 `[tool.uv] override-dependencies` entry; all three games and Sagaforge remain
 editable path dependencies at their server pins. Changes to the sibling engine
 checkout do not affect this environment. Packaging verifies the exact locked
