@@ -332,7 +332,7 @@ requires-dist = [
     { name = "pyinstaller-hooks-contrib", marker = "extra == 'package'", specifier = "==2026.7" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=9.0.2" },
     { name = "pytest-xdist", marker = "extra == 'dev'", specifier = ">=3.8" },
-    { name = "saga2d", specifier = "==0.3.17" },
+    { name = "saga2d", specifier = "==0.3.18" },
     { name = "sagaforge", editable = "../sagaforge" },
     { name = "setuptools", marker = "extra == 'dev'", specifier = ">=84" },
 ]
