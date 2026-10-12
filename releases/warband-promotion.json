@@ -1,7 +1,7 @@
 {
   "already_current": false,
   "baseline": {
-    "deployment_release": "7be77305af069e861213e9db0a58759ea70b43d251fa915ba7588a590892dfec",
+    "deployment_release": "c31e48ede3c04a28b77258f0ce8148498af2776f8cef0ec42d52aaccc0fc276d",
     "endpoint": "wss://games.tachyon-ai.eu/play",
     "protocol": 1,
     "schema_version": 1,
@@ -21,7 +21,7 @@
           "warband/assets/constants/units.toml": "66d0178f17ec62b8c8e1a7fd0aa2ab50bfb7f694945c1a10d8f08109cc7b87a6",
           "warband/assets/constants/upgrades.toml": "2fc669dfc35aa1cf121740dbf7ef55871aac6dbe7685c81ed83c70c9727c8e62",
           "warband/online/__init__.py": "5fa50310419d56822285e2f84c63f49e51fa2fb12ef21a8a16d6250e35d83e1f",
-          "warband/online/authority.py": "e36ad0be90c68af6efc45e1f3528827952c20a89fb1103903689787e6130936c",
+          "warband/online/authority.py": "bdbb5b23db6ba8e89c06af542a60655af5b2174ccfe87906d5caba282677304d",
           "warband/sim/__init__.py": "e8460f888010b70aabdb8cc5f125a285405fd4393764aa764d8c42890927a567",
           "warband/sim/camps.py": "8110dbd07f6998135eb3961ce21c5db9411806548537042fa13355ea2ccbc832",
           "warband/sim/config.py": "32e610d1b3e15c9a7ab958938c5db9c92e99096d52da4461a86ccd872018d004",
@@ -37,23 +37,23 @@
         "packages": {
           "pillow": "12.3.0",
           "pyglet": "2.1.16",
-          "saga2d": "0.3.17",
+          "saga2d": "0.3.18",
           "websockets": "17.1"
         },
         "python": "3.13.2",
         "registry": "warband.online.authority:ONLINE",
         "schema_version": 1,
-        "sha256": "953479f5f3202349e460ad0fd6bf310399e02b48abdbabc9e103d5d1537438f9"
+        "sha256": "d3a9b38395c4da59e541663e2ac3e3072cbb30ea11526e8af3a3f13049371c98"
       },
-      "source_commit": "c32cbe083ed6ecbcd84f45da553c9a98bf65c9b9"
+      "source_commit": "32d46329ba6f79a64d33dd053f26decd0908c582"
     }
   },
-  "before_catalog_sha256": "545f799bd027de830fbc90dd98c6ce5ecb30020ffe9a4dfb45bf3d401a8c99f0",
-  "build_run_id": 38148029884,
-  "catalog_sha256": "a805b465ad68dcea65e9a7355a1295ad2c172680d3f3ad9279eadd77f300f492",
-  "game_sha256": "5ce0acec4ef7b1a887cdac55b94e83406fe7653cdcf2126d8b32dca76a064258",
-  "manifest_sha256": "f6971b139b8c9513f662e0b00d5fdc614c25f6d854fd50b9f3209facc6afb089",
-  "release_id": 409743117,
+  "before_catalog_sha256": "a805b465ad68dcea65e9a7355a1295ad2c172680d3f3ad9279eadd77f300f492",
+  "build_run_id": 38302054319,
+  "catalog_sha256": "c4ac9b31f65b8f1f63acedde7a050951ad068b216c01329288e121bbad2fd1bc",
+  "game_sha256": "fa9a895357644aa1210e8de75a2f44737133126905807c6065e307e588333686",
+  "manifest_sha256": "a4cd3f4b0b22c9fa84c1e967c5255c1fd01992802509d1f6fe25a5c4fe0fc8b0",
+  "release_id": 410993019,
   "schema_version": 1,
-  "source_commit": "c32cbe083ed6ecbcd84f45da553c9a98bf65c9b9"
+  "source_commit": "32d46329ba6f79a64d33dd053f26decd0908c582"
 }
