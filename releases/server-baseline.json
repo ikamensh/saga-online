@@ -1,5 +1,5 @@
 {
-  "deployment_release": "b970502998989d2fef71497e0a4dd3bafa669dbbaf46f8e301770ffb06e2d8f7",
+  "deployment_release": "9093e759014a03f18bb21b5739fcd93768c1e420b50e94e379adb738cb9dfc17",
   "endpoint": "wss://games.tachyon-ai.eu/play",
   "protocol": 1,
   "schema_version": 1,
@@ -29,7 +29,7 @@
         "warband/sim/navigation.py": "bf5560ffa1404b344f3d0673d8ab2f3eb9e2d1d0f193bd39db8e34cd2984b4d2",
         "warband/sim/path.py": "d7820fb04d4a4e09cf727f86c03de1a8bc51c2664b11ffb4659cf98cb9d423e2",
         "warband/sim/races.py": "7a39879d963adefb5e0ea2063f5ab2ad784a8edeb077b947134be5ee3e2faeb5",
-        "warband/sim/rules.py": "fbc3fd1f363364b2a4b2e0d4ce94c75f2fdc70e46c87b15c791f4c7b25b64506",
+        "warband/sim/rules.py": "b3272d348e0ba837a5fa9b033c32283c9901fc6ac31147a9deff69eccfed9e9f",
         "warband/sim/settlement.py": "5405689e331c57498db8b4d3c7a0751b813370bb10c1583f01627f6db3c2a89e",
         "warband/sim/worker_ai.py": "4fce361c51290833f08b8bfdef5ba1fa2b3a33517b962f0e3c3760e94b75c7aa",
         "warband/sim/worker_knowledge.py": "f557ff214602f56950157d70b5e5d7b616f8e2b5036a3ba24e0a112c96cc62b1"
@@ -43,8 +43,8 @@
       "python": "3.13.2",
       "registry": "warband.online.authority:ONLINE",
       "schema_version": 1,
-      "sha256": "7656ec20a364ec18abf045c6c98a37a0ed76e300222b3e046d6a7f614542b8c4"
+      "sha256": "c4fd305fc2f5f8c162e866dfaa1696d5af2c98be987a629fff1876b295dd24fd"
     },
-    "source_commit": "e6ea395aa2514510fa51124df3308b5e1328ae30"
+    "source_commit": "caaf93a7c61fb212a3097678f310f78e9d10e61d"
   }
 }
