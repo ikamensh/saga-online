@@ -27,11 +27,20 @@
 
   let offset = 0, query = '', rankingRequest = 0, rankingLoaded = false;
   const pageSize = 100;
+  function pausePagination() {
+    $('ranking-prev').disabled = true;
+    $('ranking-next').disabled = true;
+  }
   async function rankings() {
     const request = ++rankingRequest;
+    pausePagination();
     try {
       const data = await get('/leaderboard', {limit: pageSize, offset, q: query});
       if (request !== rankingRequest) return;
+      if (offset > 0 && offset >= data.total) {
+        offset = Math.max(0, Math.floor((data.total - 1) / pageSize) * pageSize);
+        return rankings();
+      }
       const rows = document.createDocumentFragment();
       data.players.forEach((player, index) => {
         const row = document.createElement('tr');
@@ -73,6 +82,7 @@
     clearTimeout(debounce);
     // Invalidate an in-flight search immediately, before starting the next one.
     rankingRequest++;
+    pausePagination();
     query = $('player-search').value.trim();
     offset = 0;
     debounce = setTimeout(rankings, 250);
@@ -80,7 +90,7 @@
   $('ranking-prev').addEventListener('click', () => { offset = Math.max(0, offset - pageSize); rankings(); });
   $('ranking-next').addEventListener('click', () => { offset += pageSize; rankings(); });
 
-  let hours = 24, activityRequest = 0, activityLoaded = false;
+  let hours = 24, activityRequest = 0, activityLoaded = false, activityData, chartWidth;
   const ns = 'http://www.w3.org/2000/svg';
   function svgElement(name, attrs, text) {
     const element = document.createElementNS(ns, name);
@@ -90,6 +100,7 @@
   }
   function chart(data) {
     const root = $('activity-chart');
+    chartWidth = root.clientWidth;
     root.replaceChildren();
     if (!data.samples.length) {
       const empty = document.createElement('p');
@@ -98,10 +109,10 @@
       root.append(empty);
       return;
     }
-    const width = 1000, height = 230, left = 32, right = 15, top = 15, bottom = 35;
+    const width = Math.max(280, root.clientWidth), height = 230, left = 32, right = 15, top = 15, bottom = 35;
     const end = Date.parse(data.server_time), start = end - data.hours * 3600000;
     const peak = Math.max(1, ...data.samples.map(sample => sample.players));
-    const maximum = Math.max(2, Math.ceil(peak / 4) * 4);
+    const maximum = Math.max(4, Math.ceil(peak / 4) * 4);
     const x = timestamp => left + (Date.parse(timestamp) - start) / (end - start) * (width - left - right);
     const y = count => height - bottom - count / maximum * (height - top - bottom);
     const svg = svgElement('svg', {viewBox: `0 0 ${width} ${height}`, role: 'img', tabindex: '0',
@@ -146,8 +157,8 @@
       inspection.textContent = dateTime(sample.timestamp) + ' — ' + sample.players + ' players · ' + sample.observers + ' spectators · ' + sample.rooms + ' rooms';
     }
     svg.addEventListener('pointermove', event => {
-      const box = svg.getBoundingClientRect();
-      const target = start + ((event.clientX - box.left) / box.width * width - left) / (width - left - right) * (end - start);
+      const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(svg.getScreenCTM().inverse());
+      const target = start + (point.x - left) / (width - left - right) * (end - start);
       let nearest = 0;
       data.samples.forEach((sample, index) => {
         if (Math.abs(Date.parse(sample.timestamp) - target) < Math.abs(Date.parse(data.samples[nearest].timestamp) - target)) nearest = index;
@@ -175,6 +186,7 @@
       $('peak-count').textContent = data.samples.length ? number(Math.max(...data.samples.map(sample => sample.players))) : '—';
       $('peak-label').textContent = 'Peak · last ' + (hours === 24 ? '24 hours' : '7 days');
       $('chart-zone').textContent = 'Times in ' + Intl.DateTimeFormat().resolvedOptions().timeZone.replaceAll('_', ' ');
+      activityData = data;
       chart(data);
       $('activity-summary').textContent = 'Updated ' + clock(data.server_time) + '. ' +
         (data.collected_since ? 'Recording since ' + dateTime(data.collected_since) + '. ' : '') +
@@ -203,6 +215,9 @@
     document.querySelectorAll('[data-hours]').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
     activity();
   }));
+  new ResizeObserver(() => {
+    if (activityData && $('activity-chart').clientWidth !== chartWidth) chart(activityData);
+  }).observe($('activity-chart'));
   rankings();
   activity();
   setInterval(() => { rankings(); activity(); }, 60000);

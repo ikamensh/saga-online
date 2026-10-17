@@ -208,6 +208,12 @@ have `Cache-Control: no-store`. Repeating setup with custom hostnames requires
 the same `--domain` and `--warband-domain` flags; future CI activation and
 rollback use that installed configuration.
 
+Activity records one aggregate snapshot per game per minute in
+`/var/lib/saga2d-online/activity.sqlite3`, retaining thirty days. Gaps are
+unobserved time, not zero players; `collected_since` is the earliest retained
+observation. This file survives normal rollouts and rollbacks. Existing
+off-host room-ledger backups do not include activity history.
+
 Setup creates `saga2d-server-ci`: no password, no supplementary groups, a
 root-owned home. Its SSH key has a forced command
 (`/usr/local/lib/saga2d-server-ci/command`) that accepts exactly `status`,
