@@ -1,5 +1,5 @@
 {
-  "deployment_release": "9a04df7b18855c7c538e3dee1f343fea3b724bcbf32b527dd239b81e1c4cfbb0",
+  "deployment_release": "ff5dc52ac39ef28dbba93bf95a4b97ff04c0fadfa1bdfb300e11430b0f20ed1f",
   "endpoint": "wss://games.tachyon-ai.eu/play",
   "protocol": 1,
   "schema_version": 1,
@@ -19,7 +19,8 @@
         "warband/assets/constants/units.toml": "66d0178f17ec62b8c8e1a7fd0aa2ab50bfb7f694945c1a10d8f08109cc7b87a6",
         "warband/assets/constants/upgrades.toml": "2fc669dfc35aa1cf121740dbf7ef55871aac6dbe7685c81ed83c70c9727c8e62",
         "warband/online/__init__.py": "5fa50310419d56822285e2f84c63f49e51fa2fb12ef21a8a16d6250e35d83e1f",
-        "warband/online/authority.py": "acdd7f7dcf1e28f1fb7502254074d042331758280f589b4afba4ffad0165768c",
+        "warband/online/authority.py": "54d7c6de19278ef9e2a839c8c962c6e164c587d46bef8f03c26349e3b816b956",
+        "warband/online/protocol.py": "a3a7ee5e98e7f7b0b14deb847c1c1bca1adc3a4e1782e5e09d8fc7a6acdd864d",
         "warband/online/snapshot.py": "1ebf3e309dc4d6b03f0e775f50fac89d14ec7c8f11b4ceab4b775cc070396109",
         "warband/sim/__init__.py": "e8460f888010b70aabdb8cc5f125a285405fd4393764aa764d8c42890927a567",
         "warband/sim/camps.py": "1d47761f477b86ecac7758ea71456cbc074d7a7349b6a6a210876c0958240fa2",
@@ -43,8 +44,8 @@
       "python": "3.13.2",
       "registry": "warband.online.authority:ONLINE",
       "schema_version": 1,
-      "sha256": "c4fd305fc2f5f8c162e866dfaa1696d5af2c98be987a629fff1876b295dd24fd"
+      "sha256": "85c98dca9e434e109aeada77c79ee8b554674a177ac428ebfbd388a919c85243"
     },
-    "source_commit": "c9d74d8ac74dcb8f389cac8ed16e1cfa0223d5d2"
+    "source_commit": "6dcbf5b1ba791b4a7bc6b92ccf5efce9a6e10bb1"
   }
 }
