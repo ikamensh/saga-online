@@ -16,9 +16,9 @@ after(async () => {
   if (build) await build.cleanup();
 });
 
-async function journey(t, state = {}, viewport = { width: 1440, height: 1000 }) {
+async function journey(t, state = {}, viewport = { width: 1440, height: 1000 }, context = {}) {
   const server = await serve(build.site, state);
-  const page = await browser.newPage({ viewport, locale: 'en-GB', timezoneId: 'UTC' });
+  const page = await browser.newPage({ viewport, locale: 'en-GB', timezoneId: 'UTC', ...context });
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   t.after(async () => {
@@ -124,7 +124,7 @@ test('activity range requests seven days and leaves observation gaps undrawn', a
     { timestamp: '2026-10-17T17:00:00Z', players: 7, observers: 1, rooms: 3 },
     { timestamp: '2026-10-17T17:01:00Z', players: 8, observers: 1, rooms: 3 },
   ];
-  const { page, url, state } = await journey(t, { activitySamples: samples });
+  const { page, url, state } = await journey(t, { activitySamples: samples }, { width: 1440, height: 1000 }, { hasTouch: true });
   await page.goto(url);
   await page.locator('#activity-chart svg').waitFor();
   const lines = page.locator('#activity-chart svg polyline');
@@ -140,7 +140,7 @@ test('activity range requests seven days and leaves observation gaps undrawn', a
     await firstSegment.scrollIntoViewIfNeeded();
     const box = await firstSegment.boundingBox();
     await page.mouse.move(box.x, box.y + box.height);
-    await page.getByText('17 Oct 2026, 16:00 — 3 players · 0 spectators · 1 rooms', { exact: true }).waitFor();
+    await page.getByText('17 Oct 2026, 16:00 — 3 players · 0 spectators · 1 room', { exact: true }).waitFor();
   }
   await hoverFirstObservation();
   await page.setViewportSize({ width: 375, height: 812 });
@@ -148,6 +148,13 @@ test('activity range requests seven days and leaves observation gaps undrawn', a
   const resizedLabel = await page.locator('#activity-chart svg text').first().boundingBox();
   assert.ok(resizedLabel && resizedLabel.height >= 7, 'A resized desktop chart must keep phone labels readable');
   await hoverFirstObservation();
+  const touchChart = page.getByRole('img', { name: /Warband players online/ });
+  await touchChart.focus();
+  await page.keyboard.press('ArrowRight');
+  await page.getByText('17 Oct 2026, 16:01 — 4 players · 1 spectator · 2 rooms', { exact: true }).waitFor();
+  const firstPoint = await page.locator('#activity-chart svg polyline').first().boundingBox();
+  await page.touchscreen.tap(firstPoint.x, firstPoint.y + firstPoint.height);
+  await page.getByText('17 Oct 2026, 16:00 — 3 players · 0 spectators · 1 room', { exact: true }).waitFor();
   const response = page.waitForResponse(response => response.url().includes('/activity?') && new URL(response.url()).searchParams.get('hours') === '168');
   await page.getByRole('button', { name: '7 days', exact: true }).click();
   await response;
@@ -160,12 +167,12 @@ test('activity range requests seven days and leaves observation gaps undrawn', a
   const chart = page.getByRole('img', { name: /Warband players online/ });
   await chart.focus();
   await page.keyboard.press('ArrowLeft');
-  assert.match(await page.locator('.chart-inspection').innerText(), /7 players · 1 spectators · 3 rooms/);
+  assert.match(await page.locator('.chart-inspection').innerText(), /7 players · 1 spectator · 3 rooms/);
 });
 
 // The requested MMR/win/loss values must remain readable on a narrow phone.
 test('mobile viewport exposes MMR, wins and losses without page overflow', async t => {
-  const { page, url } = await journey(t, {}, { width: 375, height: 812 });
+  const { page, url } = await journey(t, {}, { width: 375, height: 812 }, { locale: 'en-US' });
   await page.goto(url);
   await page.getByText('1–12 of 12', { exact: true }).waitFor();
   await page.locator('#activity-chart svg').waitFor();
@@ -183,5 +190,12 @@ test('mobile viewport exposes MMR, wins and losses without page overflow', async
   // SVG labels must be sized for the phone, not shrunk from a desktop canvas.
   const text = await page.locator('#activity-chart svg text').first().boundingBox();
   assert.ok(text && text.height >= 7, 'Chart labels should remain legible at the narrow viewport');
+  const labels = await Promise.all((await page.locator('#activity-chart svg text').all()).map(label => label.boundingBox()));
+  const bottom = Math.max(...labels.map(label => label.y));
+  const times = labels.filter(label => Math.abs(label.y - bottom) < 1).sort((a, b) => a.x - b.x);
+  assert.equal(times.length, 3, 'The narrow chart has three readable time labels');
+  for (let index = 1; index < times.length; index++) {
+    assert.ok(times[index - 1].x + times[index - 1].width + 3 <= times[index].x, 'Phone time labels must not collide, including a 12-hour locale');
+  }
   assert.ok(await page.getByRole('link', { name: /Download for Windows/ }).first().isVisible());
 });
