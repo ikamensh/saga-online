@@ -29,7 +29,8 @@ def test_site_pages_reflect_the_catalog_and_content(tmp_path):
     catalog = load()
     assert json.loads((output / 'releases.json').read_text()) == catalog
     assert set(manifest['pages']) == {'index.html', 'warband/index.html', 'tribes/index.html', 'shardbound/index.html',
-                                      'hellward/index.html', 'join/index.html', 'status/index.html', '404.html'}
+                                      'hellward/index.html', 'join/index.html', 'status/index.html', '404.html',
+                                      'warband-online/index.html'}
     warband = (output / 'warband/index.html').read_text()
     for package in catalog['games']['warband']['packages']:
         assert package['url'] in warband and package['sha256'] in warband
@@ -77,3 +78,20 @@ def test_untrusted_catalog_text_is_escaped(tmp_path):
     page = (tmp_path / 'site/warband/index.html').read_text()
     assert '<script>' not in page.replace('<script src="/static/site.js" defer></script>', '')
     assert '&lt;script&gt;' in page
+
+
+def test_warband_hub_has_live_data_and_catalog_downloads(tmp_path):
+    """The dedicated host's entry page ships its data UI and the same verified downloads as the catalog."""
+    output = tmp_path / 'site'
+    build(output)
+    hub = (output / 'warband-online/index.html').read_text()
+    assert 'https://warband.tachyon-ai.eu/' in hub
+    assert 'id="leaderboard"' in hub and 'id="activity"' in hub
+    assert '/static/warband.js' in hub and '/static/warband.css' in hub
+    assert 'id="player-search"' in hub and 'id="activity-chart"' in hub
+    assert 'Loading ranked players' in hub and 'Loading server activity' in hub
+    for package in load()['games']['warband']['packages']:
+        assert package['url'] in hub
+    assert (output / 'static/warband.js').is_file()
+    assert (output / 'static/warband.css').is_file()
+    assert 'https://warband.tachyon-ai.eu/' in (output / 'warband/index.html').read_text()

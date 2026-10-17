@@ -173,6 +173,9 @@ def game_page(slug, entry, content, images, site):
     if content['online'] is not None:
         online = (f'<h2 id="online">Play online: {esc(content["online"]["mode"]).lower()}</h2>'
                   + online_steps(name, slug, entry['game_ids'][0], content['online'], site))
+        if slug == 'warband':
+            online += ('<p><a class="button primary" href="https://warband.tachyon-ai.eu/">'
+                       'Warband multiplayer rankings &amp; server activity ↗</a></p>')
     first = f'<h2>{esc(content.get("first_title", "Your first match"))}</h2><ol class="steps">' + ''.join(f'<li>{esc(step)}</li>' for step in content['first_match']) + '</ol>'
     gallery = '<h2>Screenshots</h2><div class="gallery">' + ''.join(
         f'<figure><a href="{img["full"]}"><img src="{img["thumb"]}" alt="{esc(img["alt"])}" loading="lazy" width="640" height="400"></a>'
@@ -186,7 +189,9 @@ def game_page(slug, entry, content, images, site):
     support = (f'<div><h2>Help and data</h2><ul class="features">'
                f'<li><a href="{esc(content["guide"])}">Player guide</a> and <a href="{esc(content.get("support", SUPPORT_URL))}">issue tracker</a>. Include the game version, your OS and the exact message.</li>'
                f'<li>Saves and settings live in <code>{esc(content["data_dir"]["windows"])}</code> on Windows and <code>{esc(content["data_dir"]["macos"])}</code> on a Mac. Uninstalling keeps them; delete the folder to reset.</li>'
-               + ('<li>Online rooms store only the match state and two private seat tokens; nothing identifies you beyond your IP address while connected.</li>'
+               + ('<li>Ranked play keeps a public player name, ID, rating and win/loss record. Your private identity stays on your device. '
+                  'The server retains room state and private seat tokens, and thirty days of aggregate online counts.</li>' if slug == 'warband'
+                  else '<li>Online rooms store match state and private seat tokens until the room expires.</li>'
                   if content['online'] is not None else '<li>Single player: the game never connects to the internet.</li>')
                + f'<li>Free and open source under the MIT license (<a href="{esc(content.get("source", SOURCE_URL))}">source</a>).'
                + f'{esc(content.get("font_note", " Nunito font under the SIL Open Font License."))}</li></ul></div>')
@@ -241,7 +246,8 @@ def status_page(catalog):
             'and 124 ms at the 95th percentile, and the health endpoint answered within 91 to 170 ms from Western Europe. '
             'Two Tribes rooms and Shardbound co-op rooms were checked the same way. This describes a small friendly load, not a capacity guarantee.</p>'
             '<h2>Data and retention</h2><p>The service stores each room\'s game state and two private seat tokens until the room expires, then deletes them. '
-            'Logs keep connection errors for a short time. No accounts, names or chat exist. Downloads are served from GitHub releases and this site.</p>')
+            'Ranked Warband profiles retain public names, player IDs, ratings and win/loss records. Aggregate per-game connection counts '
+            'and timestamps are retained for thirty days. Logs keep connection errors for a short time. Downloads are served from GitHub releases and this site.</p>')
 
 
 def build(output: Path, catalog_path: Path = CATALOG, *, build_date: date | None = None) -> dict:
@@ -266,6 +272,14 @@ def build(output: Path, catalog_path: Path = CATALOG, *, build_date: date | None
         pages.append(page(output, f'/{slug}/', title=f'{entry["name"]} — download and play' + (' online' if GAMES[slug]['online'] else ''),
                           description=GAMES[slug]['tagline'], content=game_page(slug, entry, GAMES[slug], images[slug], site),
                           site=site, names=names, active=slug, built=built))
+    warband = catalog['games']['warband']
+    hub = output / 'warband-online' / 'index.html'
+    hub.parent.mkdir()
+    hub.write_text(render('warband.html', game_id=esc(warband['game_ids'][0]),
+                          hero_image=esc(images['warband'][0]['full']), hero_alt=esc(images['warband'][0]['alt']),
+                          version=esc(warband['version']), downloads=package_buttons(warband, warband['packages']),
+                          game_page=esc(site + '/warband/'), guide=esc(GAMES['warband']['guide'])), encoding='utf-8')
+    pages.append(hub)
     pages.append(page(output, '/join/', title='Join a room', description='Join a friend\'s online room.',
                       content=join_page(), site=site, names=names, built=built))
     pages.append(page(output, '/status/', title='Service status', description='Online service status, current releases and troubleshooting.',

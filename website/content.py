@@ -58,11 +58,11 @@ GAMES = {
                     'Matches take ten to twenty minutes against an AI that plays a recognisable strategy, '
                     'or against a friend over the internet.'),
         'online': {
-            'mode': 'Two-player competitive match',
-            'text': ('Two seats per room. Create a room, send the code or invitation link to your friend, and the '
-                     'match starts when you both connect. The server runs the simulation; a dropped connection '
-                     'pauses the match and reconnects automatically.'),
-            'retention': 'Rooms stay open for 15 minutes without both players.',
+            'mode': 'Two-to-four-player ranked or casual matches',
+            'text': ('Choose a ranked or casual room with two to four seats. Send the code or invitation link '
+                     'to your friends. The server runs the simulation and keeps ranked ratings; spectators '
+                     'can watch without taking a seat. A dropped connection reconnects automatically.'),
+            'retention': 'Disconnected rooms are retained for 15 minutes; a ranked player absent for 60 seconds forfeits their seat.',
         },
         'features': [
             'Four races: humans, orcs, elves and dwarves share seven unit roles and nine buildings, each with its own numbers, a passive trait, two race-only upgrades, look and voice.',
