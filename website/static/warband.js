@@ -4,6 +4,7 @@
   const game = document.body.dataset.game;
   const $ = id => document.getElementById(id);
   const number = value => new Intl.NumberFormat(undefined, {maximumFractionDigits: 0}).format(value);
+  const countLabel = (value, label) => number(value) + ' ' + label + (value === 1 ? '' : 's');
   const clock = value => new Date(value).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
   const dateTime = value => new Date(value).toLocaleString([], {dateStyle: 'medium', timeStyle: 'short'});
   const cell = (row, value, className) => {
@@ -123,11 +124,12 @@
       svg.append(svgElement('line', {x1: left, x2: width - right, y1: y(count), y2: y(count), class: 'grid'}));
       svg.append(svgElement('text', {x: left - 12, y: y(count) + 3, 'text-anchor': 'end', class: 'chart-label'}, number(count)));
     }
-    for (let tick = 0; tick <= 4; tick++) {
-      const time = start + (end - start) * tick / 4;
+    const timeTicks = width < 500 ? 2 : 4;
+    for (let tick = 0; tick <= timeTicks; tick++) {
+      const time = start + (end - start) * tick / timeTicks;
       const label = hours > 24 ? new Date(time).toLocaleDateString([], {month: 'short', day: 'numeric'}) : clock(time);
-      svg.append(svgElement('text', {x: left + (width - left - right) * tick / 4, y: height - 7,
-        'text-anchor': tick === 0 ? 'start' : tick === 4 ? 'end' : 'middle', class: 'chart-label'}, label));
+      svg.append(svgElement('text', {x: left + (width - left - right) * tick / timeTicks, y: height - 7,
+        'text-anchor': tick === 0 ? 'start' : tick === timeTicks ? 'end' : 'middle', class: 'chart-label'}, label));
     }
     let segment = [], previous;
     function drawSegment() {
@@ -146,7 +148,7 @@
     svg.append(cursor);
     const inspection = document.createElement('p');
     inspection.className = 'muted chart-inspection';
-    inspection.textContent = 'Hover over the chart, or focus it and use arrow keys, to inspect an observation.';
+    inspection.textContent = 'Tap or hover over the chart to inspect a time. Keyboard: focus the chart and use arrow keys.';
     let selected = data.samples.length - 1;
     function inspect(index) {
       selected = index;
@@ -154,9 +156,9 @@
       cursor.setAttribute('cx', x(sample.timestamp));
       cursor.setAttribute('cy', y(sample.players));
       cursor.setAttribute('visibility', 'visible');
-      inspection.textContent = dateTime(sample.timestamp) + ' — ' + sample.players + ' players · ' + sample.observers + ' spectators · ' + sample.rooms + ' rooms';
+      inspection.textContent = dateTime(sample.timestamp) + ' — ' + countLabel(sample.players, 'player') + ' · ' + countLabel(sample.observers, 'spectator') + ' · ' + countLabel(sample.rooms, 'room');
     }
-    svg.addEventListener('pointermove', event => {
+    function inspectPointer(event) {
       const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(svg.getScreenCTM().inverse());
       const target = start + (point.x - left) / (width - left - right) * (end - start);
       let nearest = 0;
@@ -164,7 +166,9 @@
         if (Math.abs(Date.parse(sample.timestamp) - target) < Math.abs(Date.parse(data.samples[nearest].timestamp) - target)) nearest = index;
       });
       inspect(nearest);
-    });
+    }
+    svg.addEventListener('pointermove', inspectPointer);
+    svg.addEventListener('pointerdown', inspectPointer);
     svg.addEventListener('focus', () => inspect(selected));
     svg.addEventListener('keydown', event => {
       if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {

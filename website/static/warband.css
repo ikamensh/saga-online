@@ -818,6 +818,12 @@ td {
     max-width: 120px;
     overflow-wrap: anywhere;
   }
+  .rankings .player-id {
+    font-size: 10px;
+  }
+  .pagination button {
+    font-size: 11px;
+  }
   .rankings th:nth-child(n + 6),
   .rankings td:nth-child(n + 6) {
     display: none;
