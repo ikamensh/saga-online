@@ -13,3 +13,5 @@ dist/
 *.png
 *.gif
 docs/evidence/
+
+node_modules/

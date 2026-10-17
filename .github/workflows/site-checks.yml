@@ -39,6 +39,17 @@ jobs:
           tests/test_warband_promotion.py tests/test_warband_catalog_commit.py
           tests/test_attested_server.py tests/test_site_receiver.py tests/test_warband_site.py
           -k 'not packaged_release_runs_server_entrypoint'
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: saga-online/package-lock.json
+      - name: Install browser checks
+        run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Check Warband browser journeys
+        run: npm run test:web
       - name: Build the static website
         run: uv run --project publishing --locked python tools/build_site.py --output dist/site
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
