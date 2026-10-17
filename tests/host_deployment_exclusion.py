@@ -35,7 +35,7 @@ def verify():
             # Deliberately absent input stops the real installer at preparation,
             # before it could change a service, proxy, room store or site.
             installer = ["bash", str(ROOT / "deploy/install.sh"), str(root / "absent-upload"),
-                         "a" * 64, "saga2d-ci", "games.example.test"]
+                         "a" * 64, "saga2d-ci", "games.example.test", "warband.example.test"]
             control = subprocess.run(installer, capture_output=True, text=True, timeout=10)
             assert control.returncode != 0 and "absent-upload/release.tar.gz" in control.stderr
             entered, resume = threading.Event(), threading.Event()

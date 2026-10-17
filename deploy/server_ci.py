@@ -115,7 +115,7 @@ def install(config, stream):
                 remaining -= len(chunk)
         require(not stream.read(1), "Unexpected bytes after the archive")
         require(digest.hexdigest() == request["release"], "Archive differs from its release identifier")
-        installer(str(upload), request["release"], config["instance"], config["domain"])
+        installer(str(upload), request["release"], config["instance"], config["domain"], config["warband_domain"])
     return {**status(config), "activated": request["release"]}
 
 
@@ -123,14 +123,14 @@ def rollback(config, stream):
     request = header(stream, {"from"})
     require(bool(RELEASE.fullmatch(request["from"])), "Invalid release identifier")
     require(not stream.read(1), "Rollback does not accept an upload")
-    installer("--rollback", request["from"], config["instance"], config["domain"])
+    installer("--rollback", request["from"], config["instance"], config["domain"], config["warband_domain"])
     return {**status(config), "rolled_back_from": request["from"]}
 
 
 def run(operation, stdin, stdout):
     require(operation in OPERATIONS, "Only status, backup, install and rollback are permitted")
     config = json.loads((HERE / "config.json").read_bytes())
-    require(set(config) == {"schema_version", "instance", "domain"} and config["schema_version"] == 1,
+    require(set(config) == {"schema_version", "instance", "domain", "warband_domain"} and config["schema_version"] == 2,
             "Unsupported installed configuration")
     require((Path("/etc/saga2d-online/managed-instance").read_text().strip() == config["instance"]),
             "Managed instance does not match the installed configuration")

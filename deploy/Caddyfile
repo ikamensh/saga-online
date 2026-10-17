@@ -1,8 +1,8 @@
-__DOMAIN__ {
+(saga_site) {
     encode gzip
 
     # Compatibility comes from the running process, never the static website.
-    @server path /play /healthz /server-compatibility.json /status /ratings /players/*
+    @server path /play /healthz /server-compatibility.json /status /ratings /leaderboard /players/* /activity
     reverse_proxy @server 127.0.0.1:8765 {
         header_down Cache-Control "no-store"
     }
@@ -14,7 +14,7 @@ __DOMAIN__ {
     @invite path /join/*
     rewrite @invite /join/index.html
 
-    @static not path /play /healthz /server-compatibility.json /status /ratings /players/*
+    @static not path /play /healthz /server-compatibility.json /status /ratings /leaderboard /players/* /activity
     header @static Cache-Control "public, max-age=300"
     header {
         X-Content-Type-Options nosniff
@@ -28,4 +28,14 @@ __DOMAIN__ {
         file_server
     }
     file_server
+}
+
+__DOMAIN__ {
+    import saga_site
+}
+
+__WARBAND_DOMAIN__ {
+    @home path /
+    rewrite @home /warband-online/index.html
+    import saga_site
 }

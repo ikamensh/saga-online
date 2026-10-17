@@ -30,7 +30,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from tools import server_rollout
 
-INSTANCE, DOMAIN = "saga2d-ci", "games.example.test"
+INSTANCE, DOMAIN, WARBAND_DOMAIN = "saga2d-ci", "games.example.test", "warband.example.test"
 TOOLS = Path("/usr/local/lib/saga2d-server-ci")
 BASE = Path("/opt/saga2d-online")
 
@@ -105,6 +105,7 @@ def verify(release, probe, host_change):
         with tarfile.open(package["archive"]) as bundle:
             bundle.extractall(uploaded, filter="data")
         setup = [sys.executable, str(uploaded / "install_server_ci.py"), "--instance", INSTANCE, "--domain", DOMAIN,
+                 "--warband-domain", WARBAND_DOMAIN,
                  "--public-key", str(uploaded / "server-ci.pub")]
         installed = json.loads(run(setup).stdout)
         assert json.loads(run(setup).stdout) == installed, "Setup must be repeatable"
@@ -121,6 +122,8 @@ def verify(release, probe, host_change):
             archive = lambda package: Path(package["archive"])
             activated = host("install", archive=archive(first), expected_current="none")
             assert activated["current"] == served() == first["release"] and activated["health"] == "ok"
+            proxy = Path("/etc/caddy/Caddyfile").read_text()
+            assert DOMAIN in proxy and WARBAND_DOMAIN in proxy and "__DOMAIN__" not in proxy and "__WARBAND_DOMAIN__" not in proxy
             refused(lambda: host("install", archive=archive(second), expected_current="0" * 64), "stale expected release")
             assert served() == first["release"]
             activated = host("install", archive=archive(second), expected_current=first["release"])

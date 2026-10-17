@@ -50,15 +50,18 @@ SUDO_RULE = (f"# Managed by Saga Online: the server-CI account may run exactly t
              f"{USER} ALL=(root) NOPASSWD: " + ", ".join(f"{TOOLS}/run {op}" for op in OPERATIONS) + "\n")
 
 
-def install(instance, domain, public_key):
+def install(instance, domain, warband_domain, public_key):
     require(sys.platform == "linux" and os.geteuid() == 0, "Server CI setup requires root on the managed Linux host")
     require(re.fullmatch(r"saga2d-[a-z0-9-]+", instance), "Invalid managed instance name")
     require(re.fullmatch(r"[a-z0-9]+(?:[.-][a-z0-9]+)+", domain), "Invalid domain")
+    require(re.fullmatch(r"[a-z0-9]+(?:[.-][a-z0-9]+)+", warband_domain) and warband_domain != domain,
+            "Invalid or duplicate Warband domain")
     require((CONFIG / "managed-instance").read_text().strip() == instance, "Managed instance does not match")
     encoded = ed25519_key(public_key)
     ci_account(USER, HOME, CONFIG / "server-ci-account.json", instance)
     files = {name: (Path(__file__).parent / name).read_bytes() for name in HOST_FILES}
-    files["config.json"] = json.dumps({"schema_version": 1, "instance": instance, "domain": domain},
+    files["config.json"] = json.dumps({"schema_version": 2, "instance": instance, "domain": domain,
+                                      "warband_domain": warband_domain},
                                       sort_keys=True, indent=2).encode() + b"\n"
     revision = tool_revision(TOOLS, files)
     write(TOOLS / "run", RUN.encode(), 0o755)
@@ -84,6 +87,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--instance", required=True)
     parser.add_argument("--domain", required=True)
+    parser.add_argument("--warband-domain", required=True)
     parser.add_argument("--public-key", type=Path, required=True)
     args = parser.parse_args()
-    print(json.dumps(install(args.instance, args.domain, args.public_key), sort_keys=True))
+    print(json.dumps(install(args.instance, args.domain, args.warband_domain, args.public_key), sort_keys=True))

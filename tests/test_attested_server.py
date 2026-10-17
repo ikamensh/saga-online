@@ -56,7 +56,7 @@ def release(tmp_path):
     (root / "sagaforge").mkdir()
     (root / "sagaforge/__init__.py").write_text("")
     (root / "deploy").mkdir()
-    for name in ("server.py", "runtime.py"):
+    for name in ("server.py", "runtime.py", "activity.py"):
         shutil.copyfile(ROOT / "deploy" / name, root / "deploy" / name)
     files = {p.relative_to(root).as_posix(): sha(p.read_bytes()) for p in root.rglob("*") if p.is_file()}
     packages = {name: importlib.metadata.version(name) for name in ("pillow", "pyglet", "websockets")}
@@ -188,6 +188,7 @@ def test_reverse_proxy_serves_uncached_process_attestation_over_a_static_imposto
         template = (ROOT / "deploy/Caddyfile").read_text()
         config = tmp_path / "Caddyfile"
         config.write_text("{\n admin off\n auto_https off\n}\n" + template.replace("__DOMAIN__", proxy)
+                          .replace("__WARBAND_DOMAIN__", proxy.replace("127.0.0.1", "warband.localhost"))
                           .replace("127.0.0.1:8765", backend.removeprefix("ws://"))
                           .replace("/srv/saga2d-site/current", str(website)))
         with (tmp_path / "caddy.log").open("w+") as log:

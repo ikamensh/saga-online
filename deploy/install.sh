@@ -1,8 +1,8 @@
 #!/bin/bash
 # Invoked through sudo on the dedicated, tagged Saga2D instance only.
 #
-#   install.sh SOURCE_DIR RELEASE_ID INSTANCE DOMAIN     prepare SOURCE_DIR/release.tar.gz and activate it
-#   install.sh --rollback FROM_RELEASE INSTANCE DOMAIN   while FROM_RELEASE is current, reactivate `previous`
+#   install.sh SOURCE_DIR RELEASE_ID INSTANCE DOMAIN WARBAND_DOMAIN     prepare and activate SOURCE_DIR/release.tar.gz
+#   install.sh --rollback FROM_RELEASE INSTANCE DOMAIN WARBAND_DOMAIN   reactivate `previous` while FROM_RELEASE is current
 #
 # Preparation, service units and proxy configuration come from this script's
 # own directory. Preparation refuses a release whose copies of them differ, so
@@ -20,9 +20,11 @@ else
 fi
 instance_name=$3
 domain=$4
+warband_domain=$5
 [[ $release_id =~ ^[a-f0-9]{64}$ ]]
 [[ $instance_name =~ ^saga2d-[a-z0-9-]+$ ]]
 [[ $domain =~ ^[a-z0-9]+([.-][a-z0-9]+)+$ ]]
+[[ $warband_domain =~ ^[a-z0-9]+([.-][a-z0-9]+)+$ && $warband_domain != "$domain" ]]
 [[ $(cat /etc/saga2d-online/managed-instance) == "$instance_name" ]]
 
 # Shared with activate_site.py; held through acceptance and any rollback.
@@ -48,7 +50,8 @@ install_service() {
 # served compatibility equal to the one its preparation verified, then the proxy.
 activate() {
     local target=$1
-    sed "s/__DOMAIN__/$domain/g" "$here/Caddyfile" > "$work/Caddyfile"
+    sed -e "s/__DOMAIN__/$domain/g" -e "s/__WARBAND_DOMAIN__/$warband_domain/g" \
+        "$here/Caddyfile" > "$work/Caddyfile"
     caddy validate --config "$work/Caddyfile" --adapter caddyfile
     install_service "$target"
     install -m 644 "$here/saga2d-backup.service" /etc/systemd/system/saga2d-backup.service

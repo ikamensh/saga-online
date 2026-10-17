@@ -20,7 +20,7 @@ import tomllib
 PACKAGES = {"saga2d": ("*.py",), "sagaforge": ("*.py",), "tribes": ("*.py",),
             "warband": ("*.py", "*.wav"), "eador": ("*.py",)}
 DISTRIBUTIONS = ("saga2d", "sagaforge", "tribes", "warband", "shardbound")
-DEPLOY_FILES = ("install.sh", "prepare_release.sh", "check_release.py", "smoke.py", "backup.py", "server.py", "runtime.py", "stage_release.py", "uv-bootstrap.txt",
+DEPLOY_FILES = ("install.sh", "prepare_release.sh", "check_release.py", "smoke.py", "backup.py", "server.py", "runtime.py", "activity.py", "stage_release.py", "uv-bootstrap.txt",
                 "saga2d-online.service", "saga2d-backup.service", "saga2d-backup.timer", "Caddyfile")
 
 

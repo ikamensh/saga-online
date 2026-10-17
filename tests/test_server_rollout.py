@@ -210,7 +210,8 @@ def host(tmp_path, monkeypatch):
     monkeypatch.setattr(server_ci, "BASE", base)
     monkeypatch.setattr(server_ci, "installer", installer)
     monkeypatch.setattr(server_ci, "status", lambda config: {"current": server_ci.release_of(base / "current")})
-    return SimpleNamespace(config={"instance": "saga2d-online", "domain": "games.example.test"}, calls=calls)
+    return SimpleNamespace(config={"instance": "saga2d-online", "domain": "games.example.test",
+                                   "warband_domain": "warband.example.test"}, calls=calls)
 
 
 def upload(archive, expected_current="a" * 64, **overrides):
@@ -222,7 +223,8 @@ def test_install_hands_the_exact_verified_bytes_to_the_installed_installer(host)
     archive = b"archive bytes"
     result = server_ci.install(host.config, upload(archive))
     (arguments, staged), = host.calls
-    assert arguments[1:] == (hashlib.sha256(archive).hexdigest(), "saga2d-online", "games.example.test") and staged == archive
+    assert arguments[1:] == (hashlib.sha256(archive).hexdigest(), "saga2d-online", "games.example.test",
+                            "warband.example.test") and staged == archive
     assert result["activated"] == hashlib.sha256(archive).hexdigest()
 
 
@@ -243,7 +245,7 @@ def test_install_refuses_before_the_installer_runs(host, fault):
 
 def test_rollback_names_the_release_it_leaves(host):
     server_ci.rollback(host.config, io.BytesIO(server_rollout.request(**{"from": "a" * 64})))
-    assert host.calls == [(("--rollback", "a" * 64, "saga2d-online", "games.example.test"), None)]
+    assert host.calls == [(("--rollback", "a" * 64, "saga2d-online", "games.example.test", "warband.example.test"), None)]
     for stream in (io.BytesIO(server_rollout.request(**{"from": "a" * 64}) + b"x"),
                    io.BytesIO(server_rollout.request(**{"from": "a" * 64, "to": "b" * 64}))):
         with pytest.raises(ValueError):

@@ -3,12 +3,19 @@
 Tribes, Warband and Shardbound share one authoritative Python room server at
 `wss://games.tachyon-ai.eu/play`. Caddy terminates TLS on port 443 and forwards
 `/play` and `/healthz` to `127.0.0.1:8765`; `/healthz` returns HTTP 200 and
-`ok\n`. The candidate proxy also forwards `/server-compatibility.json` to the
-same running game process, with `Cache-Control: no-store`. This route becomes
-available only after the candidate server is accepted and deployed. Every other
+`ok\n`. The proxy also forwards `/server-compatibility.json`, `/status`,
+`/ratings`, `/leaderboard`, `/players/*` and `/activity` to the
+same running game process, with `Cache-Control: no-store`. Every other
 path is the static games website, served from
 `/srv/saga2d-site/current`, including the release catalog at `/releases.json`
 and invitation links under `/join/`.
+
+The dedicated multiplayer website at `https://warband.tachyon-ai.eu/` shares
+that static release and room server. Its root serves
+`/warband-online/index.html`; shared `/static/`, `/images/` and `/fonts/`
+assets keep their paths. Both hostnames expose the same live API routes.
+`--domain` selects the games hostname and `--warband-domain` selects the
+multiplayer hostname; the defaults are shown above. They must be distinct.
 
 ## First deployment
 
@@ -44,9 +51,12 @@ account and an unprivileged `saga2d-online` runtime account. SSH uses the privat
 key corresponding to `--ssh-key` and records the first host key; changed host
 keys are rejected. Cloud and DNS credentials stay on the laptop.
 
-Deployment creates the `games` A record through GoDaddy using the `GoDaddy DNS`
-section of `~/secrets/infrastructure.md`. A conflicting existing record causes
-an error. Caddy obtains and renews the TLS certificate automatically. Its
+Deployment and `setup-server-ci` create missing `games` and `warband` A records
+at the managed server's IPv4 address through GoDaddy using the `GoDaddy DNS`
+section of `~/secrets/infrastructure.md`. Existing matching addresses are
+unchanged, and unrelated DNS records are preserved. A conflicting A or CNAME
+record causes an error before either hostname is changed. Caddy obtains and
+renews both TLS certificates automatically. Its
 default forwarded-header handling replaces untrusted client values, allowing
 the loopback-only application's `--trusted-proxy` mode to enforce per-client
 limits. No managed load balancer or serverless service is required.
@@ -179,6 +189,24 @@ the account and its trusted host tools (repeat to update them or rotate the key)
 uv run python tools/deploy_online.py setup-server-ci --name saga2d-online \
   --server-public-key ~/secrets/saga-server-ci/id_ed25519.pub
 ```
+
+For the dedicated Warband hostname, publish the static release containing
+`warband-online/index.html`, then run this setup command to install the new
+proxy template, installer and both hostnames in the restricted account's
+configuration. Setup reconciles DNS but leaves the running Caddy configuration
+alone. Dispatch the ordinary server rollout to validate and activate the new
+proxy alongside its accepted server release:
+
+```sh
+gh workflow run server-rollout.yml -R ikamensh/saga-online -f force=true
+```
+
+After acceptance, verify both `/healthz` endpoints, the games home page and
+`https://warband.tachyon-ai.eu/`, plus `/leaderboard?game=warband-v2` and
+`/activity?game=warband-v2&hours=24` on the Warband host. API responses must
+have `Cache-Control: no-store`. Repeating setup with custom hostnames requires
+the same `--domain` and `--warband-domain` flags; future CI activation and
+rollback use that installed configuration.
 
 Setup creates `saga2d-server-ci`: no password, no supplementary groups, a
 root-owned home. Its SSH key has a forced command

@@ -173,6 +173,7 @@ def arguments(argv=None):
     parser.add_argument("--project-name", default="saga2d")
     parser.add_argument("--project-id")
     parser.add_argument("--domain", default="games.tachyon-ai.eu")
+    parser.add_argument("--warband-domain", default="warband.tachyon-ai.eu", help="Dedicated Warband multiplayer website hostname")
     parser.add_argument("--zone", default="fr-par-1")
     parser.add_argument("--secrets-file", type=Path, default=Path.home() / "secrets/scaleway.md")
     parser.add_argument("--key-section", default="saga2d-deploy")
@@ -190,6 +191,8 @@ def arguments(argv=None):
         parser.error("--name must start with saga2d- and contain only lowercase letters, digits or hyphens")
     if not re.fullmatch(r"[a-z0-9]+(?:[.-][a-z0-9]+)+", args.domain):
         parser.error("--domain must be a DNS hostname")
+    if not re.fullmatch(r"[a-z0-9]+(?:[.-][a-z0-9]+)+", args.warband_domain) or args.warband_domain == args.domain:
+        parser.error("--warband-domain must be a DNS hostname distinct from --domain")
     if not re.fullmatch(r"saga2d(?:-[a-z0-9-]+)?", args.project_name):
         parser.error("--project-name must be saga2d or start with saga2d-")
     if not re.fullmatch(r"saga2d-[a-z0-9-]+", args.key_section):
@@ -212,6 +215,8 @@ def deployment_plan(args):
     return {
         "endpoint": f"wss://{args.domain}/play",
         "health": f"https://{args.domain}/healthz",
+        "warband_site": f"https://{args.warband_domain}/",
+        "dns_hosts": [args.domain, args.warband_domain],
         "project": args.project_id or args.project_name,
         "instance": {"name": args.name, "type": "DEV1-S", "zone": args.zone,
                      "root_volume": "sbs:20GB:5000", "ipv4": "reserved"},
@@ -324,7 +329,8 @@ def find_server(api, args, project_id):
 def target_details(args, project_id, server):
     ipv4 = next(ip["address"] for ip in server["public_ips"] if ip["family"] == "inet")
     return {"name": args.name, "project_id": project_id, "server_id": server["id"],
-            "zone": args.zone, "ip": ipv4, "domain": args.domain, "state": server["state"]}
+            "zone": args.zone, "ip": ipv4, "domain": args.domain,
+            "warband_domain": args.warband_domain, "state": server["state"]}
 
 
 def firewall_ports(rules):
@@ -404,20 +410,27 @@ def ssh(args, target, command, *, capture=False):
 
 
 def publish_dns(args, ipv4):
+    """Reconcile only the two A records; refuse every conflict before writing either one."""
     apex = "tachyon-ai.eu"
-    if not args.domain.endswith("." + apex):
+    domains = (args.domain, args.warband_domain)
+    if any(not domain.endswith("." + apex) for domain in domains):
         raise ValueError("Automated DNS deployment supports subdomains of tachyon-ai.eu only")
-    label = args.domain[:-(len(apex) + 1)]
     text = secret_section(args.dns_secrets_file.read_text(), "GoDaddy DNS")
     authorization = "sso-key " + secret_value(text, "GODADDY_KEY") + ":" + secret_value(text, "GODADDY_SECRET")
     base = f"https://api.godaddy.com/v1/domains/{apex}/records"
     request = urllib.request.Request(base, headers={"Authorization": authorization})
     with urllib.request.urlopen(request, timeout=30) as response:
-        records = [r for r in json.load(response) if r["name"] == label]
+        records = json.load(response)
+    missing = []
+    for domain in domains:
+        label = domain[:-(len(apex) + 1)]
+        aliases = [r for r in records if r["name"] == label and r["type"] in ("A", "CNAME")]
+        if aliases and (len(aliases) != 1 or aliases[0]["type"] != "A" or aliases[0]["data"] != ipv4):
+            raise RuntimeError(f"Existing DNS record for {domain} differs; it was not overwritten")
+        if not aliases:
+            missing.append(label)
     desired = [{"data": ipv4, "ttl": 600}]
-    if records and (len(records) != 1 or records[0]["type"] != "A" or records[0]["data"] != ipv4):
-        raise RuntimeError(f"Existing DNS record for {args.domain} differs; it was not overwritten")
-    if not records:
+    for label in missing:
         request = urllib.request.Request(base + "/A/" + urllib.parse.quote(label, safe=""),
             method="PUT", data=json.dumps(desired).encode(),
             headers={"Authorization": authorization, "Content-Type": "application/json"})
@@ -466,7 +479,7 @@ def deploy(args):
     staging = upload(args, target, package)
     publish_dns(args, target["ip"])
     ssh(args, target, ["sudo", "bash", staging + "/deploy/install.sh", staging,
-                       package["release"], args.name, args.domain])
+                       package["release"], args.name, args.domain, args.warband_domain])
     ssh(args, target, ["rm", "-rf", "--", staging])
     deadline = time.monotonic() + 300
     while True:
@@ -519,8 +532,10 @@ def setup_server_ci(args):
     package = package_server_ci(args.server_public_key, args.output)
     target = running_target(args)
     staging = upload(args, target, package)
+    publish_dns(args, target["ip"])
     result = ssh(args, target, ["sudo", "python3", "-B", staging + "/install_server_ci.py", "--instance", args.name,
-                               "--domain", args.domain, "--public-key", staging + "/server-ci.pub"], capture=True)
+                               "--domain", args.domain, "--warband-domain", args.warband_domain,
+                               "--public-key", staging + "/server-ci.pub"], capture=True)
     installed = json.loads(result.stdout)
     ssh(args, target, ["sudo", "systemctl", "reload", "ssh"])
     ssh(args, target, ["rm", "-rf", "--", staging])
